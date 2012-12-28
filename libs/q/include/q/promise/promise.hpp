@@ -161,7 +161,7 @@ public:
 	 *   * then( tuple< T... > ) -> X... => generic_promise< X... >
 	 *
 	 *   * fail( E ) -> void // Can not be continued (except for done())
-	 *   * fail( E ) -> generic_promise< tuple< T... > >
+	 *   * fail( E ) -> generic_promise< T... >
 	 *                  // Can be continued, suitable for "retry" flow
 	 *
 	 *   * done( ) -> void
@@ -616,7 +616,7 @@ public:
 	 * or the exception immediately ("synchronously").
 	 *
 	 * Technically:
-	 *   promise< tuple< T... > > -> promise< expect< tuple< T... > > >
+	 *   promise< T... > -> promise< expect< tuple< T... > > >
 	 *
 	 * This is useful e.g. to collect a set of promises where some might
 	 * have been resolved and some rejected. The reflected value, i.e. the
@@ -633,10 +633,10 @@ public:
 	 *
 	 * Technically:
 	 *
-	 *   For a promise< tuple< > > or promise< tuple< T > >:
-	 *     promise< tuple< T/nothing > > -> promise< expect< T/nothing > >
+	 *   For a promise< > or promise< T >:
+	 *     promise< T/nothing > -> promise< expect< T/nothing > >
 	 *
-	 *   For a promise< tuple< T1, T2... > >:
+	 *   For a promise< T1, T2... >:
 	 *     Same as reflect_tuple( )
 	 */
 	template< bool Simplified = sizeof...( Args ) < 2 >

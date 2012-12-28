@@ -163,9 +163,9 @@ void benchmark_q_function( std::size_t iterations, std::string impl )
 template< typename Start, typename Stop >
 void benchmark_queueing_and_scheduling( Start&& start, Stop&& stop, bool parallel, q::queue_ptr queue, std::size_t iterations )
 {
-	q::shared_promise< std::tuple< int > > promise = q::with( queue, 0 ).share( );
-	std::vector< q::promise< std::tuple< int > > > waitable;
-	q::promise< std::tuple< int > > serial_promise = q::with( queue, 0 );
+	q::shared_promise< int > promise = q::with( queue, 0 ).share( );
+	std::vector< q::promise< int > > waitable;
+	q::promise< int > serial_promise = q::with( queue, 0 );
 	waitable.reserve( iterations );
 
 	q::timer::duration_type total_dur( 0 );
