@@ -79,16 +79,16 @@ Installation
 
 q uses CMake to generate build scripts.
 
-For Linux
+Using Makefiles (for multiple platforms)
 ```sh
 git clone git@github.com:grantila/q.git
 cd q
-cmake -G "Unix Makefiles" ; make
+./build.sh
 ```
 
-For Linux
+For Xcode
 ```sh
 git clone git@github.com:grantila/q.git
 cd q
-cmake -G Xcode ; open q.xcodeproj
+BUILDTYPE=Xcode ./build.sh ; open obj/q.xcodeproj
 ```
