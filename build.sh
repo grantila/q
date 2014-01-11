@@ -1,14 +1,29 @@
 
-mkdir obj
-cd obj
+CORES=$(grep -c ^processor /proc/cpuinfo 2>/dev/null || sysctl -n hw.ncpu)
 
 if [ "a$BUILDTYPE" == "a" ]; then
 	if [ `uname -s` == Linux ]; then
-		BUILDTYPE=Unix Makefiles
+		BUILDTYPE="Unix Makefiles"
 	elif [ `uname -s` == Darwin ]; then
 		BUILDTYPE=Xcode
 	fi
 fi
 
-cmake -G "$BUILDTYPE" ..
+mkdir obj
+cd obj
+
+if [ "$BUILDTYPE" == "Unix Makefiles" ]; then
+	# Create 4 different makefiles (each in a separate directory)
+	mkdir release;        cd release ;        cmake -G "$BUILDTYPE" -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON  ../.. ; cd ..
+	mkdir debug;          cd debug ;          cmake -G "$BUILDTYPE" -DCMAKE_BUILD_TYPE=Debug   -DBUILD_SHARED_LIBS=ON  ../.. ; cd ..
+	mkdir release-static; cd release-static ; cmake -G "$BUILDTYPE" -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF ../.. ; cd ..
+	mkdir debug-static;   cd debug-static ;   cmake -G "$BUILDTYPE" -DCMAKE_BUILD_TYPE=Debug   -DBUILD_SHARED_LIBS=OFF ../.. ; cd ..
+
+	cd release        ; make -j$CORES ; cd ..
+	cd debug          ; make -j$CORES ; cd ..
+	cd release-static ; make -j$CORES ; cd ..
+	cd debug-static   ; make -j$CORES ; cd ..
+elif [ "$BUILDTYPE" == "Xcode" ]; then
+	cmake -G "$BUILDTYPE" ..
+fi
 

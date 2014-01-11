@@ -5,7 +5,9 @@ project( q )
 
 include( "cmake/projects.cmake" )
 
-set( CMAKE_CXX_FLAGS_DEBUG "-g" )
+set( CMAKE_DEBUG_POSTFIX "d" )
+
+set( CMAKE_CXX_FLAGS "-g" )
 set( CMAKE_CXX_FLAGS_RELEASE "-O2" )
 
 add_definitions( "-Wall" )
