@@ -5,7 +5,9 @@ project( q )
 
 include( "cmake/projects.cmake" )
 
-add_definitions( "-g" )
+set( CMAKE_CXX_FLAGS_DEBUG "-g" )
+set( CMAKE_CXX_FLAGS_RELEASE "-O2" )
+
 add_definitions( "-Wall" )
 add_definitions( "-std=c++11" )
 if ( NOT CMAKE_COMPILER_IS_GNUCXX )
