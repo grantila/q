@@ -33,7 +33,7 @@ Asynchronous tasks
 
 The following example shows how q can be used for networking.
 ```c++
-q::promise< std::tuple< std::string > > read_message_from_someone()
+q::promise< std::tuple< std::string, std::string > > read_message_from_someone()
 {
     return connect_to_server( )
     .then( [ ]( connection& c )
@@ -51,7 +51,7 @@ read_message_from_someone( )
 } )
 .fail( [ ]( const ConnectionException& e )
 {
-    td::cerr << "Connection probleme: " << e << std::endl;
+    td::cerr << "Connection problem: " << e << std::endl;
 } )
 .fail( [ ]( std::exception_ptr e )
 {
