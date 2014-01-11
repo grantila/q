@@ -45,7 +45,8 @@ q::promise< std::tuple< std::string > > read_message_from_someone()
 ...
 
 read_message_from_someone( )
-.then( [ ]( std::string&& username, std::string&& msg ) {
+.then( [ ]( std::string&& username, std::string&& msg )
+{
     std::cout << "User " << username << " says: " << msg << std::endl;
 } )
 .fail( [ ]( const ConnectionException& e )
@@ -80,14 +81,14 @@ q uses CMake to generate build scripts.
 
 For Linux
 ```sh
-git clone [git-repo-url] q
+git clone git@github.com:grantila/q.git
 cd q
 cmake -G "Unix Makefiles" ; make
 ```
 
 For Linux
 ```sh
-git clone [git-repo-url] q
+git clone git@github.com:grantila/q.git
 cd q
 cmake -G Xcode ; open q.xcodeproj
 ```
