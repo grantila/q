@@ -19,6 +19,7 @@ add_definitions( "-Wno-comment" )
 include_directories( "libs/q/include" )
 
 add_subdirectory( "libs/q" )
+add_subdirectory( "libs/p" )
 
 add_subdirectory( "progs/playground" )
 
