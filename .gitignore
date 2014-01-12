@@ -14,7 +14,7 @@ Debug
 
 a.out*
 then.xcodeproj
-test*
+test[^s]
 .depend
 
 *.build

@@ -26,3 +26,8 @@ add_subdirectory( "libs/q" )
 
 add_subdirectory( "progs/playground" )
 
+include_directories( "3rdparty/gmock-1.7.0/gtest/include/" )
+include_directories( "3rdparty/gmock-1.7.0/include/" )
+add_subdirectory( "3rdparty/gmock-1.7.0" )
+
+add_subdirectory( "tests/q" )
