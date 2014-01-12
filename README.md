@@ -73,6 +73,24 @@ object->terminate( )
 } );
 ```
 
+Using threads without locks
+---------------------------
+
+Running a function on a newly created thread, "waiting" (asynchronously) for the function to complete, and then using the result in a function scheduled on another thread (or the main thread). Note that we don't need mutexes or semaphores.
+
+```c++
+q::run( "thread name", [ ]( )
+{
+    // Thread function which can perform heavy tasks
+    return sort_strings( ); // Returns a vector of strings
+} )
+.then( [ ]( std::vector< std::string >&& strings )
+{
+    // The result from the thread function is *moved* to this function
+    std::cout << strings.size( ) << " strings are now sorted" << std::endl;
+} );
+```
+
 
 Installation
 ============
