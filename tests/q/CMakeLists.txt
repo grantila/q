@@ -6,7 +6,4 @@ include_directories( "3rdparty/gmock-1.7.0/include" )
 
 add_executable( q-test ${LIBQ_TEST_SOURCES} ${LIBQ_TEST_SOURCES} )
 target_link_libraries( q-test q gmock_main ${CXXLIB} pthread dl )
-<<<<<<< HEAD
-=======
 
->>>>>>> 700a46f62b4bfa5ebd9aab09928e04c78cd66eb2
