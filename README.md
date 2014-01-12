@@ -51,11 +51,11 @@ read_message_from_someone( )
 } )
 .fail( [ ]( const ConnectionException& e )
 {
-    td::cerr << "Connection problem: " << e << std::endl;
+    std::cerr << "Connection problem: " << e << std::endl;
 } )
 .fail( [ ]( std::exception_ptr e )
 {
-    td::cerr << "Unknown error" << std::endl;
+    std::cerr << "Unknown error" << std::endl;
 } );
 ```
 
@@ -84,6 +84,7 @@ q::run( "thread name", [ ]( )
     // Thread function which can perform heavy tasks
     return sort_strings( ); // Returns a vector of strings
 } )
+->terminate( ) // Will not really terminate, but rather await completion
 .then( [ ]( std::vector< std::string >&& strings )
 {
     // The result from the thread function is *moved* to this function
