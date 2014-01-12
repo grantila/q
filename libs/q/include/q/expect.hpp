@@ -18,10 +18,13 @@
 #define LIBQ_EXPECT_HPP
 
 #include <q/type_traits.hpp>
+#include <q/exception.hpp>
 
 #include <utility>
 
 namespace q {
+
+Q_MAKE_SIMPLE_EXCEPTION( invalid_exception_exception );
 
 namespace detail {
 
@@ -30,7 +33,7 @@ class expect_exception
 public:
 	bool has_exception( ) const
 	{
-		return e_ != std::exception_ptr();
+		return e_ != std::exception_ptr( );
 	}
 
 	std::exception_ptr exception( ) const
@@ -46,16 +49,20 @@ public:
 
 protected:
 	expect_exception( )
+	: e_( std::exception_ptr( ) )
 	{ }
 
 	expect_exception( std::exception_ptr&& e )
 	{
 		std::swap( e_, e );
+		ensure_exception( );
 	}
 
 	expect_exception( const std::exception_ptr& e )
 	: e_( e )
-	{ }
+	{
+		ensure_exception( );
+	}
 
 	expect_exception( expect_exception&& ref )
 	{
@@ -70,6 +77,12 @@ protected:
 	}
 	expect_exception& operator=( const expect_exception& ) = default;
 
+	void ensure_exception( ) const
+	{
+		if ( !e_ )
+			Q_THROW( invalid_exception_exception( ) );
+	}
+
 	std::exception_ptr e_;
 };
 
@@ -80,7 +93,8 @@ template<
 		(
 			::q::is_nothrow_copy_constructible< T >::value ||
 			!::q::is_copy_constructible< T >::value
-		)
+		) &&
+		::q::is_movable< T >::value
 >
 class expect_value
 {
@@ -179,7 +193,7 @@ class expect_value< std::exception_ptr >
 {
 protected:
 	expect_value( )
-	: t_( nullptr )
+	: t_( )
 	{ }
 
 	expect_value( std::exception_ptr&& t )
@@ -213,26 +227,27 @@ protected:
 
 template<
 	typename T,
-	bool CopyConstructible = ::q::is_copy_constructible< T >::value
+	bool CopyConstructible = ::q::is_copy_constructible< T >::value,
+	bool MoveConstructible = ::q::is_movable< T >::value
 >
-class expect
+class expect // copyable & movable
 : public detail::expect_exception
 , private detail::expect_value< T >
 {
 	typedef detail::expect_value< T > base;
 
 public:
-	typedef expect< T, CopyConstructible > self_type;
+	typedef expect< T, CopyConstructible, MoveConstructible > self_type;
 
 	expect( ) = default;
 
 	expect( T&& t )
-	: detail::expect_exception( nullptr )
+	: detail::expect_exception( )
 	, base( std::move( t ) )
 	{ }
 
 	expect( const T& t )
-	: detail::expect_exception( nullptr )
+	: detail::expect_exception( )
 	, base( t )
 	{ }
 
@@ -264,26 +279,23 @@ public:
 };
 
 template< typename T >
-class expect< T, false >
+class expect< T, false, true > // movable
 : public detail::expect_exception
 , private detail::expect_value< T >
 {
 	typedef detail::expect_value< T > base;
 
 public:
-	typedef expect< T, false > self_type;
+	typedef expect< T, false, true > self_type;
 
 	expect( ) = default;
 
 	expect( T&& t )
-	: detail::expect_exception( nullptr )
+	: detail::expect_exception( )
 	, base( std::move( t ) )
 	{ }
 
-	expect( const T& t )
-	: detail::expect_exception( nullptr )
-	, base( t )
-	{ }
+	expect( const T& t ) = delete;
 
 	explicit expect( std::exception_ptr&& e )
 	: detail::expect_exception( std::move( e ) )
@@ -312,8 +324,58 @@ public:
 	}
 };
 
+template< typename T >
+class expect< T, true, false > // copyable, not movable
+: public detail::expect_exception
+, private detail::expect_value< T >
+{
+	typedef detail::expect_value< T > base;
+
+public:
+	typedef expect< T, true, false > self_type;
+
+	expect( ) = default;
+
+	expect( T&& t )
+	: detail::expect_exception( )
+	, base( t )
+	{ }
+
+	expect( const T& t )
+	: detail::expect_exception( )
+	, base( t )
+	{ }
+
+	explicit expect( std::exception_ptr&& e )
+	: detail::expect_exception( std::move( e ) )
+	{ }
+
+	explicit expect( const std::exception_ptr& e )
+	: detail::expect_exception( e )
+	{ }
+
+	expect( self_type&& ) = default;
+	expect( const self_type& ) = default;
+
+	self_type& operator=( self_type&& ) = default;
+	self_type& operator=( const self_type& ) = default;
+
+	const T& get( ) const
+	{
+		rethrow_on_exception( );
+		return base::_get( );
+	}
+
+	T consume( )
+	{
+		rethrow_on_exception( );
+		return base::_get( );
+	}
+};
+
+
 template< >
-class expect< void, false >
+class expect< void, false, false >
 : public detail::expect_exception
 , private detail::expect_value< void >
 {
@@ -321,7 +383,7 @@ class expect< void, false >
 
 public:
 	expect( )
-	: detail::expect_exception( nullptr )
+	: detail::expect_exception( )
 	{ }
 
 	explicit expect( std::exception_ptr&& e )
@@ -333,7 +395,7 @@ public:
 	{ }
 
 	expect( expect< void, false >&& ) = default;
-	expect( const expect< void, false >& ) = delete;
+	expect( const expect< void, false >& ) = default;
 
 	expect& operator=( expect< void, false >&& ) = default;
 	expect& operator=( const expect< void, false >& ) = default;
@@ -352,7 +414,7 @@ public:
 };
 
 template< >
-class expect< std::exception_ptr, true >
+class expect< std::exception_ptr, true, true >
 : public detail::expect_exception
 , private detail::expect_value< std::exception_ptr >
 {
@@ -362,14 +424,34 @@ public:
 	expect( ) = default;
 
 	expect( std::exception_ptr&& t, bool expected )
-	: detail::expect_exception( expected ? std::move( t ) : nullptr )
-	, base( expected ? nullptr : std::move( t ) )
-	{ }
+	: detail::expect_exception( )
+	, base( )
+	{
+		if ( expected )
+		{
+			t_ = std::move( t );
+		}
+		else
+		{
+			e_ = std::move( t );
+			ensure_exception( );
+		}
+	}
 
 	expect( const std::exception_ptr& t, bool expected )
-	: detail::expect_exception( expected ? t : nullptr )
-	, base( expected ? nullptr : t )
-	{ }
+	: detail::expect_exception( )
+	, base( )
+	{
+		if ( expected )
+		{
+			t_ = t;
+		}
+		else
+		{
+			e_ = t;
+			ensure_exception( );
+		}
+	}
 
 	expect( expect< std::exception_ptr >&& ) = default;
 	expect( const expect< std::exception_ptr >& ) = default;
@@ -439,9 +521,9 @@ typename std::enable_if<
 	is_same_type< std::exception_ptr, T >::value,
 	expect< T >
 >::type
-refuse( std::exception_ptr e )
+refuse( E&& e )
 {
-	return expect< T >( std::forward< E >( e ), true );
+	return expect< T >( std::forward< E >( e ), false );
 }
 
 } // namespace q
