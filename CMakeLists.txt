@@ -31,3 +31,7 @@ include_directories( "3rdparty/gmock-1.7.0/include/" )
 add_subdirectory( "3rdparty/gmock-1.7.0" )
 
 add_subdirectory( "tests/q" )
+<<<<<<< HEAD
+=======
+
+>>>>>>> 700a46f62b4bfa5ebd9aab09928e04c78cd66eb2
