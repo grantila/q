@@ -25,6 +25,7 @@ include_directories( "libs/q/include" )
 add_subdirectory( "libs/q" )
 
 add_subdirectory( "progs/playground" )
+add_subdirectory( "progs/benchmark" )
 
 include_directories( "3rdparty/gmock-1.7.0/gtest/include/" )
 include_directories( "3rdparty/gmock-1.7.0/include/" )
