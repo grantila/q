@@ -40,7 +40,7 @@ struct merge_promise_arguments< First, Rest... >
 >::type
 { };
 
-template< typename T, bool B = is_promise< T >::value >
+template< typename T, bool B = is_promise< typename std::decay< T >::type >::value >
 struct argument_types_if_promise
 {
 	typedef typename std::decay< T >::type::argument_types types;

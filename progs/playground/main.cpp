@@ -310,7 +310,7 @@ int main( int argc, char** argv )
 	.then( [ bd ]( )
 	{
 		//    return bd->terminate( q::event_dispatcher::termination::linger );
-		return bd->terminate( q::event_dispatcher::termination::annihilate );
+		return bd->terminate( q::termination::annihilate );
 	} )
 	;
 
@@ -457,7 +457,7 @@ int main( int argc, char** argv )
 	} )
 	.then( [ bd ]( )
 	{
-		return bd->terminate( q::event_dispatcher::termination::linger );
+		return bd->terminate( q::termination::linger );
 	} )
 	/* */
 	;
