@@ -40,9 +40,22 @@ struct merge_promise_arguments< First, Rest... >
 >::type
 { };
 
+template< typename T, bool B = is_promise< T >::value >
+struct argument_types_if_promise
+{
+	typedef typename std::decay< T >::type::argument_types types;
+};
+
+template< typename T >
+struct argument_types_if_promise< T, false >
+{
+	typedef struct { } types;
+};
+
 template< typename Only >
 struct merge_promise_arguments< Only >
-: std::decay< Only >::type::argument_types
+	: argument_types_if_promise< Only >::types
+// : std::decay< Only >::type::argument_types
 { };
 
 template< >
@@ -103,6 +116,49 @@ all( First&& first, Rest&&... rest )
 	} );
 }
 
+
+namespace detail {
+
+template<
+	typename List,
+	std::size_t TupleSize = std::tuple_size<
+		typename std::decay< List >::type::value_type::tuple_type
+	>::value
+>
+struct all_return_type
+{
+	typedef std::tuple<
+		std::vector<
+			typename std::decay<
+				List
+			>::type::value_type::tuple_type
+		>
+	> tuple_type;
+};
+
+template< typename List >
+struct all_return_type< List, 1 >
+{
+	typedef std::tuple<
+		std::vector<
+			typename std::tuple_element<
+				0,
+				typename std::decay<
+					List
+				>::type::value_type::tuple_type
+			>::type
+		>
+	> tuple_type;
+};
+
+template< typename List >
+struct all_return_type< List, 0 >
+{
+	typedef std::tuple< > tuple_type;
+};
+
+} // namespace detail
+
 /**
  * Combines a std::vector of promises (of the same type) into one promise
  * which resolves to a std::vector of the combined result types, in order.
@@ -120,13 +176,7 @@ typename std::enable_if<
 	( std::tuple_size<
 		typename std::decay< List >::type::value_type::tuple_type
 	>::value >= 2 ),
-	promise<
-		std::tuple<
-			std::vector<
-				typename std::decay< List >::type::value_type::tuple_type
-			>
-		>
-	>
+	promise< typename detail::all_return_type< List >::tuple_type >
 >::type
 all( List&& list )
 {
@@ -137,7 +187,7 @@ all( List&& list )
 	typedef std::vector< expect_type >                 expect_return_type;
 	typedef combined_promise_exception< element_type > exception_type;
 
-	auto deferred = detail::defer< return_type >::make( );
+	auto deferred = ::q::make_shared< detail::defer< return_type > >( );
 
 	std::size_t num = list.size( );
 	auto expect_returns = std::make_shared< expect_return_type >( num );
@@ -212,14 +262,7 @@ typename std::enable_if<
 	std::tuple_size<
 		typename std::decay< List >::type::value_type::tuple_type
 	>::value == 1,
-	promise< std::tuple< std::vector<
-		typename std::tuple_element<
-			0,
-			typename std::decay<
-				List
-			>::type::value_type::tuple_type
-		>::type
-	> > >
+	promise< typename detail::all_return_type< List >::tuple_type >
 >::type
 all( List&& list )
 {
@@ -231,7 +274,7 @@ all( List&& list )
 	typedef std::vector< expect_type >                         expect_return_type;
 	typedef combined_promise_exception< element_type >         exception_type;
 
-	auto deferred = detail::defer< return_type >::make( );
+	auto deferred = ::q::make_shared< detail::defer< return_type > >( );
 
 	std::size_t num = list.size( );
 	auto expect_returns = std::make_shared< expect_return_type >( num );
@@ -301,12 +344,12 @@ all( List&& list )
 
 template< typename List >
 typename std::enable_if<
-	is_vector< List >::value &&
+	is_vector< typename std::decay< List >::type >::value &&
 	is_promise< typename std::decay< List >::type::value_type >::value &&
 	std::tuple_size<
 		typename std::decay< List >::type::value_type::tuple_type
 	>::value == 0,
-	promise< std::tuple< > >
+	promise< typename detail::all_return_type< List >::tuple_type >
 >::type
 all( List&& list )
 {

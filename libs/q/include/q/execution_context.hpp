@@ -14,40 +14,42 @@
  * limitations under the License.
  */
 
-#ifndef LIBQ_BLOCKING_DISPATCHER_HPP
-#define LIBQ_BLOCKING_DISPATCHER_HPP
+#ifndef LIBQ_EXECUTION_CONTEXT_HPP
+#define LIBQ_EXECUTION_CONTEXT_HPP
 
+#include <q/types.hpp>
 #include <q/event_dispatcher.hpp>
-#include <q/thread.hpp>
+
+#include <memory>
 
 namespace q {
 
-class blocking_dispatcher
-: public event_dispatcher< q::arguments< termination > >
-, public std::enable_shared_from_this< blocking_dispatcher >
+class execution_context;
+typedef std::shared_ptr< execution_context > execution_context_ptr;
+
+class execution_context
 {
 public:
-	~blocking_dispatcher( );
+	~execution_context( );
 
-	void add_task( task task ) override;
-
-	void start( );
-
-	std::size_t backlog( ) const { return 0; }
+	queue_ptr queue( );
 
 protected:
-	blocking_dispatcher( const std::string& name );
-	blocking_dispatcher( )
-	: blocking_dispatcher( "" )
-	{ }
+	execution_context( event_dispatcher_ptr ed );
 
 private:
-	void do_terminate( termination term ) override;
-
 	struct pimpl;
 	std::unique_ptr< pimpl > pimpl_;
 };
 
+template< typename EventDispatcher, typename... Args >
+execution_context_ptr make_execution_context( Args&&... args )
+{
+	auto ed = q::make_shared< EventDispatcher >(
+		std::forward< Args >( args )... );
+	return q::make_shared< execution_context >( ed );
+}
+
 } // namespace q
 
-#endif // LIBQ_BLOCKING_DISPATCHER_HPP
+#endif // LIBQ_EXECUTION_CONTEXT_HPP

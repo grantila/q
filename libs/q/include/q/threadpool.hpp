@@ -17,15 +17,13 @@
 #ifndef LIBQ_THREADPOOL_HPP
 #define LIBQ_THREADPOOL_HPP
 
-#include <q/async_termination.hpp>
 #include <q/event_dispatcher.hpp>
 #include <q/thread.hpp>
 
 namespace q {
 
 class threadpool
-: public event_dispatcher
-, public async_termination< >
+: public event_dispatcher< >
 , public std::enable_shared_from_this< threadpool >
 {
 public:
