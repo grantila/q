@@ -17,13 +17,9 @@ void print_timer( std::ostream& os, q::timer::duration_type dur, std::size_t den
 	double partdur = float_ns / denominator;
 
 	os
-		<< std::fixed
-		<< std::setprecision( 0 )
-		<< partdur
-		<< "ns (i.e. "
-		<< std::setprecision( 0 )
-		<< ( 1000.0 * 1000.0 * 1000.0 ) / partdur
-		<< "/s)"
+		<< std::fixed << std::setprecision( 0 )
+		<< partdur << "ns (i.e. "
+		<< ( 1000.0 * 1000.0 * 1000.0 ) / partdur << "/s)"
 		<< std::endl;
 }
 
@@ -179,9 +175,9 @@ void benchmark_tasks_on_threadpool( std::size_t iterations, bool parallel )
 	{
 		return bd2->terminate( q::termination::linger )
 		.then( [ tp ]( )
-		      {
-			      return tp->terminate( );
-		      });
+		{
+			return tp->terminate( );
+		});
 	};
 
 	std::string in_parallel;

@@ -24,6 +24,25 @@
 
 namespace q {
 
+namespace detail {
+
+template<
+	typename T,
+	bool B = is_promise< typename std::decay< T >::type >::value
+>
+struct argument_types_if_promise
+{
+	typedef typename std::decay< T >::type::argument_types types;
+};
+
+template< typename T >
+struct argument_types_if_promise< T, false >
+{
+	typedef struct { } types;
+};
+
+} // namespace detail
+
 template< typename... Promises >
 struct merge_promise_arguments;
 
@@ -40,22 +59,9 @@ struct merge_promise_arguments< First, Rest... >
 >::type
 { };
 
-template< typename T, bool B = is_promise< typename std::decay< T >::type >::value >
-struct argument_types_if_promise
-{
-	typedef typename std::decay< T >::type::argument_types types;
-};
-
-template< typename T >
-struct argument_types_if_promise< T, false >
-{
-	typedef struct { } types;
-};
-
 template< typename Only >
 struct merge_promise_arguments< Only >
-	: argument_types_if_promise< Only >::types
-// : std::decay< Only >::type::argument_types
+: detail::argument_types_if_promise< Only >::types
 { };
 
 template< >
