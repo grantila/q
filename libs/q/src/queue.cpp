@@ -41,28 +41,70 @@ struct queues
 
 queue_ptr main_queue( )
 {
+#	ifdef NO_ATOMIC_SHARED_PTR_SUPPORT
+	static mutex mut;
+	Q_AUTO_UNIQUE_LOCK( mut );
+	return static_atomic< queues >( )->main_queue_;
+#	else
 	return std::atomic_load( &static_atomic< queues >( )->main_queue_ );
+#	endif
 }
 queue_ptr background_queue( )
 {
+#	ifdef NO_ATOMIC_SHARED_PTR_SUPPORT
+	static mutex mut;
+	Q_AUTO_UNIQUE_LOCK( mut );
+	return static_atomic< queues >( )->background_queue_;
+#	else
 	return std::atomic_load( &static_atomic< queues >( )->background_queue_ );
+#	endif
 }
 queue_ptr default_queue( )
 {
+#	ifdef NO_ATOMIC_SHARED_PTR_SUPPORT
+	static mutex mut;
+	Q_AUTO_UNIQUE_LOCK( mut );
+	return static_atomic< queues >( )->default_queue_;
+#	else
 	return std::atomic_load( &static_atomic< queues >( )->default_queue_ );
+#	endif
 }
 
 queue_ptr set_main_queue( queue_ptr queue )
 {
+#	ifdef NO_ATOMIC_SHARED_PTR_SUPPORT
+	static mutex mut;
+	Q_AUTO_UNIQUE_LOCK( mut );
+	queue_ptr prev = static_atomic< queues >( )->main_queue_;
+	static_atomic< queues >( )->main_queue_ = queue;
+	return prev;
+#	else
 	return std::atomic_exchange( &static_atomic< queues >( )->main_queue_, queue );
+#	endif
 }
 queue_ptr set_background_queue( queue_ptr queue )
 {
+#	ifdef NO_ATOMIC_SHARED_PTR_SUPPORT
+	static mutex mut;
+	Q_AUTO_UNIQUE_LOCK( mut );
+	queue_ptr prev = static_atomic< queues >( )->default_queue_;
+	static_atomic< queues >( )->default_queue_ = queue;
+	return prev;
+#	else
 	return std::atomic_exchange( &static_atomic< queues >( )->background_queue_, queue );
+#	endif
 }
 queue_ptr set_default_queue( queue_ptr queue )
 {
+#	ifdef NO_ATOMIC_SHARED_PTR_SUPPORT
+	static mutex mut;
+	Q_AUTO_UNIQUE_LOCK( mut );
+	queue_ptr prev = static_atomic< queues >( )->default_queue_;
+	static_atomic< queues >( )->default_queue_ = queue;
+	return prev;
+#	else
 	return std::atomic_exchange( &static_atomic< queues >( )->default_queue_, queue );
+#	endif
 }
 
 

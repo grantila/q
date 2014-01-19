@@ -22,6 +22,10 @@
 #include <atomic>
 #include <memory>
 
+#if defined( __GNUC__ ) && __GNUC_VERSION__ < 40900
+#	define NO_ATOMIC_SHARED_PTR_SUPPORT
+#endif
+
 namespace q {
 
 /**
@@ -36,6 +40,12 @@ template< typename T > std::shared_ptr< T > static_atomic( )
 	static mutex state_mutex_;
 	static std::shared_ptr< T > state_;
 
+#	ifdef NO_ATOMIC_SHARED_PTR_SUPPORT
+	Q_AUTO_UNIQUE_LOCK( state_mutex_ );
+	if ( !state_ )
+		state_ = std::make_shared< T >( );
+	return state_;
+#	else
 	auto s = std::atomic_load( &state_ );
 
 	if ( !s )
@@ -53,6 +63,7 @@ template< typename T > std::shared_ptr< T > static_atomic( )
 	}
 
 	return s;
+#	endif
 }
 
 } // namespace q
