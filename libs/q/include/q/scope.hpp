@@ -61,6 +61,9 @@ public:
 	~scope( )
 	{ }
 
+	scope& operator=( scope&& ) = default;
+	scope& operator=( const scope& ) = delete;
+
 private:
 	detail::holder_ptr holder_;
 };
@@ -78,30 +81,32 @@ make_scope( T&& t )
 	return scope( std::move( deleter ) );
 }
 
-template< typename Fn >
 class scoped_function
 {
 public:
+	typedef std::function< void( ) > function_type;
+
 	scoped_function( ) = delete;
-	scoped_function( scoped_function< Fn >&& ) = default;
-	scoped_function( const scoped_function< Fn >& ) = delete;
+	scoped_function( scoped_function&& ref )
+	{
+		ref.fn_.swap( fn_ );
+	}
+	scoped_function( const scoped_function& ) = delete;
 
+	template< typename Fn >
 	scoped_function( Fn&& fn )
-	: fn_( std::move( fn ) )
-	{ }
-
-	scoped_function( const Fn& fn )
-	: fn_( fn )
+	: fn_( std::forward< Fn >( fn ) )
 	{ }
 
 	~scoped_function( )
 	{
 		// TODO: Handle uncaught exceptions here
-		fn_( );
+		if ( fn_ )
+			fn_( );
 	}
 
 private:
-	Fn fn_;
+	function_type fn_;
 };
 
 namespace detail {
@@ -124,11 +129,7 @@ typename std::enable_if<
 >::type
 make_scoped_function( Fn&& fn )
 {
-	return make_scope(
-		scoped_function<
-			typename detail::decayed_function< Fn >::type
-		>( std::forward< Fn >( fn ) )
-	);
+	return make_scope( scoped_function( std::forward< Fn >( fn ) ) );
 }
 
 } // namespace q

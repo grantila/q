@@ -18,7 +18,9 @@
 #define LIBQ_EXECUTION_CONTEXT_HPP
 
 #include <q/types.hpp>
+#include <q/type_traits.hpp>
 #include <q/event_dispatcher.hpp>
+#include <q/blocking_dispatcher.hpp>
 
 #include <memory>
 
@@ -42,12 +44,32 @@ private:
 	std::unique_ptr< pimpl > pimpl_;
 };
 
+template< typename Dispatcher >
+class specific_execution_context
+: public execution_context
+{
+public:
+	std::shared_ptr< Dispatcher > impl( )
+	{
+		return ed_;
+	}
+
+protected:
+	specific_execution_context( std::shared_ptr< Dispatcher > ed )
+	: execution_context( ed )
+	, ed_( ed )
+	{ }
+
+	std::shared_ptr< Dispatcher > ed_;
+};
+
 template< typename EventDispatcher, typename... Args >
-execution_context_ptr make_execution_context( Args&&... args )
+std::shared_ptr< specific_execution_context< EventDispatcher > >
+make_execution_context( Args&&... args )
 {
 	auto ed = q::make_shared< EventDispatcher >(
 		std::forward< Args >( args )... );
-	return q::make_shared< execution_context >( ed );
+	return q::make_shared< specific_execution_context< EventDispatcher > >( ed );
 }
 
 } // namespace q
