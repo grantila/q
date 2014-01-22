@@ -257,20 +257,17 @@ int main( int argc, char** argv )
 		thread_stuff = thread_stuff
 		.then( [ t ]( ) mutable
 		{
-			return t->terminate( );
+			return t->async_join( );
 		} )
-		.then( [ ]( q::expect< std::string >&& ret )
+		.then( [ ]( std::string&& ret )
 		{
-			std::cerr << "thread terminated ";
-			if ( ret.has_exception( ) )
-				std::cerr
-					<< "with exception: "
-					<< q::stream_exception( ret.exception( ) )
-					<< std::endl;
-			else
-				std::cerr
-					<< "successfully: "
-					<< ret.consume( ) << std::endl;
+			std::cerr << "thread terminated successfully: "
+				<< ret << std::endl;
+		} )
+		.fail( [ ]( std::exception_ptr&& e )
+		{
+			std::cerr << "thread terminated with exception: "
+				<< q::stream_exception( e ) << std::endl;
 		} );
 	}
 

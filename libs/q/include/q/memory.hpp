@@ -46,7 +46,12 @@ struct has_custom_static_construct
 	typedef decltype( test_templated< T, Args... >( nullptr ) ) templated;
 };
 
-}
+template< typename T >
+struct has_custom_static_construct< T, void >
+: has_custom_static_construct< T >
+{ };
+
+} // namespace detail
 
 /**
  * Constructor wrapper for classes with enable_shared_from_this i.e. they have

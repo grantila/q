@@ -237,6 +237,7 @@ class expect // copyable & movable
 	typedef detail::expect_value< T > base;
 
 public:
+	typedef T value_type;
 	typedef expect< T, CopyConstructible, MoveConstructible > self_type;
 
 	expect( ) = default;
@@ -286,6 +287,7 @@ class expect< T, false, true > // movable
 	typedef detail::expect_value< T > base;
 
 public:
+	typedef T value_type;
 	typedef expect< T, false, true > self_type;
 
 	expect( ) = default;
@@ -332,6 +334,7 @@ class expect< T, true, false > // copyable, not movable
 	typedef detail::expect_value< T > base;
 
 public:
+	typedef T value_type;
 	typedef expect< T, true, false > self_type;
 
 	expect( ) = default;
@@ -382,6 +385,8 @@ class expect< void, false, false >
 	typedef detail::expect_value< void > base;
 
 public:
+	typedef void value_type;
+
 	expect( )
 	: detail::expect_exception( )
 	{ }
@@ -421,6 +426,8 @@ class expect< std::exception_ptr, true, true >
 	typedef detail::expect_value< std::exception_ptr > base;
 
 public:
+	typedef std::exception_ptr value_type;
+
 	expect( ) = default;
 
 	expect( std::exception_ptr&& t, bool expected )
@@ -525,6 +532,16 @@ refuse( E&& e )
 {
 	return expect< T >( std::forward< E >( e ), false );
 }
+
+template< typename T >
+struct is_expect
+: std::false_type
+{ };
+
+template< typename T, bool B1, bool B2 >
+struct is_expect< q::expect< T, B1, B2 > >
+: std::true_type
+{ };
 
 } // namespace q
 

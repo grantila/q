@@ -41,6 +41,37 @@ public:
 			set_value( exp.consume( ) );
 	}
 
+	template< typename T1 >
+	typename std::enable_if<
+		sizeof...( T ) == 1 &&
+		::q::is_expect< T1 >::value &&
+		::q::arguments< T... >::template is_convertible_to<
+			::q::arguments< typename T1::value_type >
+		>::value &&
+		!std::is_void< typename T1::value_type >::value
+	>::type
+	set_expect( T1&& exp )
+	{
+		if ( exp.has_exception( ) )
+			set_exception( exp.exception( ) );
+		else
+			set_value( std::forward_as_tuple( exp.consume( ) ) );
+	}
+
+	template< typename T1 >
+	typename std::enable_if<
+		sizeof...( T ) == 0 &&
+		::q::is_expect< T1 >::value &&
+		std::is_void< typename T1::value_type >::value
+	>::type
+	set_expect( T1&& exp )
+	{
+		if ( exp.has_exception( ) )
+			set_exception( exp.exception( ) );
+		else
+			set_value( std::tuple< >( ) );
+	}
+
 	inline void set_value( tuple_type&& tuple )
 	{
 		auto value = ::q::fulfill< tuple_type >( std::move( tuple ) );

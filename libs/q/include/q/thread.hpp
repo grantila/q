@@ -18,6 +18,7 @@
 #define LIBQ_THREAD_HPP
 
 #include <q/async_termination.hpp>
+#include <q/expect.hpp>
 
 #include <q/detail/lib.hpp>
 
@@ -49,17 +50,27 @@ void set_thread_name( const std::string& name );
 template< typename Ret = void >
 class thread
 : public std::enable_shared_from_this< thread< Ret > >
-, public async_termination<
+, private async_termination<
 	q::arguments< >,
 	std::tuple< expect< Ret > >
 >
 {
 public:
 	typedef expect< Ret >             expect_type;
-	typedef std::tuple< expect_type > result_type;
+	typedef std::tuple< expect_type > inner_result_type;
+	typedef typename std::conditional<
+		std::is_same< Ret, void >::value,
+		arguments< >,
+		arguments< Ret >
+	>::type::tuple_type               result_type;
+	typedef typename std::conditional<
+		std::is_same< Ret, void >::value,
+		detail::defer< >,
+		detail::defer< Ret >
+	>::type                           defer_type;
 	typedef async_termination<
 		q::arguments< >,
-		result_type
+		inner_result_type
 	>                                 async_terminate_base;
 
 	thread( ) = delete;
@@ -69,8 +80,6 @@ public:
 
 	virtual ~thread( )
 	{
-		std::cerr << "destructing thread" << std::endl;
-
 		if ( !running_.load( std::memory_order_seq_cst ) )
 			return;
 
@@ -92,11 +101,13 @@ public:
 		return name_;
 	}
 
-	promise< result_type > terminate( )
+	promise< result_type > async_join( )
 	{
 		auto _this = this->shared_from_this( );
 
-		return async_terminate_base::terminate( )
+		auto defer = q::make_shared< defer_type >( );
+
+		async_terminate_base::terminate( )
 		.finally( [ _this ]( ) mutable
 		{
 			// Although joining is a blocking operation,
@@ -106,7 +117,13 @@ public:
 			// therefore be instant, albeit requiring OS-
 			// depentant work.
 			_this->try_join( );
+		} )
+		.then( [ defer ]( expect_type&& val )
+		{
+			defer->set_expect( std::move( val ) );
 		} );
+
+		return defer->get_promise( );
 	}
 
 	template< typename Fn, typename... Args >

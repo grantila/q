@@ -51,9 +51,8 @@ struct threadpool::pimpl
 	, allow_more_jobs_( true )
 	{ }
 
-	typedef std::shared_ptr< thread< > >         thread_type;
-	typedef expect< void >                       result_type;
-	typedef promise< std::tuple< result_type > > promise_type;
+	typedef std::shared_ptr< thread< > > thread_type;
+	typedef promise< std::tuple< > >     promise_type;
 
 	std::string                 name_;
 	mutex                       mutex_;
@@ -167,7 +166,7 @@ void threadpool::start( )
 
 		auto t = run( std::move( thread_name ), std::move( fn ) );
 
-		auto promise = t->terminate( );
+		auto promise = t->async_join( );
 
 		thread_completions.push_back( std::move( promise ) );
 
