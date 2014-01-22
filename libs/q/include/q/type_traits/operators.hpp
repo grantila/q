@@ -74,8 +74,7 @@ struct size_eq
 
 template<
 	template< typename > class Operator,
-	template< typename, typename > class LogicOp,
-	typename Nil
+	template< typename, typename > class LogicOp
 >
 struct generic_operator
 {

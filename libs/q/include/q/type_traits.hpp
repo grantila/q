@@ -63,6 +63,15 @@ struct is_copy_assignable
 >
 { };
 
+template< typename... T >
+struct is_move_constructible
+: hierarchically_satisfies_all_conditions<
+	std::is_move_constructible,
+	T...
+>
+{ };
+
+
 
 
 
@@ -75,7 +84,7 @@ struct satisfies_all
 : fold<
 	q::arguments< T... >,
 	generic_operator<
-		Operator, logic_and, Nil
+		Operator, logic_and
 	>::template fold_type,
 	Nil
 >

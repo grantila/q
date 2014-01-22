@@ -17,15 +17,13 @@
 #ifndef LIBQ_BLOCKING_DISPATCHER_HPP
 #define LIBQ_BLOCKING_DISPATCHER_HPP
 
-#include <q/async_termination.hpp>
 #include <q/event_dispatcher.hpp>
 #include <q/thread.hpp>
 
 namespace q {
 
 class blocking_dispatcher
-: public event_dispatcher
-, public async_termination< q::arguments< event_dispatcher::termination > >
+: public event_dispatcher< q::arguments< termination > >
 , public std::enable_shared_from_this< blocking_dispatcher >
 {
 public:

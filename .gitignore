@@ -1,6 +1,7 @@
 .DS_Store
 
 TODO
+obj
 
 CMakeCache.txt
 CMakeFiles
@@ -13,7 +14,7 @@ Debug
 
 a.out*
 then.xcodeproj
-test*
+test[^s]
 .depend
 
 *.build

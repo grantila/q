@@ -18,41 +18,56 @@
 #define LIBQ_EVENT_DISPATCHER_HPP
 
 #include <q/types.hpp>
+#include <q/type_traits.hpp>
+#include <q/async_termination.hpp>
 
 #include <memory>
 
 namespace q {
 
-class event_dispatcher;
-typedef std::shared_ptr< event_dispatcher > event_dispatcher_ptr;
+class basic_event_dispatcher;
+typedef std::shared_ptr< basic_event_dispatcher > event_dispatcher_ptr;
 
-class event_dispatcher
+class basic_event_dispatcher
 {
 public:
-	enum class termination
-	{
-		/** Wait for backlog to empty out, and allow more tasks while doing so
-		 *  but terminate once there is no more jobs */
-		linger,
+	virtual void add_task( task ) = 0;
 
-		/** Disallow further tasks, but complete all current tasks in the
-		 *  backlog */
-		process_backlog,
+protected:
+	basic_event_dispatcher( )
+	{ }
+};
 
-		/** Terminate ASAP, i.e. allow the current task(s) to complete, then
-		 *  shutdown, and ignore all other tasks */
-		annihilate
-	};
+enum class termination
+{
+	/** Wait for backlog to empty out, and allow more tasks while doing so
+	 *  but terminate once there is no more jobs */
+	linger,
 
+	/** Disallow further tasks, but complete all current tasks in the
+	 *  backlog */
+	process_backlog,
+
+	/** Terminate ASAP, i.e. allow the current task(s) to complete, then
+	 *  shutdown, and ignore all other tasks */
+	annihilate
+};
+
+template< typename TerminationArgs = q::arguments< > >
+class event_dispatcher
+: public async_termination< TerminationArgs >
+, public basic_event_dispatcher
+{
+public:
 	~event_dispatcher( )
 	{ }
-
-	virtual void add_task( task ) = 0;
 
 	/**
 	 * TODO: Reconsider
 	 */
 	virtual std::size_t backlog( ) const = 0;
+
+	virtual void start( ) = 0;
 
 protected:
 	event_dispatcher( )

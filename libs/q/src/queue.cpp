@@ -18,6 +18,7 @@
 #include <q/mutex.hpp>
 #include <q/memory.hpp>
 #include <q/exception.hpp>
+#include <q/static_atomic.hpp>
 
 #include <queue>
 #include <atomic>
@@ -27,67 +28,83 @@
 
 namespace q {
 
-mutex queue_mutex_;
-queue_ptr main_queue_;
-queue_ptr background_queue_;
-queue_ptr default_queue_;
-/*
-std::atomic< queue_ptr > main_queue_;
-std::atomic< queue_ptr > background_queue_;
-std::atomic< queue_ptr > default_queue_;
-*/
+namespace {
+
+struct queues
+{
+	queue_ptr main_queue_;
+	queue_ptr background_queue_;
+	queue_ptr default_queue_;
+};
+
+} // anonymous namespace
 
 queue_ptr main_queue( )
 {
-	Q_AUTO_UNIQUE_LOCK( queue_mutex_, Q_HERE );
-	return main_queue_;
+#	ifdef NO_ATOMIC_SHARED_PTR_SUPPORT
+	static mutex mut;
+	Q_AUTO_UNIQUE_LOCK( mut );
+	return static_atomic< queues >( )->main_queue_;
+#	else
+	return std::atomic_load( &static_atomic< queues >( )->main_queue_ );
+#	endif
 }
 queue_ptr background_queue( )
 {
-	Q_AUTO_UNIQUE_LOCK( queue_mutex_, Q_HERE );
-	return background_queue_;
+#	ifdef NO_ATOMIC_SHARED_PTR_SUPPORT
+	static mutex mut;
+	Q_AUTO_UNIQUE_LOCK( mut );
+	return static_atomic< queues >( )->background_queue_;
+#	else
+	return std::atomic_load( &static_atomic< queues >( )->background_queue_ );
+#	endif
 }
 queue_ptr default_queue( )
 {
-	Q_AUTO_UNIQUE_LOCK( queue_mutex_, Q_HERE );
-	return default_queue_;
+#	ifdef NO_ATOMIC_SHARED_PTR_SUPPORT
+	static mutex mut;
+	Q_AUTO_UNIQUE_LOCK( mut );
+	return static_atomic< queues >( )->default_queue_;
+#	else
+	return std::atomic_load( &static_atomic< queues >( )->default_queue_ );
+#	endif
 }
 
 queue_ptr set_main_queue( queue_ptr queue )
 {
-	queue_ptr old;
-	{
-		Q_AUTO_UNIQUE_LOCK( queue_mutex_, Q_HERE );
-		old = main_queue_;
-		main_queue_ = queue;
-	}
-	return old;
-
-	/* TODO: why doesn't this work?
-	return std::atomic_exchange(
-		&main_queue_,
-		queue );
-	*/
+#	ifdef NO_ATOMIC_SHARED_PTR_SUPPORT
+	static mutex mut;
+	Q_AUTO_UNIQUE_LOCK( mut );
+	queue_ptr prev = static_atomic< queues >( )->main_queue_;
+	static_atomic< queues >( )->main_queue_ = queue;
+	return prev;
+#	else
+	return std::atomic_exchange( &static_atomic< queues >( )->main_queue_, queue );
+#	endif
 }
 queue_ptr set_background_queue( queue_ptr queue )
 {
-	queue_ptr old;
-	{
-		Q_AUTO_UNIQUE_LOCK( queue_mutex_, Q_HERE );
-		old = background_queue_;
-		background_queue_ = queue;
-	}
-	return old;
+#	ifdef NO_ATOMIC_SHARED_PTR_SUPPORT
+	static mutex mut;
+	Q_AUTO_UNIQUE_LOCK( mut );
+	queue_ptr prev = static_atomic< queues >( )->default_queue_;
+	static_atomic< queues >( )->default_queue_ = queue;
+	return prev;
+#	else
+	return std::atomic_exchange( &static_atomic< queues >( )->background_queue_, queue );
+#	endif
 }
 queue_ptr set_default_queue( queue_ptr queue )
 {
-	queue_ptr old;
-	{
-		Q_AUTO_UNIQUE_LOCK( queue_mutex_, Q_HERE );
-		old = default_queue_;
-		default_queue_ = queue;
-	}
-	return old;
+#	ifdef NO_ATOMIC_SHARED_PTR_SUPPORT
+	static mutex mut;
+	Q_AUTO_UNIQUE_LOCK( mut );
+	queue_ptr prev = static_atomic< queues >( )->default_queue_;
+	static_atomic< queues >( )->default_queue_ = queue;
+	return prev;
+#	else
+	return std::atomic_exchange( &static_atomic< queues >( )->default_queue_, queue );
+#	endif
 }
 
 

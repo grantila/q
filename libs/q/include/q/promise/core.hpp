@@ -54,7 +54,7 @@ struct are_promises
 : fold<
 	q::arguments< T... >,
 	generic_operator<
-		is_promise, logic_and, std::true_type
+		is_promise, logic_and
 	>::template fold_type,
 	std::true_type
 >

@@ -116,11 +116,11 @@ void blocking_dispatcher::do_terminate( termination method )
 
 		switch ( method )
 		{
-			case event_dispatcher::termination::linger:
+			case termination::linger:
 				break;
-			case event_dispatcher::termination::annihilate:
+			case termination::annihilate:
 				pimpl_->stop_asap_ = true;
-			case event_dispatcher::termination::process_backlog:
+			case termination::process_backlog:
 				pimpl_->allow_more_jobs_ = false;
 				break;
 		}

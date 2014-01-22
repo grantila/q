@@ -5,7 +5,11 @@ project( q )
 
 include( "cmake/projects.cmake" )
 
-add_definitions( "-g" )
+set( CMAKE_DEBUG_POSTFIX "d" )
+
+set( CMAKE_CXX_FLAGS "-g" )
+set( CMAKE_CXX_FLAGS_RELEASE "-O2" )
+
 add_definitions( "-Wall" )
 add_definitions( "-std=c++11" )
 if ( NOT CMAKE_COMPILER_IS_GNUCXX )
@@ -22,4 +26,11 @@ add_subdirectory( "libs/q" )
 add_subdirectory( "libs/p" )
 
 add_subdirectory( "progs/playground" )
+add_subdirectory( "progs/benchmark" )
+
+include_directories( "3rdparty/gmock-1.7.0/gtest/include/" )
+include_directories( "3rdparty/gmock-1.7.0/include/" )
+add_subdirectory( "3rdparty/gmock-1.7.0" )
+
+add_subdirectory( "tests/q" )
 
