@@ -15,6 +15,7 @@
  */
 
 #include <q/pp.hpp>
+#include <q/abi.hpp>
 
 #include "stacktrace.hpp"
 
@@ -53,7 +54,7 @@ stacktrace default_stacktrace( ) noexcept
 	for ( std::size_t i = 0; i < size; ++i )
 	{
 		auto frame = parse_stack_frame( raw_frames[ i ] );
-		frame.frame = i;
+		frame.frameno = i;
 		frame.symbol = demangle_cxx( frame.symbol.c_str( ) );
 		frames.push_back( frame );
 	}

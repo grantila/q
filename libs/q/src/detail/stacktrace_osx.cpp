@@ -33,7 +33,7 @@ noexcept
 {
 	stacktrace::frame frame;
 
-	frame.frame = std::strtoul( data, nullptr, 10 );
+	frame.frameno = std::strtoul( data, nullptr, 10 );
 
 	const char* pos, *pos2;
 

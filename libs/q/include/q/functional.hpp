@@ -55,7 +55,9 @@
 #define Q_FIRST_ARGUMENT_IS_TUPLE( Fn ) \
 	::q::is_tuple< \
 		typename ::std::decay< \
-			typename ::q::function_traits< Fn >::argument_types::first_type \
+			typename ::q::function_traits< \
+				Fn \
+			>::argument_types::first_type \
 		>::type \
 	>::value
 
@@ -169,7 +171,7 @@ struct has_call_operator<
 template< typename Fn >
 struct wrapped_is_noexcept
 {
-	typedef bool_type< noexcept( Fn ) > type;
+	typedef bool_type< noexcept( std::declval< Fn >( ) ) > type;
 };
 
 template<
@@ -249,7 +251,9 @@ struct function_traits
 	// MSVC 2015 gets an ICE on this 'using'. Similar to GCC below on
 	// 'match'... This seems hard for compilers to get right.
 	//using typename detail::function_traits< Fn >::using_call_operator;
-	typedef typename detail::function_traits< Fn >::using_call_operator using_call_operator;
+	typedef typename detail::function_traits<
+		Fn
+	>::using_call_operator                       using_call_operator;
 
 	// TODO: GCC Seems to not allow this using statement, which is why the
 	// typedef is necessary.
