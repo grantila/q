@@ -128,6 +128,8 @@ private:
 	macro_function::type function_;
 };
 
+class threadpool;
+
 class queue;
 typedef std::shared_ptr< queue > queue_ptr;
 

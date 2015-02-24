@@ -40,13 +40,19 @@ public:
 
 	q::expect< > await_termination( ) override;
 
+	/**
+	 * Starts the threadpool. Ensure the scheduler is attached (with
+	 * queue(s)), since the threads will start consuming from the scheduler
+	 * immediately.
+	 */
+	void start( ) override;
+
 protected:
 	threadpool( const std::string& name,
 	            const queue_ptr& queue,
 	            std::size_t threads );
 
 private:
-	void start( ) override;
 
 	void mark_completion( );
 

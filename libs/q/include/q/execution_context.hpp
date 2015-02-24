@@ -80,9 +80,14 @@ make_execution_context( Args&&... args )
 		std::forward< Args >( args )... );
 	auto s = q::make_shared< Scheduler >( ed );
 
-	return q::make_shared<
+	auto ec = q::make_shared<
 		specific_execution_context< EventDispatcher >
 	>( ed, s );
+
+	if ( std::is_same< EventDispatcher, ::q::threadpool >::value )
+		ed->start( );
+
+	return ec;
 }
 
 } // namespace q

@@ -91,10 +91,8 @@ threadpool::construct( const std::string& name,
                        const queue_ptr& queue,
                        std::size_t threads )
 {
-	auto tp = ::q::make_shared_using_constructor< threadpool >(
+	return ::q::make_shared_using_constructor< threadpool >(
 		name, queue, threads );
-	tp->start( );
-	return tp;
 }
 
 void threadpool::notify( )
