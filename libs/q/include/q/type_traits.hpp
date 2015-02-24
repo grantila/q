@@ -17,6 +17,7 @@
 #ifndef LIBQ_TYPE_TRAITS_HPP
 #define LIBQ_TYPE_TRAITS_HPP
 
+#include <q/pp.hpp>
 #include <q/type_traits/core.hpp>
 #include <q/type_traits/operators.hpp>
 #include <q/type_traits/convertible.hpp>

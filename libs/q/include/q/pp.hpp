@@ -45,6 +45,9 @@
 #	define LIBQ_ON_UNKNOWN
 #endif
 
+#if __cplusplus >= 201402L
+#	define LIBQ_WITH_CPP14
+#endif
 
 #define LIBQ_LINE __LINE__
 #define LIBQ_FILE __FILE__

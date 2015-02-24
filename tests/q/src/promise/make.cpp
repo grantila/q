@@ -1,5 +1,6 @@
 
 #include "helpers.hpp"
+#include <q/pp.hpp>
 
 Q_TEST_MAKE_SCOPE( Make );
 
@@ -69,7 +70,7 @@ TEST_F( Make, AsyncWithException )
 	run( promise );
 }
 
-#if __cplusplus >= 201402L
+#ifdef LIBQ_WITH_CPP14
 
 TEST_F( Make, ByLambdaAuto )
 {

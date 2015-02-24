@@ -342,7 +342,7 @@ struct tuple_of< std::tuple< T... > >
 template< typename T, typename... Args >
 std::unique_ptr< T > make_unique( Args&&... args )
 {
-#if __cplusplus >= 201402L
+#ifdef LIBQ_WITH_CPP14
 	return std::make_unique< T >( std::forward< Args >( args )... );
 #else
 	return std::unique_ptr< T >( new T( std::forward< Args >( args )... ) );

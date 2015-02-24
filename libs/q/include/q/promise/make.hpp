@@ -216,7 +216,7 @@ make_promise_sync( const ::q::queue_ptr& queue, Fn&& fn )
 	return helper->run( std::forward< Fn >( fn ) );
 }
 
-#if __cplusplus >= 201402L
+#ifdef LIBQ_WITH_CPP14
 
 template< typename... Args, typename Fn >
 q::promise< std::tuple< typename q::remove_rvalue_reference< Args >::type... > >
@@ -244,7 +244,7 @@ make_promise_of( const ::q::queue_ptr& queue, Fn&& fn )
 
 		try
 		{
-			tpm_fn.consume( )( resolve, reject );
+			tmp_fn.consume( )( resolve, reject );
 		}
 		catch ( ... )
 		{
