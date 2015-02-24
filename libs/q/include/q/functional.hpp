@@ -23,9 +23,6 @@
 #include <q/pp.hpp>
 #include <q/type_traits.hpp>
 
-// TODO: For C++14, alias the types to get rid of typename in the macros,
-// since it requires the caller to know it's preceded with typename (hence
-// cannot continue with ::size e.g.)
 
 #define Q_FUNCTIONTRAITS( Fn ) \
 	::q::function_traits< Fn >
@@ -39,7 +36,6 @@
 #define Q_RESULT_OF_AS_TUPLE_TYPE( Fn ) \
 	typename Q_RESULT_OF_AS_ARGUMENT( Fn )::tuple_type
 
-// TODO: Moving to C++14 will remove this
 #define Q_RESULT_OF_AS_ARGUMENT_TYPE( Fn ) \
 	typename Q_RESULT_OF_AS_ARGUMENT( Fn )
 
@@ -315,6 +311,56 @@ struct function_traits
 	typedef typename argument_types::size        arity;
 };
 
+template< typename Fn >
+using result_of = Q_RESULT_OF( Fn );
+
+template< typename Fn >
+using result_of_as_argument = Q_RESULT_OF_AS_ARGUMENT_TYPE( Fn );
+
+template< typename Fn >
+using result_of_as_tuple = Q_RESULT_OF_AS_TUPLE_TYPE( Fn );
+
+template< typename Fn >
+using arguments_of = Q_ARGUMENTS_OF( Fn );
+
+template< typename Fn >
+using first_argument_of = Q_FIRST_ARGUMENT_OF( Fn );
+
+template< typename Fn >
+using memberclass_of = Q_MEMBERCLASS_OF( Fn );
+
+#ifdef LIBQ_WITH_CPP14
+
+template< typename Fn >
+constexpr bool is_memberfunction = !std::is_void< memberclass_of< Fn > >::value;
+
+template< typename Fn >
+constexpr bool is_function = Q_IS_FUNCTION( Fn )::value;
+
+template< typename Fn >
+constexpr bool is_noexcept = Q_NOEXCEPT_OF( Fn );
+
+template< typename Fn >
+constexpr std::size_t arity_of = Q_ARITY_OF( Fn );
+
+template< typename Fn >
+constexpr bool first_argument_is_tuple = Q_FIRST_ARGUMENT_IS_TUPLE( Fn );
+
+template< typename Fn, typename... Args >
+constexpr bool arguments_of_are =
+	::q::is_argument_same<
+		arguments_of< Fn >,
+		::q::arguments< Args... >
+	>::value;
+
+template< typename Fn, typename... Args >
+constexpr bool arguments_of_are_convertible_from =
+	::q::is_argument_same_or_convertible<
+		::q::arguments< Args... >,
+		arguments_of< Fn >
+	>::value;
+
+#endif // C++14
 
 template< typename Fn, typename... Args >
 typename std::enable_if<
