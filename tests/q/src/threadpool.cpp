@@ -42,6 +42,8 @@ TEST( ThreadPool, PerformTasks )
 		}
 	);
 
+	tp->start( );
+
 	tasks->push( task );
 	tp->notify( );
 
