@@ -39,12 +39,12 @@ public:
 	/**
 	 * Get the incoming channel, to read data from the socket
 	 */
-	q::readable_ptr< q::byte_block > in( );
+	q::readable< q::byte_block > in( );
 
 	/**
 	 * Get the outoming channel, to write data to the socket
 	 */
-	q::writable_ptr< q::byte_block > out( );
+	q::writable< q::byte_block > out( );
 
 	/**
 	 * Makes this socket become owned by its channels. The user can thereby
@@ -73,10 +73,10 @@ private:
 	friend class server_socket;
 
 	template< typename T > friend class q::shared_constructor;
-
-	q::channel_ptr< q::byte_block > _in( );
-	q::channel_ptr< q::byte_block > _out( );
-
+/*
+	std::shared_ptr< q::channel< q::byte_block > > _in( );
+	std::shared_ptr< q::channel< q::byte_block > > _out( );
+*/
 	void sub_attach( const dispatcher_ptr& dispatcher ) noexcept override;
 
 	void on_event_read( ) noexcept override;

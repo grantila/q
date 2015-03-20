@@ -25,7 +25,7 @@ namespace q { namespace io {
 
 struct server_socket::pimpl
 {
-	q::channel_ptr< socket_ptr > channel_;
+	std::shared_ptr< q::channel< socket_ptr > > channel_;
 	native_socket socket_;
 
 	dispatcher_ptr dispatcher_;
@@ -64,9 +64,9 @@ server_socket_ptr server_socket::construct( const native_socket& sock )
 	return q::make_shared< server_socket >( sock );
 }
 
-q::readable_ptr< socket_ptr > server_socket::clients( )
+q::readable< socket_ptr > server_socket::clients( )
 {
-	return pimpl_->channel_;
+	return pimpl_->channel_->get_readable( );
 }
 
 void server_socket::sub_attach( const dispatcher_ptr& dispatcher ) noexcept
@@ -76,12 +76,14 @@ void server_socket::sub_attach( const dispatcher_ptr& dispatcher ) noexcept
 
 	pimpl_->dispatcher_ = dispatcher;
 
+	std::size_t socket_backlog = 128; // TODO: Reconsider backlog
+
 	pimpl_->channel_ = std::make_shared< q::channel< socket_ptr > >(
-		dispatcher_pimpl.user_queue, 128 ); // TODO: Reconsider backlog
+		dispatcher_pimpl.user_queue, socket_backlog );
 
 	auto self = shared_from_this( );
 
-	pimpl_->channel_->set_resume_notification( [ self ]( )
+	pimpl_->channel_->get_writable( ).set_resume_notification( [ self ]( )
 	{
 		std::cout << "WILL RETRY" << std::endl;
 		::event_active( self->pimpl_->ev_, EV_READ, 0 );
@@ -114,12 +116,17 @@ void server_socket::on_event_read( ) noexcept
 {
 	bool done = false;
 
-	while ( pimpl_->channel_->should_send( ) )
+	auto writable = pimpl_->channel_->get_writable( );
+
+	while ( writable.should_send( ) )
 	{
 		struct sockaddr_in peer_addr;
 		socklen_t peer_addr_len = sizeof peer_addr;
 
-		auto ret = ::accept( pimpl_->socket_.fd, reinterpret_cast< sockaddr* >( &peer_addr ), &peer_addr_len );
+		auto ret = ::accept(
+			pimpl_->socket_.fd,
+			reinterpret_cast< sockaddr* >( &peer_addr ),
+			&peer_addr_len );
 
 		if ( ret != -1 )
 		{
@@ -129,7 +136,7 @@ void server_socket::on_event_read( ) noexcept
 
 			socket_ptr->attach( get_dispatcher( ) );
 
-			pimpl_->channel_->send( socket_ptr );
+			writable.send( socket_ptr );
 		}
 		else
 		{
@@ -143,7 +150,7 @@ void server_socket::on_event_read( ) noexcept
 
 				// TODO: Don't just close, close with
 				// translated errno error
-				pimpl_->channel_->close( );
+				writable.close( );
 			}
 
 			break;
@@ -171,12 +178,12 @@ void server_socket::close_socket( )
 
 	::event_active( pimpl_->ev_, LIBQ_EV_CLOSE, 0 );
 
-	pimpl_->channel_->close( );
+	pimpl_->channel_->get_writable( ).close( );
 }
 
 void server_socket::close_channel( )
 {
-	pimpl_->channel_->set_resume_notification( nullptr );
+	pimpl_->channel_->get_writable( ).set_resume_notification( nullptr );
 
 	pimpl_->self_.reset( );
 }

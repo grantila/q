@@ -37,7 +37,7 @@ public:
 	/**
 	 * Channel used to get incoming connections.
 	 */
-	q::readable_ptr< socket_ptr > clients( );
+	q::readable< socket_ptr > clients( );
 
 protected:
 	static server_socket_ptr construct( const native_socket& );

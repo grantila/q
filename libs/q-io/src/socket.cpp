@@ -41,10 +41,10 @@ namespace q { namespace io {
 
 struct socket::pimpl
 {
-	q::channel_ptr< q::byte_block > channel_in_;
-	q::channel_ptr< q::byte_block > channel_out_;
-	q::weak_channel_ptr< q::byte_block > weak_channel_in_;
-	q::weak_channel_ptr< q::byte_block > weak_channel_out_;
+	std::shared_ptr< q::readable< q::byte_block > > readable_in_; // Ext
+	std::shared_ptr< q::writable< q::byte_block > > writable_in_; // Int
+	std::shared_ptr< q::readable< q::byte_block > > readable_out_; // Int
+	std::shared_ptr< q::writable< q::byte_block > > writable_out_; // Ext
 	native_socket socket_;
 
 	::event* ev_read_;
@@ -61,8 +61,8 @@ socket::socket( const native_socket& s )
 : pimpl_( new pimpl {
 	nullptr,
 	nullptr,
-	q::channel_ptr< q::byte_block >( nullptr ),
-	q::channel_ptr< q::byte_block >( nullptr ),
+	nullptr,
+	nullptr,
 	s,
 	nullptr,
 	nullptr
@@ -90,76 +90,81 @@ socket_ptr socket::construct( const native_socket& s )
 	return sock;
 }
 
-q::readable_ptr< q::byte_block > socket::in( )
+
+q::readable< q::byte_block > socket::in( )
 {
-	return _in( );
+	return *pimpl_->readable_in_;
 }
 
-q::writable_ptr< q::byte_block > socket::out( )
+q::writable< q::byte_block > socket::out( )
 {
-	return _out( );
+	return *pimpl_->writable_out_;
 }
 
 void socket::detach( )
 {
-	// Only use weak_ptr's to the channels, and let them own this socket.
+	// Remove references to the user-ends of the channels, and let them own
+	// these sides of the socket. When they are destructed, they'll close
+	// the channels, and we can adapt to this, and eventually destruct when
+	// all data is sent.
 
-	auto in = std::atomic_load( &pimpl_->channel_in_ );
-	auto out = std::atomic_load( &pimpl_->channel_out_ );
+	auto in = std::atomic_load( &pimpl_->readable_in_ );
+	auto out = std::atomic_load( &pimpl_->writable_out_ );
 
 	if ( !in )
 		// Already detached (probably)
 		return;
 
-	in->add_scope_until_closed( ::q::make_scope( shared_from_this( ) ) );
-	out->add_scope_until_closed( ::q::make_scope( shared_from_this( ) ) );
+	in->add_scope_until_closed(
+		::q::make_scope( shared_from_this( ) ) );
+	out->add_scope_until_closed(
+		::q::make_scope( shared_from_this( ) ) );
 
 	in.reset( );
 	out.reset( );
 
-	std::atomic_store( &pimpl_->channel_in_, in );
-	std::atomic_store( &pimpl_->channel_out_, out );
-}
-
-q::channel_ptr< q::byte_block > socket::_in( )
-{
-	auto in = std::atomic_load( &pimpl_->channel_in_ );
-	if ( !in )
-		in = pimpl_->weak_channel_in_.lock( );
-	return in;
-}
-
-q::channel_ptr< q::byte_block > socket::_out( )
-{
-	auto out = std::atomic_load( &pimpl_->channel_out_ );
-	if ( !out )
-		out = pimpl_->weak_channel_out_.lock( );
-	return out;
+	std::atomic_store( &pimpl_->readable_in_, in );
+	std::atomic_store( &pimpl_->writable_out_, out );
 }
 
 void socket::sub_attach( const dispatcher_ptr& dispatcher ) noexcept
 {
 	auto& dispatcher_pimpl = get_dispatcher_pimpl( );
 
-	pimpl_->channel_in_ = std::make_shared< q::channel< q::byte_block > >(
-		dispatcher_pimpl.user_queue, 10 ); // 10 backlog items
-	pimpl_->channel_out_ = std::make_shared< q::channel< q::byte_block > >(
-		dispatcher_pimpl.user_queue, 10 ); // 10 backlog items
+	std::size_t backlog_in = 6;
+	std::size_t backlog_out = 10;
 
-	pimpl_->weak_channel_in_ = pimpl_->channel_in_;
-	pimpl_->weak_channel_out_ = pimpl_->channel_out_;
+	channel< q::byte_block > channel_in(
+		dispatcher_pimpl.user_queue, backlog_in );
+	channel< q::byte_block > channel_out(
+		dispatcher_pimpl.user_queue, backlog_out );
+
+	pimpl_->readable_in_ =
+		std::make_shared< q::readable< q::byte_block > >(
+			channel_in.get_readable( ) );
+	pimpl_->writable_in_ =
+		std::make_shared< q::writable< q::byte_block > >(
+			channel_in.get_writable( ) );
+	pimpl_->readable_out_ =
+		std::make_shared< q::readable< q::byte_block > >(
+			channel_out.get_readable( ) );
+	pimpl_->writable_out_ =
+		std::make_shared< q::writable< q::byte_block > >(
+			channel_out.get_writable( ) );
 
 	auto self = shared_from_this( );
 	auto weak_self = weak_socket_ptr{ self };
 
-	pimpl_->channel_in_->set_resume_notification( [ weak_self ]( )
+	auto resume = [ weak_self ]( )
 	{
 		std::cout << "WILL RETRY" << std::endl;
 		auto self = weak_self.lock( );
 		if ( !self )
 			return; // TODO: Analyze when this can happen
 		::event_active( self->pimpl_->ev_read_, EV_READ, 0 );
-	} );
+	};
+
+	pimpl_->writable_in_->set_resume_notification( resume );
 
 	std::cout << "client_socket::sub_attach invoked" << std::endl;
 
@@ -230,15 +235,12 @@ void socket::on_event_read( ) noexcept
 
 	bool done = false;
 
-	auto in = _in( );
-	if ( !in )
-	{
-		pimpl_->can_read_ = false;
-		close_socket( );
-		return;
-	}
+	auto writable_in = std::atomic_load( &pimpl_->writable_in_ );
 
-	while ( in->should_send( ) )
+	if ( !writable_in )
+		return;
+
+	while ( writable_in->should_send( ) )
 	{
 #ifdef LIBQ_ON_WINDOWS
 		unsigned long nbytes;
@@ -261,7 +263,23 @@ void socket::on_event_read( ) noexcept
 		if ( read_bytes > 0 )
 		{
 			block.resize( read_bytes );
-			pimpl_->channel_in_->send( std::move( block ) );
+
+			try
+			{
+				writable_in->send( std::move( block ) );
+			}
+			catch( q::channel_closed_exception& )
+			{
+				// Ignore this error. The user doesn't want to
+				// read more data, but as long as there is more
+				// to read, we'll just keep reading.
+
+				// There shouldn't be any other exceptions
+				// thrown from the channel, we can currently
+				// not handle them anyway.
+				// Potentially we could close the connection
+				// and forward this error to the in-channel...
+			}
 		}
 
 		else if ( read_bytes == 0 )
@@ -373,15 +391,15 @@ void socket::try_write( )
 			return;
 	}
 
-	auto out = _out( );
+	auto readable_out = std::atomic_load( &pimpl_->readable_out_ );
 
-	if ( !out )
+	if ( !readable_out )
 	{
 		close_socket( );
 		return;
 	}
 
-	out->receive( )
+	readable_out->receive( )
 	.then( [ weak_ptr, this, try_write_block ]( q::byte_block&& block )
 	{
 		auto self = weak_ptr.lock( );
@@ -398,9 +416,14 @@ void socket::try_write( )
 			<< std::endl;
 		try_write_block( std::move( block ) );
 	} )
-	.fail( [ ]( const q::channel_closed_exception& )
+	.fail( [ weak_ptr ]( const q::channel_closed_exception& )
 	{
-		; // TODO: Do something useful.
+		auto self = weak_ptr.lock( );
+
+		if ( !self )
+			return;
+
+		// We're never gonna write anything more to the socket.
 	} )
 	.fail( [ ]( std::exception_ptr e )
 	{
@@ -415,6 +438,9 @@ void socket::close_socket( )
 	if ( was_closed )
 		return;
 
+	auto writable_in = std::atomic_load( &pimpl_->writable_in_ );
+	auto readable_out = std::atomic_load( &pimpl_->readable_out_ );
+
 	EVUTIL_CLOSESOCKET( pimpl_->socket_.fd );
 
 	::event_del( pimpl_->ev_read_ );
@@ -423,17 +449,14 @@ void socket::close_socket( )
 	::event_active( pimpl_->ev_read_, LIBQ_EV_CLOSE, 0 );
 	::event_active( pimpl_->ev_write_, LIBQ_EV_CLOSE, 0 );
 
-	auto in = _in( );
-	auto out = _out( );
-
-	if ( !!in )
+	if ( !!writable_in )
 	{
-		in->set_resume_notification( nullptr );
-		in->close( );
+		writable_in->set_resume_notification( nullptr );
+		writable_in->close( );
 	}
 
-	if ( !!out )
-		out->close( );
+	if ( !!readable_out )
+		readable_out->close( );
 }
 
 } } // namespace io, namespace q

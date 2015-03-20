@@ -35,12 +35,13 @@ TEST_F( connect, client_server_send_data )
 
 	auto socket_server = io_dispatcher->listen( port );
 
-	auto promise_server = socket_server->clients( )->receive( )
+	auto promise_server = socket_server->clients( ).receive( )
 	.then( [ socket_server, &test_data ]( q::io::socket_ptr client )
 	{
-		return client->in( )->receive( )
-		.then( [ &test_data ]( q::byte_block&& block )
+		return client->in( ).receive( )
+		.then( [ client, &test_data ]( q::byte_block&& block )
 		{
+			std::cout << "TEST EQ!" << std::endl;
 			EXPECT_EQ( block.to_string( ), test_data );
 		} );
 	} );
@@ -54,7 +55,7 @@ TEST_F( connect, client_server_send_data )
 	} )
 	.then( [ &test_data ]( q::io::socket_ptr socket )
 	{
-		socket->out( )->send( q::byte_block( test_data ) );
+		socket->out( ).send( q::byte_block( test_data ) );
 		socket->detach( );
 	} );
 
@@ -69,10 +70,10 @@ TEST_F( connect, client_server_close_client_on_destruction )
 
 	keep_alive( q::make_scope( socket_server ) );
 
-	auto promise_server = socket_server->clients( )->receive( )
+	auto promise_server = socket_server->clients( ).receive( )
 	.then( [ this ]( q::io::socket_ptr client )
 	{
-		return client->in( )->receive( )
+		return client->in( ).receive( )
 		.then( [ ]( q::byte_block&& block )
 		{
 			EXPECT_TRUE( false );
