@@ -99,6 +99,29 @@ public:
 		}
 	}
 
+	template< typename... Args >
+	typename std::enable_if<
+		(
+			sizeof...( Args ) != 1 ||
+			!arguments<
+				typename arguments< Args... >::first_type
+			>::template is_convertible_to<
+				arguments< tuple_type >
+			>::value
+		) &&
+		arguments<
+			Args...
+		>::template is_convertible_to<
+			typename tuple_arguments< tuple_type >::this_type
+		>::value
+	>::type
+	send( Args&&... args )
+	{
+		this->send(
+			std::forward_as_tuple( std::forward< Args >( args )... )
+		);
+	}
+
 	promise< tuple_type > receive( ) override
 	{
 		Q_AUTO_UNIQUE_LOCK( mutex_ );
