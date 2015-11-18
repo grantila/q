@@ -84,11 +84,21 @@ struct arguments
 		typedef typename T<std::tuple>::type type;
 	};
 
+	/**
+	 * Given a q::arguments wrapped set of types T, checks whether the
+	 * current arguments are individually equal to their corresponding
+	 * position in T
+	 */
 	template< typename T >
 	struct equals
 	: is_argument_same< this_type, T >
 	{ };
 
+	/**
+	 * Given a q::arguments wrapped set of types T, checks whether the
+	 * current arguments are individually equal or convertible into their
+	 * corresponding position in T
+	 */
 	template< typename T >
 	struct is_convertible_to
 	: is_argument_same_or_convertible< this_type, T >
