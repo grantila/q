@@ -39,7 +39,7 @@ protected:
 	threadpool( const std::string& name, std::size_t threads );
 
 private:
-	void start( );
+	void start( ) override;
 
 	std::size_t backlog( ) const override;
 
