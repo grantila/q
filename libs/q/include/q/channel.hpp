@@ -29,7 +29,38 @@ namespace q {
 Q_MAKE_SIMPLE_EXCEPTION( channel_closed_exception );
 
 template< typename... T >
+class readable
+{
+public:
+	typedef std::tuple< T... > tuple_type;
+
+	virtual promise< tuple_type > receive( ) = 0;
+};
+
+template< typename... T >
+class writable
+{
+public:
+	typedef std::tuple< T... > tuple_type;
+
+	void send( T&&... t )
+	{
+		return send( std::make_tuple( std::move( t )... ) );
+	}
+
+	void send( const T&... t )
+	{
+		return send( std::make_tuple( t... ) );
+	}
+
+	virtual void send( tuple_type&& t ) = 0;
+};
+
+template< typename... T >
 class channel
+: public std::enable_shared_from_this< channel< T... > >
+, public readable< T... >
+, public writable< T... >
 {
 public:
 	typedef std::tuple< T... >    tuple_type;
@@ -48,17 +79,7 @@ public:
 		closed_.store( true, std::memory_order_seq_cst );
 	}
 
-	void send( T&&... t )
-	{
-		return send( std::make_tuple( std::move( t )... ) );
-	}
-
-	void send( const T&... t )
-	{
-		return send( std::make_tuple( t... ) );
-	}
-
-	void send( tuple_type&& t )
+	void send( tuple_type&& t ) override
 	{
 		Q_AUTO_UNIQUE_LOCK( mutex_ );
 
@@ -78,7 +99,7 @@ public:
 		}
 	}
 
-	promise< tuple_type > receive( )
+	promise< tuple_type > receive( ) override
 	{
 		Q_AUTO_UNIQUE_LOCK( mutex_ );
 
