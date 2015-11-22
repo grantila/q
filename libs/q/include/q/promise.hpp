@@ -44,29 +44,6 @@ namespace q {
 // TODO: Get rid of std::promise <-> std::future as we manually encapsulate
 // data and exceptions in q::expect and signal manually too.
 
-	// TODO: Implement progress reporting
-	template< typename T >
-	class progress
-	{
-	public:
-		typedef progress< T > this_type;
-
-		progress( const T& max )
-		: max_( max )
-		{ }
-		progress( T&& max )
-		: max_( std::move( max ) )
-		{ }
-
-		this_type& step( const T& value )
-		{
-			return *this;
-		}
-
-	private:
-		std::atomic< T > max_;
-	};
-
 } // namespace q
 
 #endif // LIBQ_PROMISE_HPP
