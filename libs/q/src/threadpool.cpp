@@ -41,8 +41,11 @@ static std::string make_thread_name( const std::string& base,
 
 struct threadpool::pimpl
 {
-	pimpl( const std::string& name, std::size_t threads )
-	: name_( name )
+	pimpl( const queue_ptr& queue,
+	       const std::string& name,
+	       std::size_t threads )
+	: queue_( queue )
+	, name_( name )
 	, mutex_( Q_HERE, "[" + name + "] mutex" )
 	, num_threads_( threads )
 	, started_( false )
@@ -55,6 +58,7 @@ struct threadpool::pimpl
 	typedef expect< void >                       result_type;
 	typedef promise< std::tuple< result_type > > promise_type;
 
+	queue_ptr                   queue_;
 	std::string                 name_;
 	mutex                       mutex_;
 	std::size_t                 num_threads_;
@@ -67,8 +71,11 @@ struct threadpool::pimpl
 	bool                        allow_more_jobs_;
 };
 
-threadpool::threadpool( const std::string& name, std::size_t threads )
-: pimpl_( new pimpl( name, threads ) )
+threadpool::threadpool( const std::string& name,
+                        const queue_ptr& queue,
+                        std::size_t threads )
+: async_event_dispatcher( queue )
+, pimpl_( new pimpl( queue, name, threads ) )
 {
 	pimpl_->running_ = true;
 	pimpl_->started_ = true;
@@ -81,10 +88,12 @@ threadpool::~threadpool( )
 }
 
 std::shared_ptr< threadpool >
-threadpool::construct( const std::string& name, std::size_t threads )
+threadpool::construct( const std::string& name,
+                       const queue_ptr& queue,
+                       std::size_t threads )
 {
 	auto tp = ::q::make_shared_using_constructor< threadpool >(
-		name, threads );
+		name, queue, threads );
 	tp->start( );
 	return tp;
 }
@@ -165,7 +174,9 @@ void threadpool::start( )
 			_this->pimpl_->cond_.wait( lock );
 		};
 
-		auto t = run( std::move( thread_name ), std::move( fn ) );
+		auto t = run( std::move( thread_name ),
+		              pimpl_->queue_,
+		              std::move( fn ) );
 
 		auto promise = t->terminate( );
 

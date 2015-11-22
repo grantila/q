@@ -335,7 +335,7 @@ public:
 		return get_promise( );
 	}
 
-	static std::shared_ptr< defer< T... > > construct( )
+	static std::shared_ptr< defer< T... > > construct( const queue_ptr& queue )
 	{
 		typedef typename state_data_type::future_type future_type;
 
@@ -347,17 +347,17 @@ public:
 
 		auto signal = state.signal( );
 
-		promise_type q_promise( std::move( state ) );
+		promise_type q_promise( std::move( state ), queue );
 
 		return ::q::make_shared_using_constructor< defer< T... > >(
 			std::move( std_promise ),
 			std::move( signal ),
 			std::move( q_promise ) );
 	}
-	
+
 protected:
 	defer( ) = delete;
-	
+
 	defer( std::promise< expect_type >&& promise,
 	       promise_signal_ptr&& signal,
 	       promise_type&& deferred )
@@ -365,7 +365,7 @@ protected:
 	, signal_( std::move( signal ) )
 	, deferred_( std::move( deferred ) )
 	{ }
-	
+
 private:
 	std::promise< expect_type > promise_;
 	promise_signal_ptr          signal_;

@@ -38,7 +38,8 @@ generic_promise< Shared, std::tuple< Args... > >::
 then( Fn&& fn, queue_ptr queue )
 {
 	typedef Q_RESULT_OF_AS_TUPLE_TYPE( Fn ) return_tuple_type;
-	auto deferred = detail::defer< return_tuple_type >::construct( );
+	auto deferred = detail::defer< return_tuple_type >::construct(
+		ensure( queue ) );
 	auto tmp_fn = Q_TEMPORARILY_COPYABLE( fn );
 	auto state = state_;
 
@@ -52,7 +53,7 @@ then( Fn&& fn, queue_ptr queue )
 			deferred->set_by_fun( tmp_fn.consume( ), value.consume( ) );
 	};
 
-	state_->signal( )->push( std::move( perform ), queue );
+	state_->signal( )->push( std::move( perform ), ensure( queue ) );
 
 	return std::move( deferred->get_promise( ) );
 }
@@ -86,7 +87,8 @@ generic_promise< Shared, std::tuple< Args... > >::
 then( Fn&& fn, queue_ptr queue )
 {
 	typedef Q_RESULT_OF_AS_TUPLE_TYPE( Fn ) return_tuple_type;
-	auto deferred = detail::defer< return_tuple_type >::construct( );
+	auto deferred = detail::defer< return_tuple_type >::construct(
+		ensure( queue ) );
 	auto tmp_fn = Q_TEMPORARILY_COPYABLE( fn );
 	auto state = state_;
 
@@ -100,7 +102,7 @@ then( Fn&& fn, queue_ptr queue )
 			deferred->set_by_fun( tmp_fn.consume( ), value.consume( ) );
 	};
 
-	state_->signal( )->push( std::move( perform ), queue );
+	state_->signal( )->push( std::move( perform ), ensure( queue ) );
 
 	return std::move( deferred->get_promise( ) );
 }
@@ -124,7 +126,8 @@ generic_promise< Shared, std::tuple< Args... > >::
 then( Fn&& fn, queue_ptr queue )
 {
 	typedef Q_RESULT_OF( Fn )::tuple_type return_tuple_type;
-	auto deferred = detail::defer< return_tuple_type >::construct( );
+	auto deferred = detail::defer< return_tuple_type >::construct(
+		ensure( queue ) );
 	auto tmp_fn = Q_TEMPORARILY_COPYABLE( fn );
 	auto state = state_;
 
@@ -138,7 +141,7 @@ then( Fn&& fn, queue_ptr queue )
 			deferred->satisfy_by_fun( tmp_fn.consume( ), value.consume( ) );
 	};
 
-	state_->signal( )->push( std::move( perform ), queue );
+	state_->signal( )->push( std::move( perform ), ensure( queue ) );
 
 	return std::move( deferred->get_promise( ) );
 }
@@ -163,7 +166,8 @@ generic_promise< Shared, std::tuple< Args... > >::
 then( Fn&& fn, queue_ptr queue )
 {
 	typedef Q_RESULT_OF( Fn )::tuple_type return_tuple_type;
-	auto deferred = detail::defer< return_tuple_type >::construct( );
+	auto deferred = detail::defer< return_tuple_type >::construct(
+		ensure( queue ) );
 	auto tmp_fn = Q_TEMPORARILY_COPYABLE( fn );
 	auto state = state_;
 
@@ -177,7 +181,7 @@ then( Fn&& fn, queue_ptr queue )
 			deferred->satisfy_by_fun( tmp_fn.consume( ), value.consume( ) );
 	};
 
-	state_->signal( )->push( std::move( perform ), queue );
+	state_->signal( )->push( std::move( perform ), ensure( queue ) );
 
 	return std::move( deferred->get_promise( ) );
 }
@@ -224,7 +228,7 @@ typename std::enable_if<
 generic_promise< Shared, std::tuple< Args... > >::
 fail( Fn&& fn, queue_ptr queue )
 {
-	auto deferred = detail::defer< Args... >::construct( );
+	auto deferred = detail::defer< Args... >::construct( ensure( queue ) );
 	auto tmp_fn = Q_TEMPORARILY_COPYABLE( fn );
 	auto state = state_;
 
@@ -253,7 +257,7 @@ fail( Fn&& fn, queue_ptr queue )
 		}
 	};
 
-	state_->signal( )->push( std::move( perform ), queue );
+	state_->signal( )->push( std::move( perform ), ensure( queue ) );
 
 	return deferred->get_promise( );
 }
@@ -275,7 +279,8 @@ generic_promise< Shared, std::tuple< Args... > >::
 fail( Fn&& fn, queue_ptr queue )
 {
 //	typedef Q_RESULT_OF( Fn )::tuple_type tuple_type;
-	auto deferred = detail::defer< tuple_type >::construct( );
+	auto deferred = detail::defer< tuple_type >::construct(
+		ensure( queue ) );
 	auto tmp_fn = Q_TEMPORARILY_COPYABLE( fn );
 	auto state = state_;
 
@@ -297,7 +302,7 @@ fail( Fn&& fn, queue_ptr queue )
 		}
 	};
 
-	state_->signal( )->push( std::move( perform ), queue );
+	state_->signal( )->push( std::move( perform ), ensure( queue ) );
 
 	return deferred->template get_suitable_promise< Q_RESULT_OF( Fn ) >( );
 }
@@ -314,7 +319,8 @@ typename std::enable_if<
 generic_promise< Shared, std::tuple< Args... > >::
 finally( Fn&& fn, queue_ptr queue )
 {
-	auto deferred = ::q::make_shared< detail::defer< Args... > >( );
+	auto deferred = ::q::make_shared< detail::defer< Args... > >(
+		ensure( queue ) );
 	auto tmp_fn = Q_TEMPORARILY_COPYABLE( fn );
 	auto state = state_;
 
@@ -326,7 +332,7 @@ finally( Fn&& fn, queue_ptr queue )
 		deferred->set_expect( std::move( value ) );
 	};
 
-	state_->signal( )->push( std::move( perform ), queue );
+	state_->signal( )->push( std::move( perform ), ensure( queue ) );
 
 	return deferred->get_promise( );
 }
@@ -335,9 +341,10 @@ finally( Fn&& fn, queue_ptr queue )
 
 template< typename Fn >
 promise< Q_RESULT_OF( Fn ) >
-make_promise( Fn&& fn )
+make_promise( Fn&& fn, const queue_ptr& queue )
 {
-	auto deferred = ::q::detail::defer< Q_RESULT_OF( Fn ) >::construct( );
+	auto deferred = ::q::detail::defer< Q_RESULT_OF( Fn ) >::
+		construct( queue );
 
 	deferred->satisfy_by_fun( std::forward< Fn >( fn ) );
 

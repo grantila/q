@@ -17,12 +17,15 @@ protected:
 	virtual void SetUp( )
 	{
 		bd = q::make_execution_context< q::blocking_dispatcher >( "all" );
+		queue = bd->queue( );
+		/*
 		auto prev_queue = q::set_default_queue( bd->queue( ) );
 		auto reset_queue = q::make_scoped_function( [ prev_queue ]( )
 		{
 			q::set_default_queue( prev_queue );
 		} );
 		scope_ = std::move( reset_queue );
+		 */
 	}
 
 	virtual void TearDown( )
@@ -33,6 +36,8 @@ protected:
 
 	std::shared_ptr< q::specific_execution_context< q::blocking_dispatcher > > bd;
 
+	q::queue_ptr queue;
+
 private:
 	q::scope scope_;
 };
@@ -42,22 +47,22 @@ TEST_F( PromiseAllTest, AllDifferentVoids )
 {
 	std::atomic< int > incremented( 0 );
 
-	auto prom1 = q::with( )
+	auto prom1 = q::with( queue )
 	.then( [ &incremented ]( )
 	{
 		++incremented;
 	} );
-	auto prom2 = q::with( ).share( )
+	auto prom2 = q::with( queue ).share( )
 	.then( [ &incremented ]( )
 	{
 		++incremented;
 	} );
-	auto prom3 = q::with( )
+	auto prom3 = q::with( queue )
 	.then( [ &incremented ]( )
 	{
 		++incremented;
 	} ).share( );
-	auto prom4 = q::with( ).share( )
+	auto prom4 = q::with( queue ).share( )
 	.then( [ &incremented ]( )
 	{
 		++incremented;
@@ -82,9 +87,11 @@ TEST_F( PromiseAllTest, AllSameVoids )
 {
 	std::atomic< int > incremented( 0 );
 
-	auto make_promise = [ &incremented ]( )
+	auto qu = queue;
+
+	auto make_promise = [ &incremented, qu ]( )
 	{
-		return q::with( )
+		return q::with( qu )
 		.then( [ &incremented ]( )
 		{
 			++incremented;
@@ -97,7 +104,7 @@ TEST_F( PromiseAllTest, AllSameVoids )
 	for ( std::size_t i = 0; i < iterations; ++i )
 		promises.push_back( make_promise( ) );
 
-	q::all( promises )
+	q::all( promises, qu )
 	.then( [ &incremented ]( )
 	{
 		incremented += incremented.load( );

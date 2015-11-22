@@ -43,6 +43,18 @@ struct argument_types_if_promise< T, false >
 
 } // namespace detail
 
+template< typename T >
+struct promise_arguments
+{
+	typedef q::arguments< > type;
+};
+
+template< typename T, bool B >
+struct promise_arguments< detail::generic_promise< B, T > >
+{
+	typedef typename T::argument_types type;
+};
+
 template< typename... Promises >
 struct merge_promise_arguments;
 
@@ -50,11 +62,17 @@ template< typename First, typename... Rest >
 struct merge_promise_arguments< First, Rest... >
 : std::conditional<
 	sizeof...( Rest ) == 0,
-	typename std::decay< First >::type::argument_types,
+	promise_arguments<
+		typename std::decay< First >::type
+	>,
 	typename merge<
 		arguments,
-		typename std::decay< First >::type::argument_types,
-		typename std::decay< Rest >::type::argument_types...
+		typename promise_arguments<
+			typename std::decay< First >::type
+		>::type,
+		typename promise_arguments<
+			typename std::decay< Rest >::type
+		>::type...
 	>::type
 >::type
 { };
@@ -69,9 +87,14 @@ struct merge_promise_arguments< >
 : q::arguments< >
 { };
 
-static inline promise< std::tuple< > > all( )
+template< typename Promise >
+typename std::enable_if<
+	is_promise< typename std::decay< Promise >::type >::value,
+	Promise
+>::type
+all( Promise&& promise )
 {
-	return with( );
+	return std::forward< Promise >( promise );
 }
 
 // TODO: Consider a different, less recursive, design
@@ -184,7 +207,7 @@ typename std::enable_if<
 	>::value >= 2 ),
 	promise< typename detail::all_return_type< List >::tuple_type >
 >::type
-all( List&& list )
+all( List&& list, const queue_ptr& queue )
 {
 	typedef typename std::decay< List >::type          list_type;
 	typedef typename list_type::value_type::tuple_type element_type;
@@ -193,7 +216,8 @@ all( List&& list )
 	typedef std::vector< expect_type >                 expect_return_type;
 	typedef combined_promise_exception< element_type > exception_type;
 
-	auto deferred = ::q::make_shared< detail::defer< return_type > >( );
+	auto deferred = ::q::make_shared< detail::defer< return_type > >(
+		queue );
 
 	std::size_t num = list.size( );
 	auto expect_returns = std::make_shared< expect_return_type >( num );
@@ -270,7 +294,7 @@ typename std::enable_if<
 	>::value == 1,
 	promise< typename detail::all_return_type< List >::tuple_type >
 >::type
-all( List&& list )
+all( List&& list, const queue_ptr& queue )
 {
 	typedef typename std::decay< List >::type                  list_type;
 	typedef typename list_type::value_type::tuple_type         tuple_type;
@@ -280,7 +304,8 @@ all( List&& list )
 	typedef std::vector< expect_type >                         expect_return_type;
 	typedef combined_promise_exception< element_type >         exception_type;
 
-	auto deferred = ::q::make_shared< detail::defer< return_type > >( );
+	auto deferred = ::q::make_shared< detail::defer< return_type > >(
+		queue );
 
 	std::size_t num = list.size( );
 	auto expect_returns = std::make_shared< expect_return_type >( num );
@@ -357,13 +382,13 @@ typename std::enable_if<
 	>::value == 0,
 	promise< typename detail::all_return_type< List >::tuple_type >
 >::type
-all( List&& list )
+all( List&& list, const queue_ptr& queue )
 {
 	typedef expect< void >                     expect_type;
 	typedef std::vector< expect_type >         expect_return_type;
 	typedef combined_promise_exception< void > exception_type;
 
-	auto deferred = ::q::make_shared< detail::defer< > >( );
+	auto deferred = ::q::make_shared< detail::defer< > >( queue );
 
 	std::size_t num = list.size( );
 	auto expect_returns = std::make_shared< expect_return_type >( num );

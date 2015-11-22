@@ -32,12 +32,12 @@ promise<
 		typename std::remove_reference< T >::type...
 	>::type
 >
-with( T&&... t )
+with( const queue_ptr& queue, T&&... t )
 {
 	typedef detail::defer<
 		typename std::remove_reference< T >::type...
 	> defer_type;
-	auto deferred = ::q::make_shared< defer_type >( );
+	auto deferred = ::q::make_shared< defer_type >( queue );
 
 	deferred->set_value( std::forward_as_tuple( t... ) );
 

@@ -23,7 +23,7 @@
 namespace q {
 
 class threadpool
-: public event_dispatcher< >
+: public async_event_dispatcher< >
 , public std::enable_shared_from_this< threadpool >
 {
 public:
@@ -33,10 +33,13 @@ public:
 
 	static std::shared_ptr< threadpool >
 	construct( const std::string& name,
+	           const queue_ptr& queue,
 	           std::size_t threads = hard_cores( ) );
 
 protected:
-	threadpool( const std::string& name, std::size_t threads );
+	threadpool( const std::string& name,
+	            const queue_ptr& queue,
+	            std::size_t threads );
 
 private:
 	void start( ) override;

@@ -43,14 +43,25 @@ class writable
 public:
 	typedef std::tuple< T... > tuple_type;
 
-	void send( T&&... t )
+	template< typename... Args >
+	typename std::enable_if<
+		(
+			sizeof...( Args ) != 1 ||
+			!arguments<
+				typename arguments< Args... >::first_type
+			>::template is_convertible_to<
+				arguments< tuple_type >
+			>::value
+		) &&
+		arguments<
+			Args...
+		>::template is_convertible_to<
+			typename tuple_arguments< tuple_type >::this_type
+		>::value
+	>::type
+	send( Args&&... args )
 	{
-		return send( std::make_tuple( std::move( t )... ) );
-	}
-
-	void send( const T&... t )
-	{
-		return send( std::make_tuple( t... ) );
+		this->send( std::forward_as_tuple( args... ) );
 	}
 
 	virtual void send( tuple_type&& t ) = 0;
@@ -67,8 +78,9 @@ public:
 	typedef detail::defer< T... > defer_type;
 	typedef arguments< T... >     arguments_type;
 
-	channel( /* q::location, name */ )
-	: mutex_( Q_HERE, "channel" )
+	channel( const queue_ptr& queue /* q::location, name */ )
+	: default_queue_( queue )
+	, mutex_( Q_HERE, "channel" )
 	, closed_( false )
 	{ }
 
@@ -78,6 +90,8 @@ public:
 
 		closed_.store( true, std::memory_order_seq_cst );
 	}
+
+	using writable< T... >::send;
 
 	void send( tuple_type&& t ) override
 	{
@@ -99,29 +113,6 @@ public:
 		}
 	}
 
-	template< typename... Args >
-	typename std::enable_if<
-		(
-			sizeof...( Args ) != 1 ||
-			!arguments<
-				typename arguments< Args... >::first_type
-			>::template is_convertible_to<
-				arguments< tuple_type >
-			>::value
-		) &&
-		arguments<
-			Args...
-		>::template is_convertible_to<
-			typename tuple_arguments< tuple_type >::this_type
-		>::value
-	>::type
-	send( Args&&... args )
-	{
-		this->send(
-			std::forward_as_tuple( std::forward< Args >( args )... )
-		);
-	}
-
 	promise< tuple_type > receive( ) override
 	{
 		Q_AUTO_UNIQUE_LOCK( mutex_ );
@@ -130,9 +121,11 @@ public:
 		{
 			if ( closed_.load( std::memory_order_seq_cst ) )
 				return reject< arguments_type >(
+					default_queue_,
 					channel_closed_exception( ) );
 
-			auto defer = ::q::make_shared< defer_type >( );
+			auto defer = ::q::make_shared< defer_type >(
+				default_queue_ );
 
 			waiters_.push( defer );
 
@@ -143,7 +136,8 @@ public:
 			tuple_type t = std::move( queue_.front( ) );
 			queue_.pop( );
 
-			auto defer = ::q::make_shared< defer_type >( );
+			auto defer = ::q::make_shared< defer_type >(
+				default_queue_ );
 
 			defer->set_value( std::move( t ) );
 
@@ -152,6 +146,7 @@ public:
 	}
 
 private:
+	queue_ptr default_queue_;
 	// TODO: Make this lock-free and consider other list types
 	mutex mutex_;
 	std::queue< std::shared_ptr< defer_type > > waiters_;

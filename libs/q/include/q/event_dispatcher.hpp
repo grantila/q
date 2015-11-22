@@ -55,7 +55,7 @@ enum class termination
 
 template< typename TerminationArgs = q::arguments< > >
 class event_dispatcher
-: public async_termination< TerminationArgs >
+: public sync_termination< TerminationArgs >
 , public basic_event_dispatcher
 {
 public:
@@ -71,6 +71,28 @@ public:
 
 protected:
 	event_dispatcher( )
+	{ }
+};
+
+template< typename TerminationArgs = q::arguments< > >
+class async_event_dispatcher
+: public async_termination< TerminationArgs >
+, public basic_event_dispatcher
+{
+public:
+	~async_event_dispatcher( )
+	{ }
+
+	/**
+	 * TODO: Reconsider
+	 */
+	virtual std::size_t backlog( ) const = 0;
+
+	virtual void start( ) = 0;
+
+protected:
+	async_event_dispatcher( const queue_ptr& queue )
+	: async_termination< TerminationArgs >( queue )
 	{ }
 };
 

@@ -12,10 +12,10 @@ TEST( ExeuctionContext, BlockDispatcher )
 	auto ctx = q::make_shared< q::execution_context >( bd );
 
 	auto qu = ctx->queue( );
-	q::set_default_queue( qu );
+	//q::set_default_queue( qu );
 
 	int num = 4711;
-	q::with( num )
+	q::with( qu, num )
 	.then( [ ]( int i )
 	{
 		return i + 1;
@@ -35,16 +35,16 @@ TEST( ExeuctionContext, ThreadPoolDispatcher )
 	auto ctx = q::make_shared< q::execution_context >( bd );
 	auto qu = ctx->queue( );
 
-	q::set_default_queue( qu );
+	// q::set_default_queue( qu );
 
-	auto tpctx = q::make_execution_context< q::threadpool >( "test pool" );
+	auto tpctx = q::make_execution_context< q::threadpool >( "test pool", qu );
 	auto tpqu = tpctx->queue( );
 
 	int num = 4711;
 	std::atomic< int > val( num );
 
 	std::size_t tasks = 1000;
-	auto prom = q::with( num ).share( );
+	auto prom = q::with( tpqu, num ).share( );
 	std::vector< q::promise< std::tuple< > > > promises;
 
 	for ( std::size_t i = 0; i < tasks; ++i )
@@ -55,7 +55,7 @@ TEST( ExeuctionContext, ThreadPoolDispatcher )
 			}, tpqu )
 		);
 
-	q::all( std::move( promises ) )
+	q::all( std::move( promises ), tpqu )
 	.then( [ num, &val, tasks, bd ]( )
 	{
 		EXPECT_EQ( val.load( ), num + tasks );

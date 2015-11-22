@@ -21,16 +21,10 @@
 namespace q {
 
 void initialize( settings settings )
-{
-	set_main_queue( queue::make( 0 ) );
-	set_background_queue( queue::make( 0 ) );
-	set_default_queue( queue::make( 0 ) );
-}
+{ }
 
 void uninitialize( )
-{
-	;
-}
+{ }
 
 scope scoped_initialize( settings settings )
 {

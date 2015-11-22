@@ -114,10 +114,11 @@ public:
 		std::is_same< Q_RESULT_OF( Fn ), Ret >::value,
 		std::shared_ptr< thread< Ret > >
 	>::type
-	construct( std::string name, Fn&& fn, Args&&... args )
+	construct( std::string name, const queue_ptr& queue,
+		Fn&& fn, Args&&... args )
 	{
 		auto self = std::shared_ptr< thread< Ret > >(
-			new thread< Ret >( std::move( name ) ) );
+			new thread< Ret >( std::move( name ), queue ) );
 
 		self->run(
 			std::forward< Fn >( fn ),
@@ -128,8 +129,9 @@ public:
 	}
 
 protected:
-	thread( std::string&& name )
-	: name_( std::move( name ) )
+	thread( std::string&& name, const queue_ptr& queue )
+	: async_terminate_base( queue )
+	, name_( std::move( name ) )
 	, running_( false )
 	, self_ref_( nullptr )
 	{ }
@@ -242,11 +244,12 @@ private:
 
 template< typename Fn, typename... Args >
 std::shared_ptr< thread< Q_RESULT_OF( Fn ) > >
-run( std::string name, Fn&& fn, Args&&... args )
+run( std::string name, const queue_ptr& queue, Fn&& fn, Args&&... args )
 {
 	return thread< Q_RESULT_OF( Fn ) >::construct(
 	//return q::make_shared< thread< Q_RESULT_OF( Fn ) > >(
 		std::move( name ),
+		queue,
 		std::forward< Fn >( fn ),
 		std::forward< Args >( args )... );
 }

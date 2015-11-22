@@ -31,8 +31,10 @@ struct blocking_dispatcher::pimpl
 	bool allow_more_jobs_;
 };
 
-blocking_dispatcher::blocking_dispatcher( const std::string& name )
-: pimpl_( new pimpl( name ) )
+blocking_dispatcher::blocking_dispatcher(
+	const std::string& name )
+: event_dispatcher< q::arguments< termination > >( )
+, pimpl_( new pimpl( name ) )
 { }
 
 blocking_dispatcher::~blocking_dispatcher( )
@@ -99,12 +101,6 @@ void blocking_dispatcher::start( )
 		pimpl_->cond_.wait( lock, predicate );
 	}
 	while ( pimpl_->running_ );
-
-	{
-		Q_AUTO_UNIQUE_UNLOCK( lock );
-
-		termination_done( );
-	}
 }
 
 void blocking_dispatcher::do_terminate( termination method )

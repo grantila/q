@@ -46,8 +46,14 @@ public:
 	: ::q::is_argument_same_or_convertible< arguments< T... >, argument_types >
 	{ };
 
-	generic_promise( state_type&& state )
+	generic_promise( state_type&& state, const queue_ptr& queue )
 	: state_( ::q::make_shared< state_type >( std::move( state ) ) )
+	, queue_( queue )
+	{ }
+
+	generic_promise( std::shared_ptr< state_type > state, const queue_ptr& queue )
+	: state_( state )
+	, queue_( queue )
 	{ }
 
 	generic_promise( this_type&& ref ) = default;
@@ -58,6 +64,14 @@ public:
 
 	virtual ~generic_promise( )
 	{ }
+
+	/**
+	 * @return queue_ptr The current queue for this promise
+	 */
+	queue_ptr get_queue( ) noexcept
+	{
+		return queue_;
+	}
 
 	/**
 	 * The API:
@@ -88,7 +102,7 @@ public:
 		!is_promise< Q_RESULT_OF( Fn ) >::value,
 		promise< Q_RESULT_OF_AS_TUPLE_TYPE( Fn ) >
 	>::type
-	then( Fn&& fn, queue_ptr queue = default_queue( ) );
+	then( Fn&& fn, queue_ptr queue = nullptr );
 
 	/**
 	 * ( std::tuple< ... > ) -> value
@@ -102,7 +116,7 @@ public:
 		!is_promise< Q_RESULT_OF( Fn ) >::value,
 		promise< Q_RESULT_OF_AS_ARGUMENT_TYPE( Fn )::tuple_type >
 	>::type
-	then( Fn&& fn, queue_ptr queue = default_queue( ) );
+	then( Fn&& fn, queue_ptr queue = nullptr );
 
 	/**
 	 * ( ... ) -> promise< value >
@@ -116,7 +130,7 @@ public:
 		is_promise< Q_RESULT_OF( Fn ) >::value,
 		Q_RESULT_OF( Fn )
 	>::type
-	then( Fn&& fn, queue_ptr queue = default_queue( ) );
+	then( Fn&& fn, queue_ptr queue = nullptr );
 
 	/**
 	 * ( std::tuple< ... > ) -> promise< value >
@@ -130,14 +144,14 @@ public:
 		is_promise< Q_RESULT_OF( Fn ) >::value,
 		Q_RESULT_OF( Fn )
 	>::type
-	then( Fn&& fn, queue_ptr queue = default_queue( ) );
+	then( Fn&& fn, queue_ptr queue = nullptr );
 
 	template< typename Logger >
 	typename std::enable_if<
 		is_same_type< Logger, log_chain_generator >::value,
 		this_type
 	>::type
-	then( Logger&& logger, queue_ptr queue = default_queue( ) );
+	then( Logger&& logger, queue_ptr queue = nullptr );
 
 	/**
 	 * Matches an exception as a raw std::exception_ptr
@@ -151,7 +165,7 @@ public:
 		std::is_void< Q_RESULT_OF( Fn ) >::value,
 		unique_this_type
 	>::type
-	fail( Fn&& fn, queue_ptr queue = default_queue( ) );
+	fail( Fn&& fn, queue_ptr queue = nullptr );
 
 	/**
 	 * Matches an exception as a raw std::exception_ptr
@@ -165,7 +179,7 @@ public:
 		is_promise< Q_RESULT_OF( Fn ) >::value,
 		Q_RESULT_OF( Fn )
 	>::type
-	fail( Fn&& fn, queue_ptr queue = default_queue( ) );
+	fail( Fn&& fn, queue_ptr queue = nullptr );
 
 	/**
 	 * Matches an exception of any type, defined by the one and only argument
@@ -178,7 +192,7 @@ public:
 		std::is_void< Q_RESULT_OF( Fn ) >::value,
 		unique_this_type
 	>::type
-	fail( Fn&& fn, queue_ptr queue = default_queue( ) )
+	fail( Fn&& fn, queue_ptr queue = nullptr )
 	{
 		// TODO: Rewrite this and optimize for having multiple type matching
 		// catches in a single try/catch block, so that the rethrowing only
@@ -224,7 +238,7 @@ public:
 		Q_ARITY_OF( Fn ) == 0,
 		unique_this_type
 	>::type
-	finally( Fn&& fn, queue_ptr queue = default_queue( ) );
+	finally( Fn&& fn, queue_ptr queue = nullptr );
 
 	void done( )
 	{
@@ -235,7 +249,15 @@ private:
 	friend class ::q::promise< tuple_type >;
 	friend class ::q::shared_promise< tuple_type >;
 
+	queue_ptr ensure( const queue_ptr& queue )
+	{
+		if ( queue )
+			return queue;
+		return queue_;
+	}
+
 	std::shared_ptr< state_type > state_;
+	queue_ptr queue_;
 };
 
 } // namespace detail
@@ -250,8 +272,8 @@ class promise
 public:
 	typedef ::q::is_copy_constructible< T > shareable;
 
-	promise( base_type&& state )
-	: base_type( std::move( state ) )
+	promise( typename base_type::state_type&& state, const queue_ptr& queue )
+	: base_type( std::move( state ), queue )
 	{ }
 
 	promise( ) = delete;
@@ -260,6 +282,10 @@ public:
 	promise& operator=( this_type&& ) = default;
 	promise& operator=( const this_type& ) = delete;
 
+	promise( detail::generic_promise< false, T >&& ref )
+	: base_type( std::move( ref.state_ ), ref.queue_ )
+	{ }
+
 	template< typename T_ = T >
 	typename std::enable_if<
 		shareable::value && std::is_same< T_, T >::value,
@@ -267,7 +293,8 @@ public:
 	>::type
 	share( )
 	{
-		return shared_promise< T >( base_type::state_->acquire( ) );
+		return shared_promise< T >(
+			base_type::state_->acquire( ), this->get_queue( ) );
 	}
 };
 
@@ -279,12 +306,19 @@ class shared_promise
 	typedef detail::generic_promise< true, T > base_type;
 
 public:
-	shared_promise( base_type&& state )
-	: base_type( std::move( state ) )
+	shared_promise( typename base_type::state_type&& state,
+	                const queue_ptr& queue )
+	: base_type( std::move( state ), queue )
 	{ }
 
-	shared_promise( detail::promise_state_data< T, false >&& state )
-	: base_type( std::move( state ) )
+	shared_promise(
+		detail::promise_state_data< T, false >&& state,
+		const queue_ptr& queue )
+	: base_type( std::move( state ), queue )
+	{ }
+
+	shared_promise( detail::generic_promise< true, T >&& ref )
+	: base_type( std::move( ref.state_ ), ref.queue_ )
 	{ }
 
 	shared_promise( ) = delete;
@@ -295,7 +329,8 @@ public:
 
 	promise< T > unshare( ) noexcept // TODO: analyze noexcept here
 	{
-		return promise< T >( base_type::state_->acquire( ) );
+		return promise< T >(
+			base_type::state_->acquire( ), this->get_queue( ) );
 	}
 };
 

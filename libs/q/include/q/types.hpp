@@ -132,14 +132,6 @@ typedef std::shared_ptr< queue > queue_ptr;
 
 class scheduler;
 
-// TODO: Perhaps move these somewhere else
-queue_ptr main_queue( );
-queue_ptr background_queue( );
-queue_ptr default_queue( );
-queue_ptr set_main_queue( queue_ptr queue );
-queue_ptr set_background_queue( queue_ptr queue );
-queue_ptr set_default_queue( queue_ptr queue );
-
 typedef int priority_t;
 
 typedef std::function< void( void ) > task;

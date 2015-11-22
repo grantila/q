@@ -33,12 +33,12 @@ typename std::enable_if<
 	is_same_type< E, std::exception_ptr >::value,
 	promise< typename Arguments::tuple_type >
 >::type
-reject( E&& e )
+reject( const queue_ptr& queue, E&& e )
 {
 	typedef typename Arguments::template apply< detail::defer >::type
 		defer_type;
 
-	auto deferred = ::q::make_shared< defer_type >( );
+	auto deferred = ::q::make_shared< defer_type >( queue );
 
 	deferred->set_exception( std::forward< E >( e ) );
 
@@ -50,12 +50,12 @@ typename std::enable_if<
 	!is_same_type< E, std::exception_ptr >::value,
 	promise< typename Arguments::tuple_type >
 >::type
-reject( E&& e )
+reject( const queue_ptr& queue, E&& e )
 {
 	typedef typename Arguments::template apply< detail::defer >::type
 		defer_type;
 
-	auto deferred = ::q::make_shared< defer_type >( );
+	auto deferred = ::q::make_shared< defer_type >( queue );
 
 	deferred->set_exception(
 		std::make_exception_ptr( std::forward< E >( e ) ) );

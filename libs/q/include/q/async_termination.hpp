@@ -25,6 +25,38 @@ namespace q {
 
 namespace detail {
 
+// Synchronous termination
+
+template< typename Parameters >
+class sync_termination_interface;
+
+template< typename... Args >
+class sync_termination_interface< q::arguments< Args... > >
+{
+	typedef sync_termination_interface< arguments< Args... > > this_type;
+
+public:
+	template< typename... FnArgs >
+	typename std::enable_if<
+		::q::is_argument_same_or_convertible<
+			q::arguments< FnArgs... >,
+			q::arguments< Args... >
+		>::value
+	>::type
+	terminate( FnArgs&&... args )
+	{
+		::q::call_with_args(
+			&this_type::do_terminate,
+			this,
+			std::forward< FnArgs >( args )... );
+	}
+
+protected:
+	virtual void do_terminate( Args... ) = 0;
+};
+
+// Asynchronous termination
+
 template< typename Parameters, typename Completion >
 class async_termination_interface;
 
@@ -60,8 +92,8 @@ public:
 	virtual ~async_termination( ) { }
 
 protected:
-	async_termination( )
-	: deferred_termination_( ::q::make_shared< defer_type >( ) )
+	async_termination( const queue_ptr& queue )
+	: deferred_termination_( ::q::make_shared< defer_type >( queue ) )
 	{ }
 	async_termination( const async_termination& ) = delete;
 	async_termination( async_termination&& ) = delete;
@@ -151,9 +183,13 @@ public:
 	virtual ~async_termination( ) { }
 
 protected:
-	async_termination( ) = default;
+	async_termination( ) = delete;
 	async_termination( const async_termination& ) = delete;
 	async_termination( async_termination&& ) = delete;
+
+	async_termination( const queue_ptr& queue )
+	: detail::async_termination< Parameters, Completion >( queue )
+	{ }
 };
 
 template<
@@ -166,9 +202,32 @@ public:
 	virtual ~async_termination( ) { }
 
 protected:
-	async_termination( ) = default;
+	async_termination( ) = delete;
 	async_termination( const async_termination& ) = delete;
 	async_termination( async_termination&& ) = delete;
+
+	async_termination( const queue_ptr& queue )
+	: detail::async_termination< Parameters, std::tuple< > >( queue )
+	{ }
+};
+
+/**
+ * Synchronous version of the async_termination, where the terminate( ) returns
+ * when the termination is actually complete, instead of returning a promise.
+ */
+template<
+	typename Parameters
+>
+class sync_termination
+: public detail::sync_termination_interface< Parameters >
+{
+public:
+	virtual ~sync_termination( ) { }
+
+protected:
+	sync_termination( ) = default;
+	sync_termination( const sync_termination& ) = delete;
+	sync_termination( sync_termination&& ) = delete;
 };
 
 } // namespace q

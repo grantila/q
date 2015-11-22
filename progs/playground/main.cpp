@@ -196,16 +196,15 @@ int main( int argc, char** argv )
 
 	auto bd = q::make_shared< q::blocking_dispatcher >( "main" );
 	auto queue = q::make_shared< q::queue >( );
-	q::set_main_queue( queue );
-	q::set_default_queue( queue );
+
 	auto sched = q::make_shared< q::scheduler >( bd );
 	sched->add_queue( queue );
 
-	auto error_stuff  = q::with( ).share( );
-	auto thread_stuff = q::with( );
+	auto error_stuff  = q::with( queue ).share( );
+	auto thread_stuff = q::with( queue );
 
 	{
-		auto t = q::run( "test thread", [ ]( ) -> std::string
+		auto t = q::run( "test thread", queue, [ ]( ) -> std::string
 		{
 			std::cerr << "thread running" << std::endl;
 			return "hello";
@@ -236,7 +235,7 @@ int main( int argc, char** argv )
 	{
 		e_f( );
 	} )
-	.fail( [ ]( std::exception_ptr e ) -> q::promise< std::tuple< > >
+	.fail( [ queue ]( std::exception_ptr e ) -> q::promise< std::tuple< > >
 	{
 		try
 		{
@@ -251,7 +250,7 @@ int main( int argc, char** argv )
 				std::cerr << st << std::endl;
 			}
 		}
-		return q::with( );
+		return q::with( queue );
 	} )
 	;
 
@@ -263,7 +262,7 @@ int main( int argc, char** argv )
 	std::cerr << "are promises: " << q::are_promises< decltype( error_stuff2 ), std::true_type >::value << std::endl;
 	std::cerr << "are promises2: " << q::are_promises< q::promise< std::tuple< > >, q::promise< std::tuple< > > >::value << std::endl;
 
-	q::all( error_stuff2, thread_stuff )
+	q::all( std::move( error_stuff2 ), std::move( thread_stuff ) )
 	.then( [ bd ]( )
 	{
 		//    return bd->terminate( q::event_dispatcher::termination::linger );
@@ -277,7 +276,8 @@ int main( int argc, char** argv )
 	std::cerr << "backlog b" << std::endl;
 
 	{
-		auto testpool = q::make_shared< q::threadpool >( "testpool" );
+		auto testpool = q::make_shared< q::threadpool >(
+			"testpool", queue );
 		testpool->terminate( ).then( [ ]( )
 		{
 			std::cerr << "thread pool destroyed" << std::endl;
@@ -285,9 +285,9 @@ int main( int argc, char** argv )
 	}
 	std::cerr << "threadpool created and destroyed" << std::endl;
 
-	auto tpd = q::make_shared< q::threadpool >( "pool" );
+	auto tpd = q::make_shared< q::threadpool >( "pool", queue );
 	auto bg_queue = q::make_shared< q::queue >( );
-	q::set_background_queue( bg_queue );
+
 	auto bg_sched = q::make_shared< q::scheduler >( tpd );
 	bg_sched->add_queue( bg_queue );
 
@@ -342,7 +342,7 @@ int main( int argc, char** argv )
 	q::call_with_args_by_tuple( print_movable, std::move( t ) );
 
 
-	auto prom = q::with( )
+	auto prom = q::with( queue )
 	/* */
 	.then( [ ]( ) -> std::string
 	{
@@ -358,20 +358,20 @@ int main( int argc, char** argv )
 	} );
 	/* */
 
-	auto bg_prom = q::with( 5 )
+	auto bg_prom = q::with( queue, 5 )
 	.then( [ ]( int i ) -> int
 	{
 		usleep( 100 * 1000 );
 		std::cout << "background thread got " << i << std::endl;
 		usleep( 100 * 1000 );
 		return i * 2;
-	}, q::background_queue( ) )
+	}, bg_queue )
 	.then( [ ]( int i )
 	{
 		usleep( 100 * 1000 );
 		std::cout << "background thread got " << i << std::endl;
 		usleep( 100 * 1000 );
-	}, q::background_queue( ) );
+	}, bg_queue );
 
 	auto shared_prom = prom.share( );
 /* */
@@ -411,7 +411,7 @@ int main( int argc, char** argv )
 	/* */
 	;
 
-	auto chan = q::make_shared< q::channel< int, std::string > >( );
+	auto chan = q::make_shared< q::channel< int, std::string > >( queue );
 	chan->send( 12, std::string( "years old whiskey" ) );
 	chan->send( 12, "years old whiskey" );
 	chan->send( 99, "luftballoons" );
