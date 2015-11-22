@@ -330,8 +330,20 @@ finally( Fn&& fn, queue_ptr queue )
 
 	return deferred->get_promise( );
 }
-    
 
-} } // namespace detail, namespace q
+} // namespace detail
+
+template< typename Fn >
+promise< Q_RESULT_OF( Fn ) >
+make_promise( Fn&& fn )
+{
+	auto deferred = ::q::detail::defer< Q_RESULT_OF( Fn ) >::construct( );
+
+	deferred->satisfy_by_fun( std::forward< Fn >( fn ) );
+
+	return deferred->get_promise( );
+}
+
+} // namespace q
 
 #endif // LIBQ_PROMISE_PROMISE_IMPL_HPP
