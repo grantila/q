@@ -121,10 +121,6 @@ const std::string& return_const_lvalue_ref( ) { return s__; }
 
 void do_something( const std::string&& s ) { }
 
-void move_into( std::string&& s )
-{
-	std::cerr << "moved_into( " << s << " )" << std::endl;
-}
 
 template< typename T >
 void UNUSED( T ) { }
@@ -133,37 +129,6 @@ std::tuple< std::string > return_string_tuple( )
 { return std::make_tuple( "test" ); }
 
 
-
-
-
-
-
-
-typedef q::is_argument_same<
-	q::arguments< char, int >,
-	q::arguments< char, int >
-> ias_type;
-const ias_type::value_type bt1 = ias_type::value;
-
-const bool bt2 = q::is_argument_same<
-	q::arguments< >,
-	q::arguments< >
->::value;
-
-const bool bf1 = q::is_argument_same<
-	q::arguments< char, long >,
-	q::arguments< char, int >
->::value;
-
-const bool bf2 = q::is_argument_same<
-	q::arguments< char, int, double >,
-	q::arguments< char, int >
->::value;
-
-const bool bf3 = q::is_argument_same<
-	q::arguments< double >,
-	q::arguments< >
->::value;
 
 
 
@@ -226,14 +191,6 @@ int main( int argc, char** argv )
 	int i = 4711;
 	double d = 3.1415;
 	Movable m( i );
-
-	std::cout << "T " << bt1 << std::endl;
-	std::cout << "T " << bt2 << std::endl;
-	std::cout << "F " << bf1 << std::endl;
-	std::cout << "F " << bf2 << std::endl;
-	std::cout << "F " << bf3 << std::endl;
-
-	std::cout << Q_RESULT_OF_AS_ARGUMENT( decltype( move_into ) )::size::value << std::endl;
 
 	auto q_scope = initialize( );
 
@@ -319,10 +276,6 @@ int main( int argc, char** argv )
 
 	std::cerr << "backlog b" << std::endl;
 
-//	bd->start( );
-	
-//	return 0;
-
 	{
 		auto testpool = q::make_shared< q::threadpool >( "testpool" );
 		testpool->terminate( ).then( [ ]( )
@@ -331,10 +284,6 @@ int main( int argc, char** argv )
 		} );
 	}
 	std::cerr << "threadpool created and destroyed" << std::endl;
-
-	q::call_with_args( move_into, std::move( s ) );
-	auto tmp_tup = return_string_tuple( );
-	q::call_with_args_by_tuple( move_into, std::move( tmp_tup ) );
 
 	auto tpd = q::make_shared< q::threadpool >( "pool" );
 	auto bg_queue = q::make_shared< q::queue >( );
@@ -463,6 +412,7 @@ int main( int argc, char** argv )
 	;
 
 	auto chan = q::make_shared< q::channel< int, std::string > >( );
+	chan->send( 12, std::string( "years old whiskey" ) );
 	chan->send( 12, "years old whiskey" );
 	chan->send( 99, "luftballoons" );
 
@@ -494,26 +444,7 @@ int main( int argc, char** argv )
 	std::cout << std::get< 0 >( s_tuple ) << std::endl;
 	do_something( std::move( return_const_lvalue_ref( ) ) );
 
-	typedef decltype( &Movable::get ) type_movable_get;
-	typedef decltype( &g ) type_g;
-	q::function_traits< type_movable_get >::memberclass_type* clsptr = nullptr;
-	q::function_traits< type_g >::memberclass_type* clsptr2 = nullptr;
-
-	UNUSED( clsptr );
-	UNUSED( clsptr2 );
-
-	q::function_traits< type_movable_get >::memberclass_type class_instance( 42 );
-
 	typedef q::function_traits< decltype( &Movable::variadic< int > ) > variadic_traits;
-
-	auto lambda = [ ]( int&, char, std::string, char ) { };
-	typedef q::function_traits< decltype( lambda ) > lambda_traits;
-
-	std::tuple_element< 0, lambda_traits::argument_types::tuple_type >::type i_ref = i;
-	std::tuple_element< 1, lambda_traits::argument_types::tuple_type >::type asdf = 'a';
-	std::cout << asdf << std::endl;
-
-	UNUSED( i_ref );
 
 	var_f( i );
 	var_f( i, s, d );
@@ -524,10 +455,6 @@ int main( int argc, char** argv )
 //	q::call_with_args( var_f, auto_params );
 
 	std::cout
-		<< Q_ARITY_OF( type_movable_get )
-		<< ", "
-		<< Q_ARITY_OF( type_g )
-		<< ", "
 		<< Q_ARITY_OF( decltype( &Movable::dummy ) )
 		<< ", "
 		<< Q_ARITY_OF( decltype( &Movable::dummy_const ) )
@@ -538,15 +465,6 @@ int main( int argc, char** argv )
 //		<< ", "
 //		<< typeid( variadic_traits::deduced_type ).name( )
 		<< ", "
-		<< lambda_traits::arity::value
-		<< ", "
-		<< typeid( std::tuple_element< 0, lambda_traits::argument_types::tuple_type >::type ).name( )
-		<< ", "
-		<< typeid( std::tuple_element< 1, lambda_traits::argument_types::tuple_type >::type ).name( )
-		<< ", "
-		<< typeid( std::tuple_element< 2, lambda_traits::argument_types::tuple_type >::type ).name( )
-		<< ", "
-		<< typeid( std::tuple_element< 3, lambda_traits::argument_types::tuple_type >::type ).name( )
 		<< std::endl;
 
 	q::call_with_args( g );
