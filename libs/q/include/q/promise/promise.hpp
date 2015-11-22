@@ -93,106 +93,130 @@ public:
 	/**
 	 * ( ... ) -> value
 	 */
-	template< typename Fn >
+	template< typename Fn, typename Queue = queue_ptr >
 	typename std::enable_if<
 		this_type::template is_valid_arguments<
 			Q_ARGUMENTS_OF( Fn )
 		>::value
 		&&
-		!is_promise< Q_RESULT_OF( Fn ) >::value,
+		!is_promise< Q_RESULT_OF( Fn ) >::value
+		&&
+		detail::temporary< queue_ptr >
+			::template is_decayed< Queue >::value,
 		promise< Q_RESULT_OF_AS_TUPLE_TYPE( Fn ) >
 	>::type
-	then( Fn&& fn, queue_ptr queue = nullptr );
+	then( Fn&& fn, Queue&& queue = nullptr );
 
 	/**
 	 * ( std::tuple< ... > ) -> value
 	 */
-	template< typename Fn >
+	template< typename Fn, typename Queue = queue_ptr >
 	typename std::enable_if<
 		::q::is_argument_same_or_convertible<
 			arguments< tuple_type >, Q_ARGUMENTS_OF( Fn )
 		>::value
 		&&
-		!is_promise< Q_RESULT_OF( Fn ) >::value,
+		!is_promise< Q_RESULT_OF( Fn ) >::value
+		&&
+		detail::temporary< queue_ptr >
+			::template is_decayed< Queue >::value,
 		promise< Q_RESULT_OF_AS_ARGUMENT_TYPE( Fn )::tuple_type >
 	>::type
-	then( Fn&& fn, queue_ptr queue = nullptr );
+	then( Fn&& fn, Queue&& queue = nullptr );
 
 	/**
 	 * ( ... ) -> promise< value >
 	 */
-	template< typename Fn >
+	template< typename Fn, typename Queue = queue_ptr >
 	typename std::enable_if<
 		this_type::template is_valid_arguments<
 			Q_ARGUMENTS_OF( Fn )
 		>::value
 		&&
-		is_promise< Q_RESULT_OF( Fn ) >::value,
+		is_promise< Q_RESULT_OF( Fn ) >::value
+		&&
+		detail::temporary< queue_ptr >
+			::template is_decayed< Queue >::value,
 		Q_RESULT_OF( Fn )
 	>::type
-	then( Fn&& fn, queue_ptr queue = nullptr );
+	then( Fn&& fn, Queue&& queue = nullptr );
 
 	/**
 	 * ( std::tuple< ... > ) -> promise< value >
 	 */
-	template< typename Fn >
+	template< typename Fn, typename Queue = queue_ptr >
 	typename std::enable_if<
 		::q::is_argument_same_or_convertible<
 			arguments< tuple_type >, Q_ARGUMENTS_OF( Fn )
 		>::value
 		&&
-		is_promise< Q_RESULT_OF( Fn ) >::value,
+		is_promise< Q_RESULT_OF( Fn ) >::value
+		&&
+		detail::temporary< queue_ptr >
+			::template is_decayed< Queue >::value,
 		Q_RESULT_OF( Fn )
 	>::type
-	then( Fn&& fn, queue_ptr queue = nullptr );
+	then( Fn&& fn, Queue&& queue = nullptr );
 
-	template< typename Logger >
+	template< typename Logger, typename Queue = queue_ptr >
 	typename std::enable_if<
-		is_same_type< Logger, log_chain_generator >::value,
+		is_same_type< Logger, log_chain_generator >::value
+		&&
+		detail::temporary< queue_ptr >
+			::template is_decayed< Queue >::value,
 		this_type
 	>::type
-	then( Logger&& logger, queue_ptr queue = nullptr );
+	then( Logger&& logger, Queue&& queue = nullptr );
 
 	/**
 	 * Matches an exception as a raw std::exception_ptr
 	 */
-	template< typename Fn >
+	template< typename Fn, typename Queue = queue_ptr >
 	typename std::enable_if<
 		is_same_type<
 			Q_FIRST_ARGUMENT_OF( Fn ),
 			std::exception_ptr
 		>::value &&
-		std::is_void< Q_RESULT_OF( Fn ) >::value,
+		std::is_void< Q_RESULT_OF( Fn ) >::value
+		&&
+		detail::temporary< queue_ptr >
+			::template is_decayed< Queue >::value,
 		unique_this_type
 	>::type
-	fail( Fn&& fn, queue_ptr queue = nullptr );
+	fail( Fn&& fn, Queue&& queue = nullptr );
 
 	/**
 	 * Matches an exception as a raw std::exception_ptr
 	 */
-	template< typename Fn >
+	template< typename Fn, typename Queue = queue_ptr >
 	typename std::enable_if<
 		is_same_type<
 			Q_FIRST_ARGUMENT_OF( Fn ),
 			std::exception_ptr
 		>::value &&
-		is_promise< Q_RESULT_OF( Fn ) >::value,
+		is_promise< Q_RESULT_OF( Fn ) >::value
+		&&
+		detail::temporary< queue_ptr >
+			::template is_decayed< Queue >::value,
 		Q_RESULT_OF( Fn )
 	>::type
-	fail( Fn&& fn, queue_ptr queue = nullptr );
+	fail( Fn&& fn, Queue&& queue = nullptr );
 
 	/**
 	 * Matches an exception of any type, defined by the one and only argument
 	 * of fn
 	 */
-	template< typename Fn >
+	template< typename Fn, typename Queue = queue_ptr >
 	typename std::enable_if<
 		Q_ARITY_OF( Fn ) == 1 &&
 		!Q_ARGUMENTS_ARE( Fn, std::exception_ptr )::value &&
-		std::is_void< Q_RESULT_OF( Fn ) >::value,
+		std::is_void< Q_RESULT_OF( Fn ) >::value
+		&&
+		detail::temporary< queue_ptr >
+			::template is_decayed< Queue >::value,
 		unique_this_type
 	>::type
-	fail( Fn&& fn, queue_ptr queue = nullptr )
+	fail( Fn&& fn, Queue&& queue = nullptr )
 	{
 		// TODO: Rewrite this and optimize for having multiple type matching
 		// catches in a single try/catch block, so that the rethrowing only
@@ -232,13 +256,16 @@ public:
 	 *
 	 * A normal use for finally() is to clean up.
 	 */
-	template< typename Fn >
+	template< typename Fn, typename Queue = queue_ptr >
 	typename std::enable_if<
 		std::is_void< Q_RESULT_OF( Fn ) >::value &&
-		Q_ARITY_OF( Fn ) == 0,
+		Q_ARITY_OF( Fn ) == 0
+		&&
+		detail::temporary< queue_ptr >
+			::template is_decayed< Queue >::value,
 		unique_this_type
 	>::type
-	finally( Fn&& fn, queue_ptr queue = nullptr );
+	finally( Fn&& fn, Queue&& queue = nullptr );
 
 	void done( )
 	{
@@ -249,10 +276,18 @@ private:
 	friend class ::q::promise< tuple_type >;
 	friend class ::q::shared_promise< tuple_type >;
 
-	queue_ptr ensure( const queue_ptr& queue )
+	template< typename Queue >
+	typename std::enable_if<
+		std::is_same<
+			typename std::decay< Queue >::type,
+			queue_ptr
+		>::value,
+		queue_ptr
+	>::type
+	ensure( Queue&& queue )
 	{
 		if ( queue )
-			return queue;
+			return std::forward< Queue >( queue );
 		return queue_;
 	}
 

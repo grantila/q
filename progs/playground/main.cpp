@@ -365,7 +365,7 @@ int main( int argc, char** argv )
 		std::cout << "background thread got " << i << std::endl;
 		usleep( 100 * 1000 );
 		return i * 2;
-	}, bg_queue )
+	}, q::temporary( bg_queue ) )
 	.then( [ ]( int i )
 	{
 		usleep( 100 * 1000 );

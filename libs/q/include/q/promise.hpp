@@ -24,6 +24,7 @@
 #include <q/exception.hpp>
 #include <q/expect.hpp>
 #include <q/memory.hpp>
+#include <q/temporary.hpp>
 
 #include <q/promise/core.hpp>
 #include <q/promise/signal.hpp>
