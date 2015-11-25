@@ -40,17 +40,21 @@ public:
 	stacktrace( stacktrace&& ) = default;
 	stacktrace( const stacktrace& ) = delete;
 
-	stacktrace( std::vector< frame >&& frames );
+	stacktrace( std::vector< frame >&& frames )
+	noexcept;
 
-	const std::vector< frame >& frames( ) const;
+	const std::vector< frame >& frames( ) const
+	noexcept;
 
-	std::string string( ) const;
+	std::string string( ) const
+	noexcept;
 
 private:
 	std::vector< frame > frames_;
 };
 
-std::ostream& operator<<( std::ostream& os, const stacktrace& st );
+std::ostream& operator<<( std::ostream& os, const stacktrace& st )
+noexcept;
 
 typedef stacktrace( *stacktrace_function )( );
 
@@ -64,13 +68,15 @@ typedef stacktrace( *stacktrace_function )( );
  * @returns the previous stacktrace function, or nullptr if the default
  * stacktrace function was in use.
  */
-stacktrace_function register_stacktrace_function( stacktrace_function );
+stacktrace_function register_stacktrace_function( stacktrace_function )
+noexcept;
 
 /**
  * Creates a stack trace on the current thread and returns it as a stacktrace
  * object.
  */
-stacktrace get_stacktrace( );
+stacktrace get_stacktrace( )
+noexcept;
 
 } // namespace q
 

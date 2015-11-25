@@ -30,22 +30,33 @@
 namespace q {
 
 stacktrace::stacktrace( std::vector< frame >&& frames )
+noexcept
 : frames_( std::move( frames ) )
 { }
 
 const std::vector< stacktrace::frame >& stacktrace::frames( ) const
+noexcept
 {
 	return frames_;
 }
 
 std::string stacktrace::string( ) const
+noexcept
 {
-	std::stringstream ss;
-	ss << *this;
-	return std::move( ss.str( ) );
+	try
+	{
+		std::stringstream ss;
+		ss << *this;
+		return std::move( ss.str( ) );
+	}
+	catch ( ... )
+	{
+		return std::string( );
+	}
 }
 
 std::ostream& operator<<( std::ostream& os, const stacktrace& st )
+noexcept
 {
 	std::size_t max_frame = 0;
 	std::size_t max_lib   = 0;
@@ -106,19 +117,29 @@ stacktrace default_stacktrace( )
 } // anonymous namespace
 
 stacktrace_function register_stacktrace_function( stacktrace_function fn )
+noexcept
 {
 	return _stacktrace_function.exchange( fn, std::memory_order_seq_cst );
 }
 
 stacktrace get_stacktrace( )
+noexcept
 {
 	stacktrace_function fn = _stacktrace_function.load(
 		std::memory_order_seq_cst );
 
-	if ( fn )
-		return fn( );
+	try
+	{
+		if ( fn )
+			return fn( );
 
-	return default_stacktrace( );
+		return default_stacktrace( );
+	}
+	catch ( ... )
+	{
+		std::vector< stacktrace::frame > frames;
+		return stacktrace( std::move( frames ) );
+	}
 }
 
 } // namespace q
