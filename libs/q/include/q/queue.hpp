@@ -35,7 +35,7 @@ class queue
 public:
 	typedef std::function< void( std::size_t backlog ) > notify_type;
 
-	static queue_ptr make( priority_t priority );
+	static queue_ptr construct( priority_t priority );
 
 	~queue( );
 

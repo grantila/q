@@ -44,9 +44,9 @@ struct queue::pimpl
 	std::queue< task > queue_;
 };
 
-queue_ptr queue::make( priority_t priority )
+queue_ptr queue::construct( priority_t priority )
 {
-	return make_shared< queue >( priority );
+	return make_shared_using_constructor< queue >( priority );
 }
 
 queue::queue( priority_t priority )
