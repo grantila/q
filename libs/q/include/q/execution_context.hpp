@@ -49,7 +49,7 @@ class specific_execution_context
 : public execution_context
 {
 public:
-	std::shared_ptr< Dispatcher > impl( )
+	std::shared_ptr< Dispatcher > dispatcher( )
 	{
 		return ed_;
 	}
