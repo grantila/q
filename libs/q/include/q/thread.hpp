@@ -67,16 +67,10 @@ public:
 	thread( const thread< Ret >& ) = delete;
 	thread& operator=( const thread< Ret >& ) = delete;
 
-	virtual ~thread( )
+	virtual ~thread( ) noexcept
 	{
 		std::cerr << "destructing thread" << std::endl;
-
-		if ( !running_.load( std::memory_order_seq_cst ) )
-			return;
-
-		if ( thread_.joinable( ) )
-			thread_.join( );
-		else
+		if ( !try_join( ) )
 			// We end up here if and only if the thread function
 			// itself holds the last reference to 'this'.
 			// This happens only if terminate( ) has not been
@@ -96,17 +90,12 @@ public:
 	{
 		auto _this = this->shared_from_this( );
 
-		return async_terminate_base::terminate( )
-		.finally( [ _this ]( ) mutable
-		{
-			// Although joining is a blocking operation,
-			// this should never actually block, as this
-			// function is only reached once the thread
-			// function has completed. Joining should
-			// therefore be instant, albeit requiring OS-
-			// depentant work.
-			_this->try_join( );
-		} );
+		return async_terminate_base::terminate( );
+	}
+
+	q::expect< > await_termination( )
+	{
+		try_join( );
 	}
 
 	template< typename Fn, typename... Args >
@@ -174,6 +163,7 @@ protected:
 			}
 			catch ( ... )
 			{
+				// Consider only one of these
 				expect = refuse< Ret >(
 					std::current_exception( ) );
 				LIBQ_UNCAUGHT_EXCEPTION(
@@ -202,16 +192,19 @@ private:
 		self_ref_.reset( );
 	}
 
-	void try_join( )
+	bool try_join( )
 	{
 		if ( !running_.load( std::memory_order_seq_cst ) )
-			return;
+			return true;
 
 		if ( thread_.joinable( ) )
 		{
 			running_.store( false, std::memory_order_seq_cst );
 			thread_.join( );
+			return true;
 		}
+
+		return false;
 	}
 
 	std::string                      name_;
