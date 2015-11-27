@@ -84,8 +84,24 @@ private:
 	const char* name_;
 };
 
+class basic_mutex
+{
+public:
+	virtual ~basic_mutex( )
+	{ }
+
+	virtual bool try_lock( ) = 0;
+	virtual void lock( ) = 0;
+	virtual void unlock( ) = 0;
+
+protected:
+	basic_mutex( )
+	{ }
+};
+
 class mutex
-: public std::mutex
+: public basic_mutex
+, public std::mutex
 , public representation
 {
 public:
@@ -108,10 +124,26 @@ public:
 	                std::string&& name )
 	: representation( std::move( location ), std::move( name ) )
 	{ }
+
+	bool try_lock( ) override
+	{
+		return std_type::try_lock( );
+	}
+
+	void lock( ) override
+	{
+		std_type::lock( );
+	}
+
+	void unlock( ) override
+	{
+		std_type::unlock( );
+	}
 };
 
 class recursive_mutex
-: public std::recursive_mutex
+: public basic_mutex
+, public std::recursive_mutex
 , public representation
 {
 public:
@@ -134,6 +166,21 @@ public:
 	                          std::string&& name )
 	: representation( std::move( location ), std::move( name ) )
 	{ }
+
+	bool try_lock( ) override
+	{
+		return std_type::try_lock( );
+	}
+
+	void lock( ) override
+	{
+		std_type::lock( );
+	}
+
+	void unlock( ) override
+	{
+		std_type::unlock( );
+	}
 };
 
 template< typename T >
