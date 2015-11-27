@@ -29,6 +29,7 @@ namespace detail {
  0   libq.dylib  0x0000000100110015 q::(anonymous namespace)::default_stacktrace() + 69
  */
 stacktrace::frame parse_stack_frame( const char* data )
+noexcept
 {
 	stacktrace::frame frame;
 

@@ -23,7 +23,8 @@ namespace q {
 
 namespace detail {
 
-::q::stacktrace::frame parse_stack_frame( const char* data );
+::q::stacktrace::frame parse_stack_frame( const char* data )
+noexcept;
 
 } // namespace detail
 

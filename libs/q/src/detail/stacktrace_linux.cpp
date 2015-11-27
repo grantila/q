@@ -31,6 +31,7 @@ namespace detail {
  /<path>/q/libq.so(_ZN1q14get_stacktraceEv+0xc4) [0x7fb31c75cdb4]
  */
 stacktrace::frame parse_stack_frame( const char* data )
+noexcept
 {
 	stacktrace::frame frame;
 
