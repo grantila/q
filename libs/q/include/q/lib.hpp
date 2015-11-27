@@ -43,6 +43,10 @@ public:
 	 *
 	 * Default behaviour is to print the exception information to stderr
 	 * and call terminate().
+	 *
+	 * The function *should not* return control to q, hence should have the
+	 * attribute [[noreturn]]. Returning control to q results in undefined
+	 * behaviour, such as overwriting and corrupting critical data.
 	 */
 	template< typename Fn >
 	typename std::enable_if<
@@ -97,7 +101,26 @@ public:
 	settings& set_long_stack_support( bool ) { return *this; }
 };
 
+typedef void* ( *initialization_fn )( );
+typedef void ( *uninitialization_fn )( void* );
+
+/**
+ * Registers a set of init+uninit function callbacks which will be called by q
+ * when q::initialize() and q::uninitialize() is called. Registeration of such
+ * callbacks must be done before q has run its q::initialize() function, such
+ * as before main() is called.
+ */
+void register_initialization( initialization_fn init,
+                              uninitialization_fn uninit );
+
+/**
+ * Initializes q. This must not be done before main().
+ */
 void initialize( settings = settings( ) );
+
+/**
+ * Uninitializes q. May be done after main has exited.
+ */
 void uninitialize( );
 
 scope scoped_initialize( settings = settings( ) );
