@@ -49,6 +49,7 @@ public:
 
 protected:
 	expect_exception( )
+	noexcept
 	: e_( std::exception_ptr( ) )
 	{ }
 
@@ -65,12 +66,14 @@ protected:
 	}
 
 	expect_exception( expect_exception&& ref )
+	noexcept
 	{
 		std::swap( e_, ref.e_ );
 	}
 	expect_exception( const expect_exception& ) = default;
 
 	expect_exception& operator=( expect_exception&& ref )
+	noexcept
 	{
 		std::swap( e_, ref.e_ );
 		return *this;
@@ -98,16 +101,26 @@ template<
 >
 class expect_value
 {
+public:
+	typedef q::bool_type< noexcept( T( ) ) >
+		noexcept_default_constructor;
+	typedef q::bool_type< noexcept( T( std::move( *( T* )0 ) ) ) >
+		noexcept_move_constructor;
+	typedef std::is_nothrow_copy_constructible< T >
+		noexcept_copy_constructor;
 protected:
 	expect_value( )
+	noexcept( noexcept_default_constructor::value )
 	: t_( )
 	{ }
 
 	expect_value( T&& t )
+	noexcept( noexcept_move_constructor::value )
 	: t_( std::move( t ) )
 	{ }
 
 	expect_value( const T& t )
+	noexcept( noexcept_copy_constructor::value )
 	: t_( t )
 	{ }
 
@@ -118,11 +131,13 @@ protected:
 	expect_value& operator=( const expect_value< T, Static >& ) = default;
 
 	const T& _get( ) const
+	noexcept
 	{
 		return t_;
 	}
 
 	T _consume( )
+	noexcept( noexcept( T( std::move( *(T*)0 ) ) ) )
 	{
 		return std::move( t_ );
 	}
@@ -133,11 +148,19 @@ protected:
 template< typename T >
 class expect_value< T, false >
 {
+public:
+	typedef std::true_type noexcept_default_constructor;
+	typedef q::bool_type< noexcept( new T( std::move( *( T* )0 ) ) ) >
+		noexcept_move_constructor;
+	typedef std::is_nothrow_copy_constructible< T >
+		noexcept_copy_constructor;
 protected:
 	expect_value( )
+	noexcept( noexcept_default_constructor::value )
 	{ }
 
 	expect_value( T&& t )
+	noexcept( noexcept_move_constructor::value )
 	: t_( nullptr )
 	{
 		// TODO: Handle exceptions (uncaught exception or similar)
@@ -145,6 +168,7 @@ protected:
 	}
 
 	expect_value( const T& t )
+	noexcept( noexcept_copy_constructor::value )
 	: t_( nullptr )
 	{
 		// TODO: Handle exceptions (uncaught exception or similar)
@@ -158,11 +182,13 @@ protected:
 	expect_value& operator=( const expect_value< T, false >& ) = default;
 
 	const T& _get( ) const
+	noexcept
 	{
 		return *t_;
 	}
 
 	T _consume( )
+	noexcept( noexcept( std::move( *(T*)0 ) ) )
 	{
 		return std::move( *t_ );
 	}
@@ -173,6 +199,10 @@ protected:
 template< >
 class expect_value< void >
 {
+public:
+	typedef std::true_type noexcept_default_constructor;
+	typedef std::true_type noexcept_move_constructor;
+	typedef std::true_type noexcept_copy_constructor;
 protected:
 	expect_value( ) = default;
 	expect_value( const expect_value< void >& ) = default;
@@ -182,25 +212,34 @@ protected:
 	expect_value& operator=( const expect_value< void >& ) = default;
 
 	void _get( ) const
+	noexcept
 	{ }
 
 	void _consume( )
+	noexcept
 	{ }
 };
 
 template< >
 class expect_value< std::exception_ptr >
 {
+public:
+	typedef std::true_type noexcept_default_constructor;
+	typedef std::true_type noexcept_move_constructor;
+	typedef std::true_type noexcept_copy_constructor;
 protected:
 	expect_value( )
+	noexcept
 	: t_( )
 	{ }
 
 	expect_value( std::exception_ptr&& t )
+	noexcept
 	: t_( std::move( t ) )
 	{ }
 
 	expect_value( const std::exception_ptr& t )
+	noexcept
 	: t_( t )
 	{ }
 
@@ -211,11 +250,13 @@ protected:
 	expect_value& operator=( const expect_value< std::exception_ptr >& ) = default;
 
 	const std::exception_ptr& _get( ) const
+	noexcept
 	{
 		return t_;
 	}
 
 	std::exception_ptr _consume( )
+	noexcept
 	{
 		return std::move( t_ );
 	}
@@ -226,7 +267,7 @@ protected:
 } // detail
 
 template<
-	typename T,
+	typename T = void,
 	bool CopyConstructible = ::q::is_copy_constructible< T >::value,
 	bool MoveConstructible = ::q::is_movable< T >::value
 >
@@ -242,20 +283,24 @@ public:
 	expect( ) = default;
 
 	expect( T&& t )
+	noexcept( base::noexcept_move_constructor::value )
 	: detail::expect_exception( )
 	, base( std::move( t ) )
 	{ }
 
 	expect( const T& t )
+	noexcept( base::noexcept_copy_constructor::value )
 	: detail::expect_exception( )
 	, base( t )
 	{ }
 
 	explicit expect( std::exception_ptr&& e )
+	noexcept( base::noexcept_default_constructor::value )
 	: detail::expect_exception( std::move( e ) )
 	{ }
 
 	explicit expect( const std::exception_ptr& e )
+	noexcept( base::noexcept_default_constructor::value )
 	: detail::expect_exception( e )
 	{ }
 
@@ -291,6 +336,7 @@ public:
 	expect( ) = default;
 
 	expect( T&& t )
+	noexcept( base::noexcept_move_constructor::value )
 	: detail::expect_exception( )
 	, base( std::move( t ) )
 	{ }
@@ -298,10 +344,12 @@ public:
 	expect( const T& t ) = delete;
 
 	explicit expect( std::exception_ptr&& e )
+	noexcept( base::noexcept_default_constructor::value )
 	: detail::expect_exception( std::move( e ) )
 	{ }
 
 	explicit expect( const std::exception_ptr& e )
+	noexcept( base::noexcept_default_constructor::value )
 	: detail::expect_exception( e )
 	{ }
 
@@ -337,20 +385,24 @@ public:
 	expect( ) = default;
 
 	expect( T&& t )
+	noexcept( base::noexcept_move_constructor::value )
 	: detail::expect_exception( )
 	, base( t )
 	{ }
 
 	expect( const T& t )
+	noexcept( base::noexcept_copy_constructor::value )
 	: detail::expect_exception( )
 	, base( t )
 	{ }
 
 	explicit expect( std::exception_ptr&& e )
+	noexcept( base::noexcept_default_constructor::value )
 	: detail::expect_exception( std::move( e ) )
 	{ }
 
 	explicit expect( const std::exception_ptr& e )
+	noexcept( base::noexcept_default_constructor::value )
 	: detail::expect_exception( e )
 	{ }
 
@@ -383,14 +435,17 @@ class expect< void, false, false >
 
 public:
 	expect( )
+	noexcept
 	: detail::expect_exception( )
 	{ }
 
 	explicit expect( std::exception_ptr&& e )
+	noexcept
 	: detail::expect_exception( std::move( e ) )
 	{ }
 
 	explicit expect( const std::exception_ptr& e )
+	noexcept
 	: detail::expect_exception( e )
 	{ }
 
@@ -479,6 +534,7 @@ typename std::enable_if<
 	expect< T >
 >::type
 fulfill( T&& t )
+noexcept( noexcept( expect< T >( expect< T >( std::forward< T >( t ) ) ) ) )
 {
 	return expect< T >( std::forward< T >( t ) );
 }
@@ -489,6 +545,7 @@ typename std::enable_if<
 	expect< void >
 >::type
 fulfill( )
+noexcept( noexcept( expect< void >( expect< void >( ) ) ) )
 {
 	return expect< void >( );
 }
@@ -500,6 +557,7 @@ typename std::enable_if<
 	expect< T >
 >::type
 refuse( E&& e )
+noexcept( noexcept( expect< T >( expect< T >( std::forward< E >( e ) ) ) ) )
 {
 	return expect< T >( std::forward< E >( e ) );
 }
@@ -511,6 +569,7 @@ typename std::enable_if<
 	expect< T >
 >::type
 fulfill( E&& e )
+noexcept
 {
 	return expect< T >( std::forward< E >( e ), true );
 }
