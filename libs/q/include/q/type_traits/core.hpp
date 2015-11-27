@@ -33,6 +33,9 @@ namespace q {
 		>::type \
 	>( value )
 
+template< typename T > void ignore_result( T&& ) { }
+template< typename T > void ignore_parameter( T&& ) { }
+
 namespace detail {
 
 template< typename T >
@@ -194,6 +197,58 @@ struct is_pointer_like
 	is_shared_pointer< T >::value ||
 	is_unique_pointer< T >::value
 >
+{ };
+
+template< typename T >
+struct remove_cv_ref
+{
+	typedef typename std::remove_cv<
+		typename std::remove_reference< T >::type
+	>::type type;
+};
+
+/**
+ * This type is true only for char[N].
+ */
+template< typename T >
+struct is_char_array
+: public bool_type<
+	std::is_array< typename remove_cv_ref< T >::type >::value &&
+	std::is_same<
+		typename remove_cv_ref<
+			typename std::remove_extent<
+				typename remove_cv_ref< T >::type
+			>::type
+		>::type,
+		char
+	>::value
+>
+{ };
+
+/**
+ * This type is true only for char*.
+ */
+template< typename T >
+struct is_char_pointer
+: public bool_type<
+	std::is_pointer< typename remove_cv_ref< T >::type >::value &&
+	std::is_same<
+		typename remove_cv_ref<
+			typename std::remove_pointer<
+				typename remove_cv_ref< T >::type
+			>::type
+		>::type,
+		char
+	>::value
+>
+{ };
+
+/**
+ * This type is true for both char[N] and char*.
+ */
+template< typename T >
+struct is_c_string
+: public bool_type< is_char_array< T >::value or is_char_pointer< T >::value >
 { };
 
 template< typename T >
