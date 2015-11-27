@@ -45,6 +45,7 @@ namespace {
 #endif
 
 static const char* get_shared_object_name( )
+noexcept
 {
 	static char filename[ PATH_MAX ];
 #ifdef _WIN32
@@ -64,6 +65,7 @@ static class init_dummy
 {
 public:
 	init_dummy( )
+	noexcept
 	{
 		shared_object_ = get_shared_object_name( );
 	}
@@ -71,6 +73,7 @@ public:
 	{ }
 
 	const char* shared_object( ) const
+	noexcept
 	{
 		return shared_object_;
 	}
@@ -86,11 +89,13 @@ std::atomic< ::q::detail::uncaught_exception_handler_fn > _uncaught_exception;
 namespace q { namespace detail {
 
 void register_uncaught_exception_handler( uncaught_exception_handler_fn e )
+noexcept
 {
 	_uncaught_exception.store( e, std::memory_order_seq_cst );
 }
 
 void handle_uncaught_exception( const std::exception_ptr& e )
+noexcept
 {
 	auto fn = _uncaught_exception.load( std::memory_order_seq_cst );
 
@@ -123,6 +128,7 @@ void handle_uncaught_exception( const std::exception_ptr& e )
 }
 
 const char* shared_object( )
+noexcept
 {
 	return init_dummy_.shared_object( );
 }
