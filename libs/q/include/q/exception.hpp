@@ -18,6 +18,7 @@
 #define LIBQ_EXCEPTION_HPP
 
 #include <q/types.hpp>
+#include <q/type_traits.hpp>
 
 #include <exception>
 #include <vector>
@@ -34,6 +35,22 @@
 		using exception::exception; \
 	}
 
+/**
+ * Run @c fn and ensure that it doesn't throw any exception. If it does, invoke
+ * the "uncaught exception handler".
+ */
+#define Q_ENSURE_NOEXCEPT( fn ) \
+	do \
+	{ \
+		try \
+		{ \
+			fn( ); \
+		} \
+		catch ( ... ) \
+		{ \
+			LIBQ_UNCAUGHT_EXCEPTION( std::current_exception( ) ); \
+		} \
+	} while ( false )
 
 namespace q {
 
@@ -155,7 +172,12 @@ public:
 	infos( ) const;
 
 	template< typename T >
-	exception& operator<<( T&& t )
+	typename std::enable_if<
+		!std::is_lvalue_reference< T >::value and
+		!is_c_string< T >::value,
+		exception&
+	>::type
+	operator<<( T&& t )
 	{
 		std::shared_ptr< detail::exception_info_base > ptr(
 			new detail::exception_info< T >(
@@ -164,6 +186,13 @@ public:
 		add_info( std::move( ptr ) );
 
 		return *this;
+	}
+
+	template< typename T >
+	typename std::enable_if< is_c_string< T >::value, exception& >::type
+	operator<<( T&& t )
+	{
+		return operator<<( std::string( std::forward< T >( t ) ) );
 	}
 
 private:
