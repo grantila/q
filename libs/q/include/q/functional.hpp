@@ -67,6 +67,8 @@
 #define Q_IS_MEMBERFUNCTION( Fn ) \
 	::q::bool_type< !std::is_void< Q_MEMBERCLASS_OF( Fn ) >::value >
 
+#define Q_IS_FUNCTION( Fn ) \
+	::q::function_traits< Fn >::valid
 
 namespace q {
 
@@ -130,7 +132,31 @@ struct fn_match< R( C::* )( A... ) const >
 template< typename Fn >
 fn_match< Fn > fn_type( Fn&& );
 
-template< typename Fn, bool Valid = fn_match< Fn >::valid::value >
+template< typename Fn, typename Enabled = void >
+struct has_call_operator
+: public std::false_type
+{ };
+
+template< typename Fn >
+struct has_call_operator<
+	Fn,
+	typename std::enable_if<
+		std::is_same<
+			decltype( q::detail::fn_type(
+				&std::decay< Fn >::type::operator( ) ) ),
+			decltype( q::detail::fn_type(
+				&std::decay< Fn >::type::operator( ) ) )
+		>::value
+	>::type
+>
+: public std::true_type
+{ };
+
+template<
+	typename Fn,
+	bool Valid = fn_match< Fn >::valid::value,
+	bool CallableByOperator = has_call_operator< Fn >::value
+>
 struct identity
 {
 	typedef typename std::decay< Fn >::type decayed_type;
@@ -139,11 +165,31 @@ struct identity
 };
 
 template< typename Fn >
-struct identity< Fn, false >
+struct identity< Fn, false, true >
 {
 	typedef typename std::decay< Fn >::type decayed_type;
 	typedef decltype( fn_type( &decayed_type::operator( ) ) ) match;
 	typedef std::true_type using_call_operator;
+};
+
+struct invalid_match
+: public invalid_t
+{
+	typedef void result_type;
+	typedef arguments< > argument_types;
+	typedef void memberclass_type;
+	typedef void signature;
+	typedef void signature_ptr;
+	typedef void member_signature_ptr;
+};
+
+// Fn is not any kind of function
+template< typename Fn >
+struct identity< Fn, false, false >
+{
+	typedef typename std::decay< Fn >::type decayed_type;
+	typedef invalid_match match;
+	typedef std::false_type using_call_operator;
 };
 
 template< typename Fn >
