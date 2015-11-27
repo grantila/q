@@ -44,10 +44,10 @@ protected:
 private:
 	void start( ) override;
 
-	std::size_t backlog( ) const override;
-
 	void mark_completion( );
+
 	void do_terminate( ) override;
+	q::expect< > await_termination( ) override;
 
 	struct pimpl;
 	std::unique_ptr< pimpl > pimpl_;
