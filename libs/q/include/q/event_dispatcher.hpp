@@ -20,6 +20,7 @@
 #include <q/types.hpp>
 #include <q/type_traits.hpp>
 #include <q/async_termination.hpp>
+#include <q/expect.hpp>
 
 #include <memory>
 
@@ -31,6 +32,9 @@ typedef std::shared_ptr< basic_event_dispatcher > event_dispatcher_ptr;
 class basic_event_dispatcher
 {
 public:
+	/**
+	 * Runs a task as soon as possible
+	 */
 	virtual void add_task( task ) = 0;
 
 protected:
@@ -53,7 +57,10 @@ enum class termination
 	annihilate
 };
 
-template< typename TerminationArgs = q::arguments< > >
+template<
+	typename TerminationArgs = q::arguments< >,
+	typename Completion = std::tuple< >
+>
 class event_dispatcher
 : public sync_termination< TerminationArgs >
 , public basic_event_dispatcher
@@ -63,11 +70,22 @@ public:
 	{ }
 
 	/**
-	 * TODO: Reconsider
+	 * Starts the event_dispatcher and returns execution immediately, i.e.
+	 * this function is non-blocking by contract.
 	 */
-	virtual std::size_t backlog( ) const = 0;
-
 	virtual void start( ) = 0;
+
+	/**
+	 * Awaits the event_dispatcher to have actually terminated. This may be
+	 * necessary for some event_dispatchers, which is the reason this
+	 * *must* be called after terminate() to ensure the event_dispatcher is
+	 * completely finished and cleaned-up.
+	 *
+	 * NOTE: This method may be blocking!
+	 */
+	virtual q::expect< > await_termination( ) = 0;
+
+	using async_termination< TerminationArgs, Completion >::do_terminate;
 
 protected:
 	event_dispatcher( )
