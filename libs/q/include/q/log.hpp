@@ -29,15 +29,23 @@
 namespace q {
 
 #define Q_LOG_CHAIN( ... ) \
-	log_chain_generator( Q_HERE, Q_LOGTYPE_ADAPTER_CONSTRUCTOR( __VA_ARGS__ ) )
+	::q::log_chain_generator( Q_HERE, Q_LOGTYPE_ADAPTER_CONSTRUCTOR( __VA_ARGS__ ) )
 
 #define Q_LOG( ... ) \
-	logstream( Q_HERE, Q_LOGTYPE_ADAPTER_CONSTRUCTOR( __VA_ARGS__ ) )
+	::q::logstream( Q_HERE, Q_LOGTYPE_ADAPTER_CONSTRUCTOR( __VA_ARGS__ ) )
 
 #ifndef Q_LOGTYPE_ADAPTER_CONSTRUCTOR
 #	define Q_LOGTYPE_ADAPTER_CONSTRUCTOR( ... ) \
 		::q::make_logtype_adapter( __VA_ARGS__ )
 #endif
+
+enum class log_level
+{
+	debug,
+	info,
+	warning,
+	error
+};
 
 // TODO: Move these two
 template<
