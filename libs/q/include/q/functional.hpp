@@ -70,6 +70,9 @@
 #define Q_IS_FUNCTION( Fn ) \
 	::q::function_traits< Fn >::valid
 
+#define Q_NOEXCEPT_OF( Fn ) \
+	::q::function_traits< Fn >::is_noexcept::value
+
 namespace q {
 
 namespace detail {
@@ -161,6 +164,8 @@ struct identity
 {
 	typedef typename std::decay< Fn >::type decayed_type;
 	typedef decltype( fn_type( std::declval< decayed_type >( ) ) ) match;
+	typedef bool_type< noexcept( std::declval< decayed_type >( ) ) >
+		is_noexcept;
 	typedef std::false_type using_call_operator;
 };
 
@@ -169,6 +174,8 @@ struct identity< Fn, false, true >
 {
 	typedef typename std::decay< Fn >::type decayed_type;
 	typedef decltype( fn_type( &decayed_type::operator( ) ) ) match;
+	typedef bool_type< noexcept( &decayed_type::operator( ) ) >
+		is_noexcept;
 	typedef std::true_type using_call_operator;
 };
 
@@ -188,6 +195,7 @@ template< typename Fn >
 struct identity< Fn, false, false >
 {
 	typedef typename std::decay< Fn >::type decayed_type;
+	typedef bool_type< false > is_noexcept;
 	typedef invalid_match match;
 	typedef std::false_type using_call_operator;
 };
@@ -199,6 +207,12 @@ struct function_traits
 	typedef identity< type > ident;
 	typedef typename ident::match match;
 	typedef typename ident::using_call_operator using_call_operator;
+
+	/**
+	 * std::true_type or std::false_type depending on whether the function
+	 * is attributed 'noexcept' or not
+	 */
+	typedef typename ident::is_noexcept is_noexcept;
 };
 
 } // namespace detail
