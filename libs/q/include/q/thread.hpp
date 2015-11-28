@@ -96,6 +96,7 @@ public:
 	q::expect< > await_termination( )
 	{
 		try_join( );
+		return q::fulfill< void >( );
 	}
 
 	template< typename Fn, typename... Args >
