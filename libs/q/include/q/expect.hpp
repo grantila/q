@@ -585,6 +585,13 @@ refuse( E&& e )
 	return expect< T >( std::forward< E >( e ), false );
 }
 
+template< typename T >
+expect< T >
+refuse_current_exception( )
+{
+	return refuse< T >( std::current_exception( ) );
+}
+
 } // namespace q
 
 #endif // LIBQ_EXPECT_HPP
