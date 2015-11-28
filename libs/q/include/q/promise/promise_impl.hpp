@@ -223,7 +223,7 @@ then( Logger&& logger, Queue&& queue )
 	{
 		call_with_args_by_tuple( tmp_logger.consume( ), args );
 	};
-	std::packaged_task< void( void ) > task; // REDO
+	std::packaged_task< void( void ) > task; // TODO: REDO
 
 	auto future = task.get_future( );
 

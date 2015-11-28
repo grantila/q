@@ -284,6 +284,14 @@ public:
 	void done( )
 	{
 		// TODO: Implement
+		// This function should trigger the "uncaught exception
+		// handler" and terminate the application.
+		// The default action for promises which fail but where the
+		// exception is never handled is to run the "uncaught exception
+		// handler", but not necessarily terminate the applcation.
+		//
+		// Note, uncaught exceptions are actually not triggered at all
+		// right now, this is yet to be implemented.
 	}
 
 private:
