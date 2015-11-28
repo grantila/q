@@ -134,7 +134,7 @@ class scheduler;
 
 typedef int priority_t;
 
-typedef std::function< void( void ) > task;
+typedef std::function< void( void ) noexcept > task;
 
 } // namespace q
 

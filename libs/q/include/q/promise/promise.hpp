@@ -169,6 +169,20 @@ public:
 	then( Logger&& logger, Queue&& queue = nullptr );
 
 	/**
+	 * A special case "then", where the function to be run, is wrapped in
+	 * an async_task. This async_task will be run synchronously, and is
+	 * expected to return immediately.
+	 * Although the async_task is run synchronously, it performs some task
+	 * asynchronously to eventually resolve the promise.
+	 */
+	template< typename AsyncTask >
+	typename std::enable_if<
+		is_same_type< AsyncTask, async_task >::value,
+		this_type
+	>::type
+	then( AsyncTask&& task );
+
+	/**
 	 * Matches an exception as a raw std::exception_ptr
 	 */
 	template< typename Fn, typename Queue = queue_ptr >

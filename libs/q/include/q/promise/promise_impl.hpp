@@ -232,6 +232,62 @@ then( Logger&& logger, Queue&& queue )
 	return this_type( std::move( future ) );
 }
 
+
+template< bool Shared, typename... Args >
+template< typename AsyncTask >
+inline typename std::enable_if<
+	is_same_type< AsyncTask, async_task >::value,
+	typename generic_promise< Shared, std::tuple< Args... > >::this_type
+>::type
+generic_promise< Shared, std::tuple< Args... > >::
+then( AsyncTask&& task )
+{
+	auto deferred = detail::defer< std::tuple< Args... > >::construct(
+		queue_ );
+	auto state = state_;
+	auto tmp_task = Q_TEMPORARILY_COPYABLE( task );
+
+	std::cout << "Scheduling async_task::run" << std::endl;
+
+	auto perform = [ tmp_task, deferred, state ]( ) mutable
+	{
+		std::cout << "Running async_task::run" << std::endl;
+
+		auto value = state->consume( );
+
+		if ( value.has_exception( ) )
+		{
+			deferred->set_exception( value.exception( ) );
+		}
+		else
+		{
+			auto tmp_value = Q_TEMPORARILY_COPYABLE( value );
+			auto task( std::move( tmp_task.consume( ) ) );
+			auto runner = [ tmp_value, deferred ]
+				( q::expect< > expect ) mutable noexcept
+			{
+				if ( expect.has_exception( ) )
+				{
+					deferred->set_exception(
+						expect.exception( ) );
+				}
+				else
+				{
+					auto value = tmp_value.consume( );
+					deferred->set_value( value.consume( ) );
+				}
+			};
+
+			task.run( runner );
+		}
+	};
+
+	state_->signal( )->push_synchronous( std::move( perform ) );
+
+	return std::move( deferred->get_promise( ) );
+}
+
+
 /**
  * Matches an exception as a raw std::exception_ptr
  */

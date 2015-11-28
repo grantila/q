@@ -26,6 +26,7 @@
 #include <q/memory.hpp>
 #include <q/temporary.hpp>
 
+#include <q/promise/async_task.hpp>
 #include <q/promise/core.hpp>
 #include <q/promise/signal.hpp>
 #include <q/promise/state.hpp>

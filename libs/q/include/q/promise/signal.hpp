@@ -33,7 +33,8 @@ public:
 
 	void done( ) noexcept;
 
-	void push( task&& task, const queue_ptr& queue );
+	void push( task&& task, const queue_ptr& queue ) noexcept;
+	void push_synchronous( task&& task ) noexcept;
 
 protected:
 	promise_signal( );
