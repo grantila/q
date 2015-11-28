@@ -22,6 +22,7 @@ struct blocking_dispatcher::pimpl
 	{ }
 
 	std::string name_;
+	mutex running_mutex_;
 	mutex mutex_;
 	std::queue< task > tasks_;
 	std::condition_variable cond_;
@@ -75,6 +76,7 @@ void blocking_dispatcher::add_task( task task )
 
 void blocking_dispatcher::start( )
 {
+	Q_AUTO_UNIQUE_LOCK( pimpl_->running_mutex_ );
 	auto lock = Q_UNIQUE_LOCK( pimpl_->mutex_ );
 
 	pimpl_->running_ = true;
@@ -123,6 +125,12 @@ void blocking_dispatcher::do_terminate( termination method )
 	}
 
 	pimpl_->cond_.notify_one( );
+}
+
+q::expect< > blocking_dispatcher::await_termination( )
+{
+	Q_AUTO_UNIQUE_LOCK( pimpl_->running_mutex_ );
+	return q::fulfill< void >( );
 }
 
 } // namespace q
