@@ -85,32 +85,42 @@ public:
 	 */
 	virtual q::expect< > await_termination( ) = 0;
 
-	using async_termination< TerminationArgs, Completion >::do_terminate;
+	using sync_termination< TerminationArgs >::do_terminate;
 
 protected:
 	event_dispatcher( )
 	{ }
 };
 
-template< typename TerminationArgs = q::arguments< > >
+template<
+	typename TerminationArgs = q::arguments< >,
+	typename Completion = std::tuple< >
+>
 class async_event_dispatcher
-: public async_termination< TerminationArgs >
+: public async_termination< TerminationArgs, Completion >
 , public basic_event_dispatcher
 {
 public:
 	~async_event_dispatcher( )
 	{ }
 
-	/**
-	 * TODO: Reconsider
-	 */
-	virtual std::size_t backlog( ) const = 0;
-
 	virtual void start( ) = 0;
+
+	/**
+	 * Awaits the event_dispatcher to have actually terminated. This may be
+	 * necessary for some event_dispatchers, which is the reason this
+	 * *must* be called after terminate() to ensure the event_dispatcher is
+	 * completely finished and cleaned-up.
+	 *
+	 * NOTE: This method may be blocking!
+	 */
+	virtual q::expect< > await_termination( ) = 0;
+
+	using async_termination< TerminationArgs, Completion >::do_terminate;
 
 protected:
 	async_event_dispatcher( const queue_ptr& queue )
-	: async_termination< TerminationArgs >( queue )
+	: async_termination< TerminationArgs, Completion >( queue )
 	{ }
 };
 
