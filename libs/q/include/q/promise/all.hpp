@@ -110,7 +110,7 @@ typename std::enable_if<
 >::type
 all( First&& first, Rest&&... rest )
 {
-	auto when_rest = all( std::forward< Rest >( rest )... );
+	auto when_rest = Q_FORWARD( all( std::forward< Rest >( rest )... ) );
 	auto when_rest_tmp = Q_MOVE_TEMPORARILY_COPYABLE( when_rest );
 
 	typedef typename std::decay< First >::type::tuple_type
