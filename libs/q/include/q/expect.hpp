@@ -102,9 +102,9 @@ template<
 class expect_value
 {
 public:
-	typedef q::bool_type< noexcept( T( ) ) >
+	typedef std::is_nothrow_default_constructible< T >
 		noexcept_default_constructor;
-	typedef q::bool_type< noexcept( T( std::move( *( T* )0 ) ) ) >
+	typedef std::is_nothrow_move_constructible< T >
 		noexcept_move_constructor;
 	typedef std::is_nothrow_copy_constructible< T >
 		noexcept_copy_constructor;
@@ -137,7 +137,7 @@ protected:
 	}
 
 	T _consume( )
-	noexcept( noexcept( T( std::move( *(T*)0 ) ) ) )
+	noexcept( noexcept_move_constructor::value )
 	{
 		return std::move( t_ );
 	}
@@ -149,8 +149,9 @@ template< typename T >
 class expect_value< T, false >
 {
 public:
-	typedef std::true_type noexcept_default_constructor;
-	typedef q::bool_type< noexcept( new T( std::move( *( T* )0 ) ) ) >
+	typedef std::is_nothrow_default_constructible< T >
+		noexcept_default_constructor;
+	typedef std::is_nothrow_move_constructible< T >
 		noexcept_move_constructor;
 	typedef std::is_nothrow_copy_constructible< T >
 		noexcept_copy_constructor;
@@ -188,7 +189,7 @@ protected:
 	}
 
 	T _consume( )
-	noexcept( noexcept( std::move( *(T*)0 ) ) )
+	noexcept( std::is_nothrow_move_assignable< T >::value )
 	{
 		return std::move( *t_ );
 	}
