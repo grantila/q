@@ -36,6 +36,8 @@ public:
 	           const queue_ptr& queue,
 	           std::size_t threads = hard_cores( ) );
 
+	q::expect< > await_termination( ) override;
+
 protected:
 	threadpool( const std::string& name,
 	            const queue_ptr& queue,
@@ -47,7 +49,6 @@ private:
 	void mark_completion( );
 
 	void do_terminate( ) override;
-	q::expect< > await_termination( ) override;
 
 	struct pimpl;
 	std::unique_ptr< pimpl > pimpl_;

@@ -33,6 +33,8 @@ public:
 
 	void start( ) override;
 
+	q::expect< > await_termination( ) override;
+
 protected:
 	blocking_dispatcher( const std::string& name );
 	blocking_dispatcher( )
@@ -41,8 +43,6 @@ protected:
 
 private:
 	void do_terminate( termination term ) override;
-
-	q::expect< > await_termination( ) override;
 
 	struct pimpl;
 	std::unique_ptr< pimpl > pimpl_;
