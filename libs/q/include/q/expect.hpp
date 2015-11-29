@@ -345,12 +345,10 @@ public:
 	expect( const T& t ) = delete;
 
 	explicit expect( std::exception_ptr&& e )
-	noexcept( base::noexcept_default_constructor::value )
 	: detail::expect_exception( std::move( e ) )
 	{ }
 
 	explicit expect( const std::exception_ptr& e )
-	noexcept( base::noexcept_default_constructor::value )
 	: detail::expect_exception( e )
 	{ }
 
@@ -398,12 +396,10 @@ public:
 	{ }
 
 	explicit expect( std::exception_ptr&& e )
-	noexcept( base::noexcept_default_constructor::value )
 	: detail::expect_exception( std::move( e ) )
 	{ }
 
 	explicit expect( const std::exception_ptr& e )
-	noexcept( base::noexcept_default_constructor::value )
 	: detail::expect_exception( e )
 	{ }
 
@@ -441,12 +437,10 @@ public:
 	{ }
 
 	explicit expect( std::exception_ptr&& e )
-	noexcept
 	: detail::expect_exception( std::move( e ) )
 	{ }
 
 	explicit expect( const std::exception_ptr& e )
-	noexcept
 	: detail::expect_exception( e )
 	{ }
 
