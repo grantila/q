@@ -75,10 +75,10 @@ TEST_F( PromiseAllTest, AllDifferentVoids )
 	} )
 	.then( [ this ]( )
 	{
-		bd->impl( )->terminate( q::termination::linger );
+		bd->dispatcher( )->terminate( q::termination::linger );
 	} );
 
-	bd->impl( )->start( );
+	bd->dispatcher( )->start( );
 
 	EXPECT_EQ( 8, incremented.load( ) );
 }
@@ -111,10 +111,10 @@ TEST_F( PromiseAllTest, AllSameVoids )
 	} )
 	.then( [ this ]( )
 	{
-		bd->impl( )->terminate( q::termination::linger );
+		bd->dispatcher( )->terminate( q::termination::linger );
 	} );
 
-	bd->impl( )->start( );
+	bd->dispatcher( )->start( );
 	
 	EXPECT_EQ( iterations * 2, incremented.load( ) );
 }
