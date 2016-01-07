@@ -17,6 +17,11 @@
 #ifndef LIBQ_TEMPORARY_HPP
 #define LIBQ_TEMPORARY_HPP
 
+#define Q_IS_TEMPORARY_SAME( type1, type2 ) \
+	::q::detail::temporary< \
+		typename std::decay< type1 >::type \
+	>::template is_decayed< type2 >::value
+
 namespace q {
 
 template< typename T >
@@ -129,11 +134,12 @@ temporary( T&& t )
 template< typename T >
 typename std::enable_if<
 	!is_temporary< T >::value,
-	detail::temporary< T >
+	detail::temporary< typename std::decay< T >::type >
 >::type
 temporary( T&& t )
 {
-	return detail::temporary< T >{ std::forward< T >( t ) };
+	return detail::temporary< typename std::decay< T >::type >
+		{ std::forward< T >( t ) };
 }
 
 template< typename T >
