@@ -67,6 +67,25 @@ public:
 		set_value( std::forward_as_tuple( std::forward< Args >( args )... ) );
 	}
 
+	/**
+	 * Sets an exception to this defer, the exception can be any kind of
+	 * value, but should preferably be either a @c q::exception or a
+	 * @c std::exception_ptr.
+	 */
+	template< typename E >
+	typename std::enable_if<
+		!std::is_same<
+			typename q::remove_cv_ref< E >::type,
+			std::exception_ptr
+		>::value
+	>::type
+	set_exception( E&& e )
+	{
+		set_exception(
+			std::make_exception_ptr( std::forward< E >( e ) )
+		);
+	}
+
 	void set_exception( const std::exception_ptr& e )
 	{
 		promise_.set_value( ::q::refuse< tuple_type >( e ) );
@@ -103,10 +122,12 @@ public:
 	 */
 	template< typename Fn, typename... Args >
 	typename std::enable_if<
-		( sizeof...( T ) > 0 ) &&
+		( sizeof...( T ) > 0 )
+		&&
 		Q_RESULT_OF_AS_ARGUMENT( Fn )::template equals<
 			::q::arguments< T... >
-		>::value &&
+		>::value
+		&&
 		Q_ARGUMENTS_ARE_CONVERTIBLE_FROM( Fn, Args... )::value
 	>::type
 	set_by_fun( Fn&& fn, Args&&... args )
@@ -131,10 +152,14 @@ public:
 	 */
 	template< typename Fn, typename Args >
 	typename std::enable_if<
-		sizeof...( T ) == 0 &&
+		sizeof...( T ) == 0
+		&&
 		Q_RESULT_OF_AS_ARGUMENT( Fn )::template equals<
 			::q::arguments< T... >
-		>::value &&
+		>::value
+		&&
+		::q::is_tuple< Args >::value
+		&&
 		::q::tuple_arguments< Args >::template is_convertible_to<
 			Q_ARGUMENTS_OF( Fn )
 		>::value
@@ -160,10 +185,14 @@ public:
 	 */
 	template< typename Fn, typename Args >
 	typename std::enable_if<
-		( sizeof...( T ) > 0 ) &&
+		( sizeof...( T ) > 0 )
+		&&
 		Q_RESULT_OF_AS_ARGUMENT( Fn )::template equals<
 			::q::arguments< T... >
-		>::value &&
+		>::value
+		&&
+		::q::is_tuple< Args >::value
+		&&
 		::q::tuple_arguments< Args >::template is_convertible_to<
 			Q_ARGUMENTS_OF( Fn )
 		>::value
@@ -192,17 +221,17 @@ public:
 	 */
 	template< typename Fn, typename... Args >
 	typename std::enable_if<
-		Q_ARITY_OF( Fn ) == sizeof...( Args ) &&
+		Q_ARITY_OF( Fn ) == sizeof...( Args )
+		&&
 		(
 			Q_ARITY_OF( Fn ) != 1
 			||
-			is_same_type<
-				Q_FIRST_ARGUMENT_OF( Fn ),
-				typename q::arguments< Args... >::first_type
-			>::value
+			Q_ARGUMENTS_ARE_CONVERTIBLE_FROM( Fn, Args... )::value
 		)
+		&&
+		::q::is_promise< Q_RESULT_OF( Fn ) >::value
 	>::type
-	satisfy_by_fun( Fn&& fn, Args&&... args )
+	set_by_fun( Fn&& fn, Args&&... args )
 	{
 		try
 		{
@@ -230,10 +259,13 @@ public:
 	 */
 	template< typename Fn, typename Args >
 	typename std::enable_if<
-		is_tuple< Args >::value &&
+		is_tuple< Args >::value
+		&&
 		Q_ARITY_OF( Fn ) == tuple_arguments< Args >::size::value
+		&&
+		::q::is_promise< Q_RESULT_OF( Fn ) >::value
 	>::type
-	satisfy_by_fun( Fn&& fn, Args&& args )
+	set_by_fun( Fn&& fn, Args&& args )
 	{
 		try
 		{
@@ -261,20 +293,14 @@ public:
 		auto _this = this->shared_from_this( );
 
 		promise
-		.fail( [ _this ]( std::exception_ptr&& e )
-		{
-			_this->set_exception( std::move( e ) );
-		} )
 		.then( [ _this ]( tuple_type&& tuple )
 		{
 			_this->set_value( std::move( tuple ) );
+		} )
+		.fail( [ _this ]( std::exception_ptr&& e )
+		{
+			_this->set_exception( std::move( e ) );
 		} );
-
-		/*
-		 promise_ = std::move( promise );
-		 signal_->done( );
-		 /* */
-
 	}
 
 	void satisfy( shared_promise_type promise )
@@ -282,13 +308,13 @@ public:
 		auto _this = this->shared_from_this( );
 
 		promise
-		.fail( [ _this ]( std::exception_ptr&& e )
-		{
-			_this->set_exception( std::move( e ) );
-		} )
 		.then( [ _this ]( const tuple_type& tuple )
 		{
 			_this->set_value( tuple );
+		} )
+		.fail( [ _this ]( std::exception_ptr&& e )
+		{
+			_this->set_exception( std::move( e ) );
 		} );
 	}
 
@@ -319,7 +345,6 @@ public:
 	{
 		return get_promise( ).share( );
 	}
-
 
 	template< typename Promise >
 	typename std::enable_if<
