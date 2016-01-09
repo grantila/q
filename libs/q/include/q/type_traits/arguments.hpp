@@ -52,6 +52,22 @@ template< typename From, typename To >
 struct is_argument_same_or_convertible;
 
 /**
+ * Determines if the type T exists as any of the types in the q::arguments
+ * Arguments.
+ * Equals either std::true_type or std::false_type.
+ */
+template< typename Arguments, typename T >
+struct argument_contains;
+
+/**
+ * Determines if all the types in the q::arguments Subset is found in the
+ * q::arguments Superset.
+ * Equals either std::true_type or std::false_type.
+ */
+template< typename Superset, typename Subset >
+struct argument_contains_all;
+
+/**
  * Generic variadic template argument generator which also provides simple
  * helpers for traversing and managing variadic templates.
  * 
@@ -84,6 +100,18 @@ struct arguments
 		typedef typename T<std::tuple>::type type;
 	};
 
+	template< typename... Before >
+	struct prepend
+	{
+		typedef arguments< Before..., Args... > type;
+	};
+
+	template< typename... After >
+	struct append
+	{
+		typedef arguments< Args..., After... > type;
+	};
+
 	/**
 	 * Given a q::arguments wrapped set of types T, checks whether the
 	 * current arguments are individually equal to their corresponding
@@ -112,6 +140,57 @@ struct arguments
 	typedef typename apply< std::tuple >::type tuple_type;
 
 	typedef std::integral_constant< std::size_t, sizeof...( Args ) > size;
+
+	/**
+	 * map each argument with a type T and return a new q::arguments.
+	 *
+	 * Example:
+	 *   Given q::arguments< int, char > mapped to T returns:
+	 *   q::arguments< T< int >, T< char > >
+	 *
+	 *   More precisely:
+	 *   q::arguments< int, char >::template map< T >::type
+	 *   // -> q::arguments< T< int >, T< char > >
+	 */
+	template< template< typename > class T >
+	struct map
+	{
+		typedef arguments< T< Args >... > type;
+	};
+
+	/**
+	 * filter each arguments through T which is supposed to resolve to a
+	 * std::true_type or std::false_type. The resulting type is a (possibly
+	 * shorter) q::arguments with only the types matching T.
+	 */
+	template< template< typename > class T >
+	struct filter
+	{
+		typedef typename std::conditional<
+			T< first_type >::value,
+			typename rest_arguments
+				::template filter< T >::type
+				::template prepend< first_type >::type,
+			typename rest_arguments
+				::template filter< T >::type
+		>::type type;
+	};
+
+	template< typename Arguments >
+	struct _contains_all
+	{
+		typedef argument_contains_all< this_type, Arguments > type;
+	};
+
+	template< typename Arguments >
+	struct contains_all
+	: _contains_all< Arguments >::type
+	{ };
+
+	template< typename... T >
+	struct contains
+	: contains_all< arguments< T... > >
+	{ };
 };
 
 template< >
@@ -123,6 +202,18 @@ struct arguments< >
 	struct apply
 	{
 		typedef T< > type;
+	};
+
+	template< typename... Before >
+	struct prepend
+	{
+		typedef arguments< Before... > type;
+	};
+
+	template< typename... After >
+	struct append
+	{
+		typedef arguments< After... > type;
 	};
 
 	template< typename T >
@@ -138,6 +229,18 @@ struct arguments< >
 	typedef typename apply< std::tuple >::type tuple_type;
 
 	typedef std::integral_constant< std::size_t, 0 > size;
+
+	template< template< typename > class T >
+	struct map
+	{
+		typedef arguments< > type;
+	};
+
+	template< template< typename > class T >
+	struct filter
+	{
+		typedef arguments< > type;
+	};
 };
 
 namespace detail {
@@ -162,7 +265,22 @@ struct tuple_arguments< std::tuple< Args... > >
 : public arguments< Args... >
 { };
 
+template< template< typename... > class Predicate, size_t, typename... >
+struct is_one_argument_and
+: std::false_type
+{ };
+
+template< template< typename... > class Predicate, typename Arg >
+struct is_one_argument_and< Predicate, 1, Arg >
+: bool_type< Predicate< Arg >::value >
+{ };
+
 } // namespace detail
+
+template< template< typename... > class Predicate, typename... Args >
+struct is_one_argument_and
+: detail::is_one_argument_and< Predicate, sizeof...( Args ), Args... >
+{ };
 
 } // namespace q
 

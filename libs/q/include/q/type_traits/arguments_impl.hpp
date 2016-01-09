@@ -42,6 +42,64 @@ struct is_argument_same_or_convertible
 { };
 
 
+namespace detail
+{
+
+template< typename _T >
+struct argument_contains_iterator
+{
+	typedef _T T;
+	typedef std::false_type found;
+};
+
+template< typename _T, typename Iterator >
+struct argument_contains_fun
+{
+	typedef typename Iterator::T T;
+	typedef std::is_same< T, _T > is_current_same;
+	typedef logic_or< is_current_same, typename Iterator::found > found;
+	typedef argument_contains_fun< _T, Iterator > type;
+};
+
+template< typename _Superset >
+struct argument_contains_all_iterator
+{
+	typedef _Superset Superset;
+	typedef std::true_type found;
+};
+
+template< typename T, typename Iterator >
+struct argument_contains_all_fun
+{
+	typedef typename Iterator::Superset Superset;
+	typedef argument_contains< Superset, T > is_current_found;
+	typedef logic_and< is_current_found, typename Iterator::found > found;
+	typedef argument_contains_all_fun< T, Iterator > type;
+};
+
+} // namespace detail
+
+template< typename... Args, typename T >
+struct argument_contains< arguments< Args... >, T >
+: fold<
+	arguments< Args... >,
+	detail::argument_contains_fun,
+	detail::argument_contains_iterator< T >
+>::found
+{ };
+
+template< typename Superset, typename Subset >
+struct argument_contains_all
+: fold<
+	Subset,
+	detail::argument_contains_all_fun,
+	detail::argument_contains_all_iterator< Superset >
+>::found
+{ };
+
+
+
+
 namespace detail {
 
 template< typename A, typename B >
