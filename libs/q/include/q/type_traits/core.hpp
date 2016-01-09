@@ -23,14 +23,9 @@
 #include <vector>
 
 namespace q {
-
 #define Q_FORWARD( value ) \
-	std::forward< \
-		typename std::remove_reference< \
-			typename std::decay< \
-				decltype( value ) \
-			>::type \
-		>::type \
+	::std::forward< \
+		decltype( value ) \
 	>( value )
 
 template< typename T > void ignore_result( T&& ) { }
