@@ -202,6 +202,18 @@ struct remove_cv_ref
 	>::type type;
 };
 
+template< typename T >
+struct remove_rvalue_reference
+{
+	typedef T type;
+};
+
+template< typename T >
+struct remove_rvalue_reference< T&& >
+{
+	typedef T type;
+};
+
 /**
  * This type is true only for char[N].
  */
