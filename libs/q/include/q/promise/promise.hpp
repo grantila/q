@@ -38,12 +38,18 @@ public:
 
 	template< typename... T >
 	struct is_valid_arguments
-	: ::q::is_argument_same_or_convertible< arguments< T... >, argument_types >
+	: ::q::is_argument_same_or_convertible<
+		arguments< T... >,
+		argument_types
+	>
 	{ };
 
 	template< typename... T >
 	struct is_valid_arguments< arguments< T... > >
-	: ::q::is_argument_same_or_convertible< arguments< T... >, argument_types >
+	: ::q::is_argument_same_or_convertible<
+		arguments< T... >,
+		argument_types
+	>
 	{ };
 
 	generic_promise( state_type&& state, const queue_ptr& queue )
@@ -137,7 +143,7 @@ public:
 		&&
 		detail::temporary< queue_ptr >
 			::template is_decayed< Queue >::value,
-		Q_RESULT_OF( Fn )
+		Q_RESULT_OF( Fn )::unique_this_type
 	>::type
 	then( Fn&& fn, Queue&& queue = nullptr );
 
@@ -154,7 +160,7 @@ public:
 		&&
 		detail::temporary< queue_ptr >
 			::template is_decayed< Queue >::value,
-		Q_RESULT_OF( Fn )
+		Q_RESULT_OF( Fn )::unique_this_type
 	>::type
 	then( Fn&& fn, Queue&& queue = nullptr );
 
@@ -183,86 +189,104 @@ public:
 	then( AsyncTask&& task );
 
 	/**
-	 * Matches an exception as a raw std::exception_ptr
+	 * The different fail functions are defined by the following arguments:
+	 *   * exception_ptr, matching any kind of error
+	 *   * E, matching any data of type E
+	 *
+	 * The function can return:
+	 *   * T or tuple< T... >  Any data where T (T...) is of the same type
+	 *                         as the types in this promise.
+	 *   * P< T... >           A promise of the same as above, awaited
+	 *
+	 * So, we end up with the following versions of fail():
+	 *   * exception_ptr -> tuple< T... >
+	 *   * exception_ptr -> P< tuple< T... > >
+	 *   * E             -> tuple< T... >
+	 *   * E             -> P< tuple< T... > >
+	 *
+	 * The return value of @c fail() is always a promise of the same type
+	 * as the promise on which @c fail() is run, just like with @c finally.
+	 */
+
+	/**
+	 * std::exception_ptr -> tuple< T... >
 	 */
 	template< typename Fn, typename Queue = queue_ptr >
 	typename std::enable_if<
+		Q_ARITY_OF( Fn ) == 1
+		&&
 		is_same_type<
 			Q_FIRST_ARGUMENT_OF( Fn ),
 			std::exception_ptr
-		>::value &&
-		std::is_void< Q_RESULT_OF( Fn ) >::value
+		>::value
+		&&
+		detail::tuple_arguments< Q_RESULT_OF( Fn ) >
+			::template is_convertible_to< argument_types >::value
 		&&
 		detail::temporary< queue_ptr >
 			::template is_decayed< Queue >::value,
-		unique_this_type
+		this_type
 	>::type
 	fail( Fn&& fn, Queue&& queue = nullptr );
 
 	/**
-	 * Matches an exception as a raw std::exception_ptr
+	 * std::exception_ptr -> P< tuple< T... > >
 	 */
 	template< typename Fn, typename Queue = queue_ptr >
 	typename std::enable_if<
 		is_same_type<
 			Q_FIRST_ARGUMENT_OF( Fn ),
 			std::exception_ptr
-		>::value &&
+		>::value
+		&&
 		is_promise< Q_RESULT_OF( Fn ) >::value
 		&&
+		Q_FUNCTIONTRAITS( Fn )::result_type::argument_types
+			::template is_convertible_to< argument_types >::value
+		&&
 		detail::temporary< queue_ptr >
 			::template is_decayed< Queue >::value,
-		Q_RESULT_OF( Fn )
+		this_type
 	>::type
 	fail( Fn&& fn, Queue&& queue = nullptr );
 
 	/**
-	 * Matches an exception of any type, defined by the one and only argument
-	 * of fn
+	 * E -> tuple< T... >
 	 */
 	template< typename Fn, typename Queue = queue_ptr >
 	typename std::enable_if<
-		Q_ARITY_OF( Fn ) == 1 &&
-		!Q_ARGUMENTS_ARE( Fn, std::exception_ptr )::value &&
-		std::is_void< Q_RESULT_OF( Fn ) >::value
+		Q_ARITY_OF( Fn ) == 1
+		&&
+		!Q_ARGUMENTS_ARE( Fn, std::exception_ptr )::value
+		&&
+		detail::tuple_arguments< Q_RESULT_OF( Fn ) >
+			::template is_convertible_to< argument_types >::value
 		&&
 		detail::temporary< queue_ptr >
 			::template is_decayed< Queue >::value,
-		unique_this_type
+		this_type
 	>::type
-	fail( Fn&& fn, Queue&& queue = nullptr )
-	{
-		// TODO: Rewrite this and optimize for having multiple type matching
-		// catches in a single try/catch block, so that the rethrowing only
-		// happens once when performing many chained fail().fail().fail()
-		// operations. Should be fairly simple, although allowing multiple
-		// chained fail() could be tricky. An easier solution would be to make
-		// this function take multiple functions, variadicly.
+	fail( Fn&& fn, Queue&& queue = nullptr );
 
-		std::exception_ptr eptr; // = get from somewhere
-		typedef Q_FIRST_ARGUMENT_OF( Fn ) exception_type;
-
-		auto tmp_fn = Q_TEMPORARILY_COPYABLE( fn );
-
-		auto runner = [ tmp_fn, eptr ]( ) mutable
-		{
-			try
-			{
-				std::rethrow_exception( eptr );
-			}
-			catch ( const exception_type& e )
-			{
-				tmp_fn.consume( )( e );
-
-				// Match, stop fail-chain as we've already caught the right
-				// exception type.
-				// If fn has thrown/rethrown, we'll not end up here, and
-				// succeeding fail handlers will be called, as expected.
-			}
-		};
-
-		state_.signal( ).push( std::move( runner ), queue );
-	}
+	/**
+	 * E -> P< tuple< T... > >
+	 */
+	template< typename Fn, typename Queue = queue_ptr >
+	typename std::enable_if<
+		Q_ARITY_OF( Fn ) == 1
+		&&
+		!Q_ARGUMENTS_ARE( Fn, std::exception_ptr )::value
+		&&
+		is_promise< Q_RESULT_OF( Fn ) >::value
+		&&
+		Q_FUNCTIONTRAITS( Fn )::result_type::argument_types
+			::template is_convertible_to< argument_types >::value
+		&&
+		detail::temporary< queue_ptr >
+			::template is_decayed< Queue >::value,
+		this_type
+	>::type
+	fail( Fn&& fn, Queue&& queue = nullptr );
 
 	/**
 	 * A finally() function is always run, ignoring the current state, i.e.
@@ -270,13 +294,32 @@ public:
 	 *
 	 * A normal use for finally() is to clean up.
 	 */
+
+	/**
+	 * void -> void
+	 */
 	template< typename Fn, typename Queue = queue_ptr >
 	typename std::enable_if<
-		std::is_void< Q_RESULT_OF( Fn ) >::value &&
+		std::is_void< Q_RESULT_OF( Fn ) >::value
+		and
 		Q_ARITY_OF( Fn ) == 0
-		&&
-		detail::temporary< queue_ptr >
-			::template is_decayed< Queue >::value,
+		and
+		Q_IS_TEMPORARY_SAME( queue_ptr, Queue ),
+		unique_this_type
+	>::type
+	finally( Fn&& fn, Queue&& queue = nullptr );
+
+	/**
+	 * void -> P< >
+	 */
+	template< typename Fn, typename Queue = queue_ptr >
+	typename std::enable_if<
+		::q::is_promise< Q_RESULT_OF( Fn ) >::value
+		and
+		Q_FUNCTIONTRAITS( Fn )
+			::result_type::argument_types::size::value == 0
+		and
+		Q_IS_TEMPORARY_SAME( queue_ptr, Queue ),
 		unique_this_type
 	>::type
 	finally( Fn&& fn, Queue&& queue = nullptr );

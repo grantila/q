@@ -52,8 +52,8 @@ then( Fn&& fn, Queue&& queue )
 		auto value = state->consume( );
 		if ( value.has_exception( ) )
 			// Redirect exception
-	 		deferred->set_exception( value.exception( ) );
-	 	else
+			deferred->set_exception( value.exception( ) );
+		else
 			deferred->set_by_fun( tmp_fn.consume( ), value.consume( ) );
 	};
 
@@ -106,8 +106,8 @@ then( Fn&& fn, Queue&& queue )
 		auto value = state->consume( );
 		if ( value.has_exception( ) )
 			// Redirect exception
-	 		deferred->set_exception( value.exception( ) );
-	 	else
+			deferred->set_exception( value.exception( ) );
+		else
 			deferred->set_by_fun( tmp_fn.consume( ), value.consume( ) );
 	};
 
@@ -132,7 +132,7 @@ typename std::enable_if<
 	is_promise< Q_RESULT_OF( Fn ) >::value
 	&&
 	detail::temporary< queue_ptr >::template is_decayed< Queue >::value,
-	Q_RESULT_OF( Fn )
+	Q_RESULT_OF( Fn )::unique_this_type
 >::type
 generic_promise< Shared, std::tuple< Args... > >::
 then( Fn&& fn, Queue&& queue )
@@ -152,7 +152,8 @@ then( Fn&& fn, Queue&& queue )
 			// Redirect exception
 	 		deferred->set_exception( value.exception( ) );
 	 	else
-			deferred->satisfy_by_fun( tmp_fn.consume( ), value.consume( ) );
+			deferred->set_by_fun(
+				tmp_fn.consume( ), value.consume( ) );
 	};
 
 	state_->signal( )->push( std::move( perform ),
@@ -177,7 +178,7 @@ typename std::enable_if<
 	is_promise< Q_RESULT_OF( Fn ) >::value
 	&&
 	detail::temporary< queue_ptr >::template is_decayed< Queue >::value,
-	Q_RESULT_OF( Fn )
+	Q_RESULT_OF( Fn )::unique_this_type
 >::type
 generic_promise< Shared, std::tuple< Args... > >::
 then( Fn&& fn, Queue&& queue )
@@ -197,7 +198,7 @@ then( Fn&& fn, Queue&& queue )
 			// Redirect exception
 	 		deferred->set_exception( value.exception( ) );
 	 	else
-			deferred->satisfy_by_fun( tmp_fn.consume( ), value.consume( ) );
+			deferred->set_by_fun( tmp_fn.consume( ), value.consume( ) );
 	};
 
 	state_->signal( )->push( std::move( perform ),
@@ -289,21 +290,27 @@ then( AsyncTask&& task )
 
 
 /**
- * Matches an exception as a raw std::exception_ptr
+ * std::exception_ptr -> tuple< T... >
  */
 template< bool Shared, typename... Args >
 template< typename Fn, typename Queue >
 typename std::enable_if<
+	Q_ARITY_OF( Fn ) == 1
+	&&
 	is_same_type<
 		Q_FIRST_ARGUMENT_OF( Fn ),
 		std::exception_ptr
-	>::value &&
-	std::is_void< Q_RESULT_OF( Fn ) >::value
+	>::value
+	&&
+	detail::tuple_arguments< Q_RESULT_OF( Fn ) >
+		::template is_convertible_to<
+			typename generic_promise<
+				Shared, std::tuple< Args... >
+			>::argument_types
+		>::value
 	&&
 	detail::temporary< queue_ptr >::template is_decayed< Queue >::value,
-	typename generic_promise<
-		Shared, std::tuple< Args... >
-	>::unique_this_type
+	typename generic_promise< Shared, std::tuple< Args... > >::this_type
 >::type
 generic_promise< Shared, std::tuple< Args... > >::
 fail( Fn&& fn, Queue&& queue )
@@ -323,15 +330,15 @@ fail( Fn&& fn, Queue&& queue )
 			// Redirect exception
 			try
 			{
-				tmp_fn.consume( )( value.exception( ) );
+				deferred->set_by_fun(
+					std::move( tmp_fn.consume( ) ),
+					value.exception( ) );
 			}
 			catch ( ... )
 			{
 				deferred->set_exception( std::current_exception( ) );
 				return;
 			}
-			// TODO: Set special value to the state, to let the chain continue
-			// without running any handlers.
 		}
 		else
 		{
@@ -343,11 +350,11 @@ fail( Fn&& fn, Queue&& queue )
 	state_->signal( )->push( std::move( perform ),
 	                         ensure( temporary_forward( queue ) ) );
 
-	return deferred->get_promise( );
+	return deferred->template get_suitable_promise< this_type >( );
 }
 
 /**
- * Matches an exception as a raw std::exception_ptr
+ * std::exception_ptr -> P< tuple< T... > >
  */
 template< bool Shared, typename... Args >
 template< typename Fn, typename Queue >
@@ -358,13 +365,19 @@ typename std::enable_if<
 	>::value &&
 	is_promise< Q_RESULT_OF( Fn ) >::value
 	&&
+	Q_FUNCTIONTRAITS( Fn )::result_type::argument_types
+		::template is_convertible_to<
+			typename generic_promise<
+				Shared, std::tuple< Args... >
+			>::argument_types
+		>::value
+	&&
 	detail::temporary< queue_ptr >::template is_decayed< Queue >::value,
-	Q_RESULT_OF( Fn )
+	typename generic_promise< Shared, std::tuple< Args... > >::this_type
 >::type
 generic_promise< Shared, std::tuple< Args... > >::
 fail( Fn&& fn, Queue&& queue )
 {
-//	typedef Q_RESULT_OF( Fn )::tuple_type tuple_type;
 	auto deferred = detail::defer< tuple_type >::construct(
 	       is_temporary< Queue >::value
 	       ? get_queue( )
@@ -378,8 +391,8 @@ fail( Fn&& fn, Queue&& queue )
 		if ( value.has_exception( ) )
 		{
 			// Redirect exception
-			deferred->satisfy_by_fun(
-				tmp_fn.consume( ),
+			deferred->set_by_fun(
+				std::move( tmp_fn.consume( ) ),
 				value.exception( )
 			);
 		}
@@ -396,13 +409,173 @@ fail( Fn&& fn, Queue&& queue )
 	return deferred->template get_suitable_promise< Q_RESULT_OF( Fn ) >( );
 }
 
+/**
+ * E -> tuple< T... >
+ */
 template< bool Shared, typename... Args >
 template< typename Fn, typename Queue >
 typename std::enable_if<
-	std::is_void< Q_RESULT_OF( Fn ) >::value &&
-	Q_ARITY_OF( Fn ) == 0
+	Q_ARITY_OF( Fn ) == 1
 	&&
-	detail::temporary< queue_ptr >::template is_decayed< Queue >::value,
+	!Q_ARGUMENTS_ARE( Fn, std::exception_ptr )::value
+	&&
+	detail::tuple_arguments< Q_RESULT_OF( Fn ) >
+		::template is_convertible_to<
+			typename generic_promise<
+				Shared, std::tuple< Args... >
+			>::argument_types
+		>::value
+	&&
+	detail::temporary< queue_ptr >
+		::template is_decayed< Queue >::value,
+	typename generic_promise< Shared, std::tuple< Args... > >::this_type
+>::type
+generic_promise< Shared, std::tuple< Args... > >::
+fail( Fn&& fn, Queue&& queue )
+{
+	auto deferred = detail::defer< tuple_type >::construct(
+	       is_temporary< Queue >::value
+	       ? get_queue( )
+	       : ensure( temporary_get( queue ) ) );
+	auto tmp_fn = Q_TEMPORARILY_COPYABLE( fn );
+	auto state = state_;
+
+	typedef typename std::decay< Q_FIRST_ARGUMENT_OF( Fn ) >::type
+		exception_type;
+
+	auto perform = [ deferred, tmp_fn, state ]( ) mutable
+	{
+		auto value = state->consume( );
+		if ( value.has_exception( ) )
+		{
+			// Handle exception, if it's our type
+			try
+			{
+				std::rethrow_exception( value.exception( ) );
+			}
+			catch ( exception_type& e )
+			{
+				try
+				{
+					deferred->set_by_fun(
+						std::move( tmp_fn.consume( ) ),
+						e );
+				}
+				catch ( ... )
+				{
+					deferred->set_exception(
+						std::current_exception( ) );
+				}
+			}
+			catch ( ... )
+			{
+				deferred->set_exception(
+					std::current_exception( ) );
+			}
+		}
+		else
+		{
+			// Forward data
+			deferred->set_value( value.consume( ) );
+		}
+	};
+
+	state_->signal( )->push( std::move( perform ),
+	                         ensure( temporary_forward( queue ) ) );
+
+	return deferred->template get_suitable_promise< this_type >( );
+}
+
+/**
+ * E -> P< tuple< T... > >
+ */
+template< bool Shared, typename... Args >
+template< typename Fn, typename Queue >
+typename std::enable_if<
+	Q_ARITY_OF( Fn ) == 1
+	&&
+	!Q_ARGUMENTS_ARE( Fn, std::exception_ptr )::value
+	&&
+	is_promise< Q_RESULT_OF( Fn ) >::value
+	&&
+	Q_FUNCTIONTRAITS( Fn )::result_type::argument_types
+		::template is_convertible_to<
+			typename generic_promise<
+				Shared, std::tuple< Args... >
+			>::argument_types
+		>::value
+	&&
+	detail::temporary< queue_ptr >
+		::template is_decayed< Queue >::value,
+	typename generic_promise< Shared, std::tuple< Args... > >::this_type
+>::type
+generic_promise< Shared, std::tuple< Args... > >::
+fail( Fn&& fn, Queue&& queue )
+{
+	auto deferred = detail::defer< tuple_type >::construct(
+	       is_temporary< Queue >::value
+	       ? get_queue( )
+	       : ensure( temporary_get( queue ) ) );
+	auto tmp_fn = Q_TEMPORARILY_COPYABLE( fn );
+	auto state = state_;
+
+	typedef typename std::decay< Q_FIRST_ARGUMENT_OF( Fn ) >::type
+		exception_type;
+
+	auto perform = [ deferred, tmp_fn, state ]( ) mutable
+	{
+		auto value = state->consume( );
+		if ( value.has_exception( ) )
+		{
+			// Handle exception, if it's our type
+			try
+			{
+				std::rethrow_exception( value.exception( ) );
+			}
+			catch ( exception_type& e )
+			{
+				try
+				{
+					deferred->set_by_fun(
+						std::move( tmp_fn.consume( ) ),
+						e );
+				}
+				catch ( ... )
+				{
+					deferred->set_exception(
+						std::current_exception( ) );
+				}
+			}
+			catch ( ... )
+			{
+				deferred->set_exception(
+					std::current_exception( ) );
+			}
+		}
+		else
+		{
+			// Forward data
+			deferred->set_value( value.consume( ) );
+		}
+	};
+
+	state_->signal( )->push( std::move( perform ),
+	                         ensure( temporary_forward( queue ) ) );
+
+	return deferred->template get_suitable_promise< this_type >( );
+}
+
+/**
+ * void -> void
+ */
+template< bool Shared, typename... Args >
+template< typename Fn, typename Queue >
+typename std::enable_if<
+	std::is_void< Q_RESULT_OF( Fn ) >::value
+	and
+	Q_ARITY_OF( Fn ) == 0
+	and
+	Q_IS_TEMPORARY_SAME( queue_ptr, Queue ),
 	typename generic_promise<
 		Shared, std::tuple< Args... >
 	>::unique_this_type
@@ -419,10 +592,81 @@ finally( Fn&& fn, Queue&& queue )
 
 	auto perform = [ deferred, tmp_fn, state ]( ) mutable
 	{
-		tmp_fn.consume( )( );
-
 		auto value = state->consume( );
-		deferred->set_expect( std::move( value ) );
+
+		try
+		{
+			tmp_fn.consume( )( );
+
+			deferred->set_expect( std::move( value ) );
+		}
+		catch ( ... )
+		{
+			// TODO: Consider using a nested_exception
+			deferred->set_exception( std::current_exception( ) );
+		}
+	};
+
+	state_->signal( )->push( std::move( perform ),
+	                         ensure( temporary_forward( queue ) ) );
+
+	return deferred->get_promise( );
+}
+
+/**
+ * void -> P< >
+ */
+template< bool Shared, typename... Args >
+template< typename Fn, typename Queue >
+typename std::enable_if<
+	::q::is_promise< Q_RESULT_OF( Fn ) >::value
+	and
+	Q_FUNCTIONTRAITS( Fn )::result_type::argument_types::size::value == 0
+	and
+	Q_IS_TEMPORARY_SAME( queue_ptr, Queue ),
+	typename generic_promise<
+		Shared, std::tuple< Args... >
+	>::unique_this_type
+>::type
+generic_promise< Shared, std::tuple< Args... > >::
+finally( Fn&& fn, Queue&& queue )
+{
+	auto deferred = ::q::make_shared< detail::defer< Args... > >(
+	     is_temporary< Queue >::value
+	     ? get_queue( )
+	     : ensure( temporary_get( queue ) ) );
+	auto tmp_fn = Q_TEMPORARILY_COPYABLE( fn );
+	auto state = state_;
+
+	auto perform = [ deferred, tmp_fn, state ]( ) mutable
+	{
+		try
+		{
+			auto inner_promise = tmp_fn.consume( )( );
+
+			inner_promise
+			.then( [ deferred, state ]( )
+			{
+				auto value = state->consume( );
+
+				deferred->set_expect( std::move( value ) );
+			} )
+			.fail( [ deferred, state ]( std::exception_ptr&& e )
+			{
+				auto value = state->consume( );
+
+				// TODO: Consider using a nested_exception for
+				//       inner exceptions.
+				deferred->set_exception( std::move( e ) );
+
+				// deferred->set_expect( std::move( value ) );
+			} );
+		}
+		catch ( ... )
+		{
+			// TODO: Consider using a nested_exception
+			deferred->set_exception( std::current_exception( ) );
+		}
 	};
 
 	state_->signal( )->push( std::move( perform ),
