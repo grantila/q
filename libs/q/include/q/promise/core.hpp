@@ -125,6 +125,86 @@ private:
 	std::shared_ptr< exception_type > data_;
 };
 
+namespace detail {
+
+template<
+	typename T,
+	bool B = is_promise< typename std::decay< T >::type >::value
+>
+struct argument_types_if_promise
+{
+	typedef typename std::decay< T >::type::argument_types types;
+};
+
+template< typename T >
+struct argument_types_if_promise< T, false >
+{
+	typedef struct { } types;
+};
+
+template< typename T >
+struct promise_arguments
+{
+	typedef ::q::arguments< T > type;
+};
+
+template< typename T, bool B >
+struct promise_arguments< generic_promise< B, T > >
+{
+	typedef typename generic_promise< B, T >::argument_types type;
+};
+
+template< typename T >
+struct promise_arguments< ::q::promise< T > >
+{
+	typedef typename ::q::promise< T >::argument_types type;
+};
+
+template< typename T >
+struct promise_arguments< ::q::shared_promise< T > >
+{
+	typedef typename ::q::shared_promise< T >::argument_types type;
+};
+
+} // namespace detail
+
+template< typename T >
+struct promise_arguments
+: detail::promise_arguments< typename std::decay< T >::type >
+{ };
+
+template< typename... Promises >
+struct merge_promise_arguments;
+
+template< typename First, typename... Rest >
+struct merge_promise_arguments< First, Rest... >
+: std::conditional<
+	sizeof...( Rest ) == 0,
+	promise_arguments<
+		typename std::decay< First >::type
+	>,
+	typename merge<
+		arguments,
+		typename promise_arguments<
+			typename std::decay< First >::type
+		>::type,
+		typename promise_arguments<
+			typename std::decay< Rest >::type
+		>::type...
+	>::type
+>::type
+{ };
+
+template< typename Only >
+struct merge_promise_arguments< Only >
+: detail::argument_types_if_promise< Only >::types
+{ };
+
+template< >
+struct merge_promise_arguments< >
+: q::arguments< >
+{ };
+
 }
 
 #endif // LIBQ_PROMISE_CORE_HPP

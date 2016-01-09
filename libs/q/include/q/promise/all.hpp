@@ -24,73 +24,10 @@
 
 namespace q {
 
-namespace detail {
-
-template<
-	typename T,
-	bool B = is_promise< typename std::decay< T >::type >::value
->
-struct argument_types_if_promise
-{
-	typedef typename std::decay< T >::type::argument_types types;
-};
-
-template< typename T >
-struct argument_types_if_promise< T, false >
-{
-	typedef struct { } types;
-};
-
-} // namespace detail
-
-template< typename T >
-struct promise_arguments
-{
-	typedef q::arguments< > type;
-};
-
-template< typename T, bool B >
-struct promise_arguments< detail::generic_promise< B, T > >
-{
-	typedef typename T::argument_types type;
-};
-
-template< typename... Promises >
-struct merge_promise_arguments;
-
-template< typename First, typename... Rest >
-struct merge_promise_arguments< First, Rest... >
-: std::conditional<
-	sizeof...( Rest ) == 0,
-	promise_arguments<
-		typename std::decay< First >::type
-	>,
-	typename merge<
-		arguments,
-		typename promise_arguments<
-			typename std::decay< First >::type
-		>::type,
-		typename promise_arguments<
-			typename std::decay< Rest >::type
-		>::type...
-	>::type
->::type
-{ };
-
-template< typename Only >
-struct merge_promise_arguments< Only >
-: detail::argument_types_if_promise< Only >::types
-{ };
-
-template< >
-struct merge_promise_arguments< >
-: q::arguments< >
-{ };
-
 template< typename Promise >
 typename std::enable_if<
 	is_promise< typename std::decay< Promise >::type >::value,
-	Promise
+	typename std::decay< Promise >::type
 >::type
 all( Promise&& promise )
 {
@@ -103,7 +40,9 @@ typename std::enable_if<
 	are_promises<
 		typename std::decay< First >::type,
 		typename std::decay< Rest >::type...
-	>::value,
+	>::value
+	and
+	( sizeof...( Rest ) > 0 ),
 	promise<
 		typename merge_promise_arguments< First, Rest... >::tuple_type
 	>
@@ -133,6 +72,7 @@ all( First&& first, Rest&&... rest )
 
 		auto completer = [ data_tmp ]
 		                 ( rest_tuple_type&& rest_data ) mutable
+		-> full_tuple_type
 		{
 			return std::tuple_cat(
 				data_tmp.consume( ),
@@ -144,7 +84,6 @@ all( First&& first, Rest&&... rest )
 		return std::move( full_value );
 	} );
 }
-
 
 namespace detail {
 
