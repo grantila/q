@@ -675,20 +675,62 @@ finally( Fn&& fn, Queue&& queue )
 	return deferred->get_promise( );
 }
 
-} // namespace detail
-
-template< typename Fn >
-promise< Q_RESULT_OF( Fn ) >
-make_promise( Fn&& fn, const queue_ptr& queue )
+template< bool Shared, typename... Args >
+q::promise< std::tuple<
+	typename generic_promise<
+		Shared, std::tuple< Args... >
+	>::tuple_expect_type
+> >
+generic_promise< Shared, std::tuple< Args... > >::
+reflect_tuple( )
 {
-	auto deferred = ::q::detail::defer< Q_RESULT_OF( Fn ) >::
-		construct( queue );
+	auto deferred = ::q::make_shared< detail::defer<
+		::q::expect< std::tuple< Args... > >
+	> >( get_queue( ) );
+	auto state = state_;
 
-	deferred->satisfy_by_fun( std::forward< Fn >( fn ) );
+	auto perform = [ deferred, state ]( ) mutable
+	{
+		auto value = state->consume( );
+
+		deferred->set_value( std::move( value ) );
+	};
+
+	state_->signal( )->push( std::move( perform ), get_queue( ) );
 
 	return deferred->get_promise( );
 }
 
-} // namespace q
+template< bool Shared, typename... Args >
+template< bool Simplified >
+typename std::enable_if<
+	Simplified,
+	::q::promise< std::tuple<
+		typename generic_promise<
+			Shared, std::tuple< Args... >
+		>::short_expect_type
+	> >
+>::type
+generic_promise< Shared, std::tuple< Args... > >::
+reflect( )
+{
+	auto deferred = ::q::make_shared< detail::defer<
+		::q::expect< Args... >
+	> >( get_queue( ) );
+	auto state = state_;
+
+	auto perform = [ deferred, state ]( ) mutable
+	{
+		auto value = state->consume( );
+
+		deferred->set_inner_expect( std::move( value ) );
+	};
+
+	state_->signal( )->push( std::move( perform ), get_queue( ) );
+
+	return deferred->get_promise( );
+}
+
+} } // namespace detail, namespace q
 
 #endif // LIBQ_PROMISE_PROMISE_IMPL_HPP

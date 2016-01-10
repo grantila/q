@@ -26,6 +26,7 @@ class defer
 : public std::enable_shared_from_this< defer< T... > >
 {
 public:
+	typedef ::q::arguments< T... >                          arguments_type;
 	typedef std::tuple< T... >                              tuple_type;
 	typedef expect< tuple_type >                            expect_type;
 	typedef detail::promise_state_data< tuple_type, false > state_data_type;
@@ -39,6 +40,49 @@ public:
 			set_exception( exp.exception( ) );
 		else
 			set_value( exp.consume( ) );
+	}
+
+	/**
+	 * Sets the expected value based on an expect< tuple< expect< > > >
+	 */
+	void set_inner_expect( ::q::expect< std::tuple< > >&& exp )
+	{
+		if ( exp.has_exception( ) )
+		{
+			set_value(
+				::q::refuse< void >( exp.exception( ) ) );
+		}
+		else
+		{
+			set_value( ::q::fulfill< void >( ) );
+		}
+	}
+
+	/**
+	 * Sets the expected value based on an expect< tuple< expect< _T > > >
+	 */
+	template< typename _T >
+	typename std::enable_if<
+		sizeof...( T ) == 1
+		and
+		::q::is_argument_same_or_convertible<
+			::q::arguments< _T >,
+			arguments_type
+		>::value
+	>::type
+	set_inner_expect( ::q::expect< std::tuple< _T > >&& exp )
+	{
+		if ( exp.has_exception( ) )
+		{
+			set_value( ::q::refuse< _T >( exp.exception( ) ) );
+		}
+		else
+		{
+			auto tuple = exp.consume( );
+			auto inner_value = std::move( std::get< 0 >( tuple ) );
+			set_value( ::q::fulfill< _T >(
+				std::move( inner_value ) ) );
+		}
 	}
 
 	inline void set_value( tuple_type&& tuple )

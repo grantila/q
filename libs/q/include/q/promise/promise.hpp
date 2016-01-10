@@ -35,6 +35,14 @@ public:
 	typedef promise_state< tuple_type, false >         unique_state_type;
 	typedef unique_this_type                           promise_type;
 	typedef shared_this_type                           shared_promise_type;
+	typedef typename std::conditional<
+		sizeof...( Args ) < 2,
+		::q::expect<
+			typename ::q::arguments< Args..., void >::first_type
+		>,
+		void
+	>::type                                            short_expect_type;
+	typedef ::q::expect< tuple_type >                  tuple_expect_type;
 
 	template< typename... T >
 	struct is_valid_arguments
@@ -323,6 +331,55 @@ public:
 		unique_this_type
 	>::type
 	finally( Fn&& fn, Queue&& queue = nullptr );
+
+	/**
+	 * Converts this promise of tuple of T (or T...) into a promise of
+	 * @c q::expect of tuple of T (or T...).
+	 *
+	 * The resulting promise will not fail, and will always resolve to its
+	 * inner q::expect object. This expect object contains either the value
+	 * or the exception immediately ("synchronously").
+	 *
+	 * Technically:
+	 *   promise< tuple< T... > > -> promise< expect< tuple< T... > > >
+	 *
+	 * This is useful e.g. to collect a set of promises where some might
+	 * have been resolved and some rejected. The reflected value, i.e. the
+	 * expect-wrapped value, is always successful, so the set of promises
+	 * can be inspected for success or failure individually.
+	 */
+	q::promise< std::tuple< tuple_expect_type > > reflect_tuple( );
+
+	/**
+	 * Same as reflect_tuple( ), except this will shortcut the inner tuple
+	 * of the @c expect if the size of T... is less than 2, i.e. when this
+	 * promise is of either nothing or just one type, the result promise
+	 * will be of an expect of T (or nothing) itself.
+	 *
+	 * Technically:
+	 *
+	 *   For a promise< tuple< > > or promise< tuple< T > >:
+	 *     promise< tuple< T/nothing > > -> promise< expect< T/nothing > >
+	 *
+	 *   For a promise< tuple< T1, T2... > >:
+	 *     Same as reflect_tuple( )
+	 */
+	template< bool Simplified = sizeof...( Args ) < 2 >
+	typename std::enable_if<
+		Simplified,
+		q::promise< std::tuple< short_expect_type > >
+	>::type
+	reflect( );
+
+	template< bool Simplified = sizeof...( Args ) < 2 >
+	typename std::enable_if<
+		!Simplified,
+		q::promise< std::tuple< tuple_expect_type > >
+	>::type
+	reflect( )
+	{
+		return reflect_tuple( );
+	}
 
 	void done( )
 	{
