@@ -36,9 +36,9 @@ void benchmark_title( const std::string& title )
 template< typename Start, typename Stop >
 void benchmark_queueing_and_scheduling( Start&& start, Stop&& stop, bool parallel, q::queue_ptr queue, std::size_t iterations )
 {
-	q::shared_promise< std::tuple< int > > promise = q::with( 0 ).share( );
+	q::shared_promise< std::tuple< int > > promise = q::with( queue, 0 ).share( );
 	std::vector< q::promise< std::tuple< int > > > waitable;
-	q::promise< std::tuple< int > > serial_promise = q::with( 0 );
+	q::promise< std::tuple< int > > serial_promise = q::with( queue, 0 );
 	waitable.reserve( iterations );
 
 	q::timer::duration_type total_dur( 0 );
@@ -83,7 +83,7 @@ void benchmark_queueing_and_scheduling( Start&& start, Stop&& stop, bool paralle
 
 		q::scoped_timer timer( std::move( fn ) );
 
-		q::all( std::move( waitable ) )
+		q::all( std::move( waitable ), queue )
 		.then( [ &final, stop ]( std::vector< int >&& values )
 		{
 			int sum = std::accumulate( values.begin( ), values.end( ), 0 );
@@ -132,7 +132,6 @@ void benchmark_tasks_on_main_queue( std::size_t iterations, bool parallel )
 	auto bd2 = q::make_shared< q::blocking_dispatcher >( "test" );
 	auto ctx2 = q::make_shared< q::execution_context >( bd2 );
 	auto queue = ctx2->queue( );
-	auto prev_queue = q::set_default_queue( queue );
 
 	auto start = [ bd2 ]( )
 	{
@@ -150,8 +149,6 @@ void benchmark_tasks_on_main_queue( std::size_t iterations, bool parallel )
 	benchmark_title( "queueing, scheduling and running trivial tasks" + in_parallel );
 	benchmark_queueing_and_scheduling( start, stop, parallel, queue, iterations );
 	std::cout << std::endl;
-
-	q::set_default_queue( prev_queue );
 }
 
 void benchmark_tasks_on_threadpool( std::size_t iterations, bool parallel )
@@ -159,11 +156,9 @@ void benchmark_tasks_on_threadpool( std::size_t iterations, bool parallel )
 	auto bd2 = q::make_shared< q::blocking_dispatcher >( "test" );
 	auto ctx2 = q::make_shared< q::execution_context >( bd2 );
 	auto queue = ctx2->queue( );
-	auto prev_queue = q::set_default_queue( queue );
 
-	auto tp = q::make_shared< q::threadpool >( "threadpool" );
-	auto bg_queue = q::make_shared< q::queue >( );
-	q::set_background_queue( bg_queue );
+	auto tp = q::make_shared< q::threadpool >( "threadpool", queue );
+	auto bg_queue = q::make_shared< q::queue >( 0 );
 	auto bg_sched = q::make_shared< q::scheduler >( tp );
 
 	auto start = [ bd2, bg_sched, bg_queue ]( )
@@ -173,11 +168,8 @@ void benchmark_tasks_on_threadpool( std::size_t iterations, bool parallel )
 	};
 	auto stop = [ bd2, tp ]( )
 	{
-		return bd2->terminate( q::termination::linger )
-		.then( [ tp ]( )
-		{
-			return tp->terminate( );
-		});
+		bd2->terminate( q::termination::linger );
+		tp->terminate( );
 	};
 
 	std::string in_parallel;
@@ -187,8 +179,6 @@ void benchmark_tasks_on_threadpool( std::size_t iterations, bool parallel )
 	benchmark_title( "queueing, scheduling and running trivial tasks" + in_parallel + " on thread pool" );
 	benchmark_queueing_and_scheduling( start, stop, parallel, bg_queue, iterations );
 	std::cout << std::endl;
-
-	q::set_default_queue( prev_queue );
 }
 
 int main( int argc, char** argv )
@@ -201,9 +191,6 @@ int main( int argc, char** argv )
 	auto bd = q::make_shared< q::blocking_dispatcher >( "main" );
 	auto ctx = q::make_shared< q::execution_context >( bd );
 	auto qu = ctx->queue( );
-
-	q::set_main_queue( qu );
-	q::set_default_queue( qu );
 
 	std::size_t iterations = 500 * 1000;
 
