@@ -33,7 +33,7 @@ inline typename std::enable_if<
 	&&
 	!is_promise< Q_RESULT_OF( Fn ) >::value
 	&&
-	detail::temporary< queue_ptr >::template is_decayed< Queue >::value,
+	Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
 	promise< Q_RESULT_OF_AS_TUPLE_TYPE( Fn ) >
 >::type
 generic_promise< Shared, std::tuple< Args... > >::
@@ -41,9 +41,9 @@ then( Fn&& fn, Queue&& queue )
 {
 	typedef Q_RESULT_OF_AS_TUPLE_TYPE( Fn ) return_tuple_type;
 	auto deferred = detail::defer< return_tuple_type >::construct(
-		is_temporary< Queue >::value
-		? get_queue( )
-		: ensure( temporary_get( queue ) ) );
+		is_set_default< Queue >::value
+		? ensure( set_default_get( queue ) )
+		: get_queue( ) );
 	auto tmp_fn = Q_TEMPORARILY_COPYABLE( fn );
 	auto state = state_;
 
@@ -58,7 +58,7 @@ then( Fn&& fn, Queue&& queue )
 	};
 
 	state_->signal( )->push( std::move( perform ),
-	                         ensure( temporary_forward( queue ) ) );
+	                         ensure( set_default_forward( queue ) ) );
 
 	return std::move( deferred->get_promise( ) );
 }
@@ -87,7 +87,7 @@ typename std::enable_if<
 	&&
 	!is_promise< Q_RESULT_OF( Fn ) >::value
 	&&
-	detail::temporary< queue_ptr >::template is_decayed< Queue >::value,
+	Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
 	promise< Q_RESULT_OF_AS_ARGUMENT_TYPE( Fn )::tuple_type >
 >::type
 generic_promise< Shared, std::tuple< Args... > >::
@@ -95,9 +95,9 @@ then( Fn&& fn, Queue&& queue )
 {
 	typedef Q_RESULT_OF_AS_TUPLE_TYPE( Fn ) return_tuple_type;
 	auto deferred = detail::defer< return_tuple_type >::construct(
-	      is_temporary< Queue >::value
-	      ? get_queue( )
-	      : ensure( temporary_get( queue ) ) );
+	      is_set_default< Queue >::value
+	      ? ensure( set_default_get( queue ) )
+	      : get_queue( ) );
 	auto tmp_fn = Q_TEMPORARILY_COPYABLE( fn );
 	auto state = state_;
 
@@ -112,7 +112,7 @@ then( Fn&& fn, Queue&& queue )
 	};
 
 	state_->signal( )->push( std::move( perform ),
-	                         ensure( temporary_forward( queue ) ) );
+	                         ensure( set_default_forward( queue ) ) );
 
 	return std::move( deferred->get_promise( ) );
 }
@@ -131,7 +131,7 @@ typename std::enable_if<
 	&&
 	is_promise< Q_RESULT_OF( Fn ) >::value
 	&&
-	detail::temporary< queue_ptr >::template is_decayed< Queue >::value,
+	Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
 	Q_RESULT_OF( Fn )::unique_this_type
 >::type
 generic_promise< Shared, std::tuple< Args... > >::
@@ -139,9 +139,9 @@ then( Fn&& fn, Queue&& queue )
 {
 	typedef Q_RESULT_OF( Fn )::tuple_type return_tuple_type;
 	auto deferred = detail::defer< return_tuple_type >::construct(
-	      is_temporary< Queue >::value
-	      ? get_queue( )
-	      : ensure( temporary_get( queue ) ) );
+	      is_set_default< Queue >::value
+	      ? ensure( set_default_get( queue ) )
+	      : get_queue( ) );
 	auto tmp_fn = Q_TEMPORARILY_COPYABLE( fn );
 	auto state = state_;
 
@@ -157,7 +157,7 @@ then( Fn&& fn, Queue&& queue )
 	};
 
 	state_->signal( )->push( std::move( perform ),
-	                         ensure( temporary_forward( queue ) ) );
+	                         ensure( set_default_forward( queue ) ) );
 
 	return std::move( deferred->get_promise( ) );
 }
@@ -177,7 +177,7 @@ typename std::enable_if<
 	&&
 	is_promise< Q_RESULT_OF( Fn ) >::value
 	&&
-	detail::temporary< queue_ptr >::template is_decayed< Queue >::value,
+	Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
 	Q_RESULT_OF( Fn )::unique_this_type
 >::type
 generic_promise< Shared, std::tuple< Args... > >::
@@ -185,9 +185,9 @@ then( Fn&& fn, Queue&& queue )
 {
 	typedef Q_RESULT_OF( Fn )::tuple_type return_tuple_type;
 	auto deferred = detail::defer< return_tuple_type >::construct(
-	      is_temporary< Queue >::value
-	      ? get_queue( )
-	      : ensure( temporary_get( queue ) ) );
+	      is_set_default< Queue >::value
+	      ? ensure( set_default_get( queue ) )
+	      : get_queue( ) );
 	auto tmp_fn = Q_TEMPORARILY_COPYABLE( fn );
 	auto state = state_;
 
@@ -202,7 +202,7 @@ then( Fn&& fn, Queue&& queue )
 	};
 
 	state_->signal( )->push( std::move( perform ),
-				ensure( temporary_forward( queue ) ) );
+				ensure( set_default_forward( queue ) ) );
 
 	return std::move( deferred->get_promise( ) );
 }
@@ -212,7 +212,7 @@ template< typename Logger, typename Queue >
 inline typename std::enable_if<
 	is_same_type< Logger, log_chain_generator >::value
 	&&
-	detail::temporary< queue_ptr >::template is_decayed< Queue >::value,
+	Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
 	typename generic_promise< Shared, std::tuple< Args... > >::this_type
 >::type
 generic_promise< Shared, std::tuple< Args... > >::
@@ -309,16 +309,16 @@ typename std::enable_if<
 			>::argument_types
 		>::value
 	&&
-	detail::temporary< queue_ptr >::template is_decayed< Queue >::value,
+	Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
 	typename generic_promise< Shared, std::tuple< Args... > >::this_type
 >::type
 generic_promise< Shared, std::tuple< Args... > >::
 fail( Fn&& fn, Queue&& queue )
 {
 	auto deferred = detail::defer< Args... >::construct(
-	    is_temporary< Queue >::value
-	    ? get_queue( )
-	    : ensure( temporary_get( queue ) ) );
+	    is_set_default< Queue >::value
+	    ? ensure( set_default_get( queue ) )
+	    : get_queue( ) );
 	auto tmp_fn = Q_TEMPORARILY_COPYABLE( fn );
 	auto state = state_;
 
@@ -348,7 +348,7 @@ fail( Fn&& fn, Queue&& queue )
 	};
 
 	state_->signal( )->push( std::move( perform ),
-	                         ensure( temporary_forward( queue ) ) );
+	                         ensure( set_default_forward( queue ) ) );
 
 	return deferred->template get_suitable_promise< this_type >( );
 }
@@ -372,16 +372,16 @@ typename std::enable_if<
 			>::argument_types
 		>::value
 	&&
-	detail::temporary< queue_ptr >::template is_decayed< Queue >::value,
+	Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
 	typename generic_promise< Shared, std::tuple< Args... > >::this_type
 >::type
 generic_promise< Shared, std::tuple< Args... > >::
 fail( Fn&& fn, Queue&& queue )
 {
 	auto deferred = detail::defer< tuple_type >::construct(
-	       is_temporary< Queue >::value
-	       ? get_queue( )
-	       : ensure( temporary_get( queue ) ) );
+	       is_set_default< Queue >::value
+	       ? ensure( set_default_get( queue ) )
+	       : get_queue( ) );
 	auto tmp_fn = Q_TEMPORARILY_COPYABLE( fn );
 	auto state = state_;
 
@@ -404,7 +404,7 @@ fail( Fn&& fn, Queue&& queue )
 	};
 
 	state_->signal( )->push( std::move( perform ),
-	                         ensure( temporary_forward( queue ) ) );
+	                         ensure( set_default_forward( queue ) ) );
 
 	return deferred->template get_suitable_promise< Q_RESULT_OF( Fn ) >( );
 }
@@ -426,17 +426,16 @@ typename std::enable_if<
 			>::argument_types
 		>::value
 	&&
-	detail::temporary< queue_ptr >
-		::template is_decayed< Queue >::value,
+	Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
 	typename generic_promise< Shared, std::tuple< Args... > >::this_type
 >::type
 generic_promise< Shared, std::tuple< Args... > >::
 fail( Fn&& fn, Queue&& queue )
 {
 	auto deferred = detail::defer< tuple_type >::construct(
-	       is_temporary< Queue >::value
-	       ? get_queue( )
-	       : ensure( temporary_get( queue ) ) );
+	       is_set_default< Queue >::value
+	       ? ensure( set_default_get( queue ) )
+	       : get_queue( ) );
 	auto tmp_fn = Q_TEMPORARILY_COPYABLE( fn );
 	auto state = state_;
 
@@ -481,7 +480,7 @@ fail( Fn&& fn, Queue&& queue )
 	};
 
 	state_->signal( )->push( std::move( perform ),
-	                         ensure( temporary_forward( queue ) ) );
+	                         ensure( set_default_forward( queue ) ) );
 
 	return deferred->template get_suitable_promise< this_type >( );
 }
@@ -505,17 +504,16 @@ typename std::enable_if<
 			>::argument_types
 		>::value
 	&&
-	detail::temporary< queue_ptr >
-		::template is_decayed< Queue >::value,
+	Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
 	typename generic_promise< Shared, std::tuple< Args... > >::this_type
 >::type
 generic_promise< Shared, std::tuple< Args... > >::
 fail( Fn&& fn, Queue&& queue )
 {
 	auto deferred = detail::defer< tuple_type >::construct(
-	       is_temporary< Queue >::value
-	       ? get_queue( )
-	       : ensure( temporary_get( queue ) ) );
+	       is_set_default< Queue >::value
+	       ? ensure( set_default_get( queue ) )
+	       : get_queue( ) );
 	auto tmp_fn = Q_TEMPORARILY_COPYABLE( fn );
 	auto state = state_;
 
@@ -560,7 +558,7 @@ fail( Fn&& fn, Queue&& queue )
 	};
 
 	state_->signal( )->push( std::move( perform ),
-	                         ensure( temporary_forward( queue ) ) );
+	                         ensure( set_default_forward( queue ) ) );
 
 	return deferred->template get_suitable_promise< this_type >( );
 }
@@ -575,7 +573,7 @@ typename std::enable_if<
 	and
 	Q_ARITY_OF( Fn ) == 0
 	and
-	Q_IS_TEMPORARY_SAME( queue_ptr, Queue ),
+	Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
 	typename generic_promise<
 		Shared, std::tuple< Args... >
 	>::unique_this_type
@@ -584,9 +582,9 @@ generic_promise< Shared, std::tuple< Args... > >::
 finally( Fn&& fn, Queue&& queue )
 {
 	auto deferred = ::q::make_shared< detail::defer< Args... > >(
-	     is_temporary< Queue >::value
-	     ? get_queue( )
-	     : ensure( temporary_get( queue ) ) );
+	     is_set_default< Queue >::value
+	     ? ensure( set_default_get( queue ) )
+	     : get_queue( ) );
 	auto tmp_fn = Q_TEMPORARILY_COPYABLE( fn );
 	auto state = state_;
 
@@ -608,7 +606,7 @@ finally( Fn&& fn, Queue&& queue )
 	};
 
 	state_->signal( )->push( std::move( perform ),
-	                         ensure( temporary_forward( queue ) ) );
+	                         ensure( set_default_forward( queue ) ) );
 
 	return deferred->get_promise( );
 }
@@ -623,7 +621,7 @@ typename std::enable_if<
 	and
 	Q_FUNCTIONTRAITS( Fn )::result_type::argument_types::size::value == 0
 	and
-	Q_IS_TEMPORARY_SAME( queue_ptr, Queue ),
+	Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
 	typename generic_promise<
 		Shared, std::tuple< Args... >
 	>::unique_this_type
@@ -632,9 +630,9 @@ generic_promise< Shared, std::tuple< Args... > >::
 finally( Fn&& fn, Queue&& queue )
 {
 	auto deferred = ::q::make_shared< detail::defer< Args... > >(
-	     is_temporary< Queue >::value
-	     ? get_queue( )
-	     : ensure( temporary_get( queue ) ) );
+	     is_set_default< Queue >::value
+	     ? ensure( set_default_get( queue ) )
+	     : get_queue( ) );
 	auto tmp_fn = Q_TEMPORARILY_COPYABLE( fn );
 	auto state = state_;
 
@@ -670,7 +668,7 @@ finally( Fn&& fn, Queue&& queue )
 	};
 
 	state_->signal( )->push( std::move( perform ),
-	                         ensure( temporary_forward( queue ) ) );
+	                         ensure( set_default_forward( queue ) ) );
 
 	return deferred->get_promise( );
 }

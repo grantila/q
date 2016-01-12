@@ -115,8 +115,7 @@ public:
 		&&
 		!is_promise< Q_RESULT_OF( Fn ) >::value
 		&&
-		detail::temporary< queue_ptr >
-			::template is_decayed< Queue >::value,
+		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
 		promise< Q_RESULT_OF_AS_TUPLE_TYPE( Fn ) >
 	>::type
 	then( Fn&& fn, Queue&& queue = nullptr );
@@ -132,8 +131,7 @@ public:
 		&&
 		!is_promise< Q_RESULT_OF( Fn ) >::value
 		&&
-		detail::temporary< queue_ptr >
-			::template is_decayed< Queue >::value,
+		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
 		promise< Q_RESULT_OF_AS_ARGUMENT_TYPE( Fn )::tuple_type >
 	>::type
 	then( Fn&& fn, Queue&& queue = nullptr );
@@ -149,8 +147,7 @@ public:
 		&&
 		is_promise< Q_RESULT_OF( Fn ) >::value
 		&&
-		detail::temporary< queue_ptr >
-			::template is_decayed< Queue >::value,
+		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
 		Q_RESULT_OF( Fn )::unique_this_type
 	>::type
 	then( Fn&& fn, Queue&& queue = nullptr );
@@ -166,8 +163,7 @@ public:
 		&&
 		is_promise< Q_RESULT_OF( Fn ) >::value
 		&&
-		detail::temporary< queue_ptr >
-			::template is_decayed< Queue >::value,
+		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
 		Q_RESULT_OF( Fn )::unique_this_type
 	>::type
 	then( Fn&& fn, Queue&& queue = nullptr );
@@ -176,8 +172,7 @@ public:
 	typename std::enable_if<
 		is_same_type< Logger, log_chain_generator >::value
 		&&
-		detail::temporary< queue_ptr >
-			::template is_decayed< Queue >::value,
+		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
 		this_type
 	>::type
 	then( Logger&& logger, Queue&& queue = nullptr );
@@ -231,8 +226,7 @@ public:
 		detail::tuple_arguments< Q_RESULT_OF( Fn ) >
 			::template is_convertible_to< argument_types >::value
 		&&
-		detail::temporary< queue_ptr >
-			::template is_decayed< Queue >::value,
+		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
 		this_type
 	>::type
 	fail( Fn&& fn, Queue&& queue = nullptr );
@@ -252,8 +246,7 @@ public:
 		Q_FUNCTIONTRAITS( Fn )::result_type::argument_types
 			::template is_convertible_to< argument_types >::value
 		&&
-		detail::temporary< queue_ptr >
-			::template is_decayed< Queue >::value,
+		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
 		this_type
 	>::type
 	fail( Fn&& fn, Queue&& queue = nullptr );
@@ -270,8 +263,7 @@ public:
 		detail::tuple_arguments< Q_RESULT_OF( Fn ) >
 			::template is_convertible_to< argument_types >::value
 		&&
-		detail::temporary< queue_ptr >
-			::template is_decayed< Queue >::value,
+		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
 		this_type
 	>::type
 	fail( Fn&& fn, Queue&& queue = nullptr );
@@ -290,8 +282,7 @@ public:
 		Q_FUNCTIONTRAITS( Fn )::result_type::argument_types
 			::template is_convertible_to< argument_types >::value
 		&&
-		detail::temporary< queue_ptr >
-			::template is_decayed< Queue >::value,
+		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
 		this_type
 	>::type
 	fail( Fn&& fn, Queue&& queue = nullptr );
@@ -312,7 +303,7 @@ public:
 		and
 		Q_ARITY_OF( Fn ) == 0
 		and
-		Q_IS_TEMPORARY_SAME( queue_ptr, Queue ),
+		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
 		unique_this_type
 	>::type
 	finally( Fn&& fn, Queue&& queue = nullptr );
@@ -327,7 +318,7 @@ public:
 		Q_FUNCTIONTRAITS( Fn )
 			::result_type::argument_types::size::value == 0
 		and
-		Q_IS_TEMPORARY_SAME( queue_ptr, Queue ),
+		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
 		unique_this_type
 	>::type
 	finally( Fn&& fn, Queue&& queue = nullptr );
