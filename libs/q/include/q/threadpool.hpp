@@ -23,7 +23,7 @@
 namespace q {
 
 class threadpool
-: public async_event_dispatcher< >
+: public async_event_dispatcher< q::arguments< termination > >
 , public std::enable_shared_from_this< threadpool >
 {
 public:
@@ -48,7 +48,7 @@ private:
 
 	void mark_completion( );
 
-	void do_terminate( ) override;
+	void do_terminate( termination ) override;
 
 	struct pimpl;
 	std::unique_ptr< pimpl > pimpl_;

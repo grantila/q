@@ -169,7 +169,8 @@ void benchmark_tasks_on_threadpool( std::size_t iterations, bool parallel )
 	auto stop = [ bd2, tp ]( )
 	{
 		bd2->terminate( q::termination::linger );
-		tp->terminate( );
+		tp->terminate( q::termination::linger );
+		tp->await_termination( );
 	};
 
 	std::string in_parallel;

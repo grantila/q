@@ -44,22 +44,7 @@ static std::string make_thread_name( const std::string& base,
 
 static std::unique_ptr< task > make_unique_task( task&& t )
 {
-	return std::unique_ptr< task >( new task( std::move( t ) ) );
-}
-
-struct pool_task_item
-{
-	std::unique_ptr< task >            task_;
-//	std::unique_ptr< task_time_point > wait_until;
-};
-
-static bool operator<( const pool_task_item& left, const pool_task_item& right )
-{
-	/*
-	if ( left.wait_until && right.wait_until )
-		return *left.wait_until < *right.wait_until;
-	return !left.wait_until;
-	 */
+	return q::make_unique< task >( std::move( t ) );
 }
 
 struct threadpool::pimpl
@@ -86,8 +71,7 @@ struct threadpool::pimpl
 	mutex                             mutex_;
 	std::size_t                       num_threads_;
 	std::vector< thread_type >        threads_;
-	std::queue< pool_task_item >      tasks_;
-	std::set< pool_task_item >        delayed_tasks_;
+	std::queue< task >                tasks_;
 	std::condition_variable           cond_;
 	bool                              started_;
 	bool                              running_;
@@ -142,46 +126,16 @@ void threadpool::add_task( task task )
 		}
 		else
 		{
-			pimpl_->tasks_.push(
-				{ make_unique_task( std::move( task ) ) } );
+			pimpl_->tasks_.push( std::move( task ) );
 		}
 	}
 
 	pimpl_->cond_.notify_one( );
 }
-/*
-void threadpool::add_task( task task, task_time_point wait_until )
-{
-	{
-		Q_AUTO_UNIQUE_LOCK( pimpl_->mutex_ );
 
-		if ( pimpl_->started_ && !pimpl_->allow_more_jobs_ )
-		{
-			// TODO: Do stuff, as above
-		}
-		else
-		{
-			std::unique_ptr< task_time_point > time(
-				new task_time_point(
-					std::move( wait_until ) ) );
-
-			pool_task_item pti = {
-				make_unique_task( std::move( task ) ),
-				std::move( time )
-			};
-
-			pimpl_->delayed_tasks_.insert( std::move( pti ) );
-		}
-	}
-
-	pimpl_->cond_.notify_one( );
-}
-*/
 void threadpool::start( )
 {
 	auto _this = shared_from_this( );
-
-	std::vector< pimpl::promise_type > thread_completions;
 
 	auto predicate = [ _this ]( )
 	{
@@ -191,49 +145,25 @@ void threadpool::start( )
 	};
 
 	auto fetch_next_task = [ _this ]( )
-	-> pool_task_item
+	-> std::unique_ptr< task >
 	{
 		auto& pimpl_ = _this->pimpl_;
-		pool_task_item ret;
+		std::unique_ptr< task > ret;
 
-		if ( !pimpl_->delayed_tasks_.empty( ) )
+		if ( !pimpl_->tasks_.empty( ) )
 		{
-			// TODO: Make this a bit more efficient, to check how
-			// many tasks are now runnable (might be many). If
-			// above a certain threshold (like 4 or something),
-			// move the tasks from the delayed_tasks_ map into the
-			// start of the tasks_ queue so that
-/*
-			auto now = task_clock::now( );
-
-			auto first = pimpl_->delayed_tasks_.begin( );
-			if ( *first->wait_until < now )
-			{
-				ret.task_ = make_unique_task(
-					std::move( *first->task_ ) );
-
-				pimpl_->delayed_tasks_.erase( first );
-			}
-			else if ( pimpl_->tasks_.empty( ) )
-			{
-				ret.wait_until.reset(
-					new task_time_point(
-						*first->wait_until ) );
-			}
-*/
-		}
-
-		if ( !ret.task_ && !pimpl_->tasks_.empty( ) )
-		{
-			ret.task_ = make_unique_task(
-				std::move( *pimpl_->tasks_.front( ).task_ ) );
+			ret = q::make_unique_task(
+				std::move( pimpl_->tasks_.front( ) ) );
 			pimpl_->tasks_.pop( );
 		}
 
 		return ret;
 	};
 
-	for ( std::size_t num = 1; num <= pimpl_->num_threads_; ++num )
+	auto terminated = std::make_shared< std::atomic< size_t > >( 0 );
+	auto num_threads = pimpl_->num_threads_;
+
+	for ( std::size_t num = 1; num <= num_threads; ++num )
 	{
 		auto thread_name = make_thread_name(
 			pimpl_->name_, num, pimpl_->num_threads_ );
@@ -261,52 +191,41 @@ void threadpool::start( )
 			{
 				auto item = fetch_next_task( );
 
-				if ( item.task_ )
+				if ( item )
 				{
 					Q_AUTO_UNIQUE_UNLOCK( lock );
 
-					invoker( std::move( *item.task_ ) );
+					invoker( std::move( *item ) );
 				}
-/*
-				if ( item.wait_until )
-				{
-					pimpl_->cond_.wait_until(
-						lock,
-						*item.wait_until,
-						predicate );
-				}
-				else
-				{
-*/
-					pimpl_->cond_.wait( lock, predicate );
-/*
-				}
-*/
+
+				pimpl_->cond_.wait( lock, predicate );
 			}
 			while ( pimpl_->running_ );
 
 			_this->mark_completion( );
-
-			pimpl_->cond_.wait( lock );
 		};
 
 		auto t = run( std::move( thread_name ),
 		              pimpl_->queue_,
 		              std::move( fn ) );
 
-		auto promise = t->terminate( );
+		t->terminate( )
+		.finally( [ _this, terminated, num_threads ]( )
+		{
+			auto prev = terminated->fetch_add(
+				1, std::memory_order_seq_cst );
 
-		thread_completions.push_back( std::move( promise ) );
+			if ( prev == num_threads - 1 )
+			{
+				// Last thread to terminate, signal complete
+				// thread pool termination
+				_this->termination_done( );
+			}
+		} );
+		// TODO: .fail()-handler
 
 		pimpl_->threads_.push_back( std::move( t ) );
 	}
-	/*
-	 all( std::move( thread_completions ) )
-	 .then( [ this ]( std::vector< pimpl::result_type >&& results )
-	 {
-	 this->termination_done( );
-	 } );
-	 */
 }
 
 void threadpool::mark_completion( )
@@ -314,7 +233,7 @@ void threadpool::mark_completion( )
 	pimpl_->cond_.notify_all( );
 }
 
-void threadpool::do_terminate( )
+void threadpool::do_terminate( termination method )
 {
 
 	// 1. Wait for all jobs to terminate
@@ -325,7 +244,11 @@ void threadpool::do_terminate( )
 		Q_AUTO_UNIQUE_LOCK( pimpl_->mutex_ );
 
 		pimpl_->running_ = false;
-		pimpl_->allow_more_jobs_ = false;
+
+		if ( method != q::termination::linger )
+			// TODO: Actually implement support for continuing to
+			//       allow more tasks. This currently doesn't work.
+			pimpl_->allow_more_jobs_ = false;
 	}
 
 	pimpl_->cond_.notify_all( );
@@ -333,7 +256,14 @@ void threadpool::do_terminate( )
 
 q::expect< > threadpool::await_termination( )
 {
-	;
+	// TODO: Forward potential errors from individual threads.
+	//       They shouldn't exist (only due to internal bugs) but still.
+	for ( auto& t : pimpl_->threads_ )
+	{
+		t->await_termination( );
+	}
+
+	return ::q::fulfill< void >( );
 }
 
 } // namespace q
