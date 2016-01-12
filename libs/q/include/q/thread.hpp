@@ -36,6 +36,7 @@ std::size_t soft_cores( );
 namespace detail {
 
 void set_thread_name( const std::string& name );
+std::string get_thread_name( );
 
 } // namespace detail
 

@@ -58,6 +58,27 @@ void set_thread_name( const std::string& name )
 #endif // LIBQ_ON_POSIX
 }
 
+std::string get_thread_name( )
+{
+#ifdef LIBQ_ON_POSIX
+
+	auto tid = pthread_self( );
+	char namebuf[ NAME_MAX ];
+
+#if defined( LIBQ_ON_OSX )
+	pthread_getname_np( tid, namebuf, NAME_MAX );
+	return namebuf;
+#elif defined( LIBQ_ON_BSD )
+	pthread_get_name_np( tid, namebuf, NAME_MAX );
+	return namebuf;
+#else
+	pthread_getname_np( tid, namebuf, NAME_MAX );
+	return namebuf;
+#endif
+
+#endif // LIBQ_ON_POSIX
+}
+
 } // namespace detail
 
 /*
