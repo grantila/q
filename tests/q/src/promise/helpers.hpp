@@ -42,13 +42,20 @@ public:
 protected:
 	virtual void SetUp( )
 	{
-		bd = q::make_execution_context< q::blocking_dispatcher >( "all" );
+		bd = q::make_execution_context< q::blocking_dispatcher >(
+			"all" );
 		queue = bd->queue( );
+
+		tp = q::make_execution_context< q::threadpool >(
+			"test pool", queue );
+		tp_queue = tp->queue( );
 	}
 
 	virtual void TearDown( )
 	{
 		scope_ = std::move( q::make_scope( nullptr ) );
+		tp->dispatcher( )->terminate( q::termination::linger );
+		tp->dispatcher( )->await_termination( );
 		bd->dispatcher( )->await_termination( );
 		bd.reset( );
 	}
@@ -65,8 +72,12 @@ protected:
 		bd->dispatcher( )->start( );
 	}
 
-	std::shared_ptr< q::specific_execution_context< q::blocking_dispatcher > > bd;
-	std::shared_ptr< q::specific_execution_context< q::threadpool > > tp;
+	std::shared_ptr<
+		q::specific_execution_context< q::blocking_dispatcher >
+	> bd;
+	std::shared_ptr<
+		q::specific_execution_context< q::threadpool >
+	> tp;
 
 	q::queue_ptr queue;
 	q::queue_ptr tp_queue;
