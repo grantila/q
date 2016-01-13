@@ -6,13 +6,12 @@
 
 #include <gtest/gtest.h>
 
-TEST( ExeuctionContext, BlockDispatcher )
+TEST( ExecutionContext, BlockDispatcher )
 {
 	auto bd = q::make_shared< q::blocking_dispatcher >( "test dispatcher" );
 	auto ctx = q::make_shared< q::execution_context >( bd );
 
 	auto qu = ctx->queue( );
-	//q::set_default_queue( qu );
 
 	int num = 4711;
 	q::with( qu, num )
@@ -29,13 +28,11 @@ TEST( ExeuctionContext, BlockDispatcher )
 	bd->start( );
 }
 
-TEST( ExeuctionContext, ThreadPoolDispatcher )
+TEST( ExecutionContext, ThreadPoolDispatcher )
 {
 	auto bd = q::make_shared< q::blocking_dispatcher >( "test dispatcher" );
 	auto ctx = q::make_shared< q::execution_context >( bd );
 	auto qu = ctx->queue( );
-
-	// q::set_default_queue( qu );
 
 	auto tpctx = q::make_execution_context< q::threadpool >( "test pool", qu );
 	auto tpqu = tpctx->queue( );
@@ -56,11 +53,13 @@ TEST( ExeuctionContext, ThreadPoolDispatcher )
 		);
 
 	q::all( std::move( promises ), tpqu )
-	.then( [ num, &val, tasks, bd ]( )
+	.then( [ num, &val, tasks, bd, tpctx ]( )
 	{
 		EXPECT_EQ( val.load( ), num + tasks );
 		bd->terminate( q::termination::linger );
+		tpctx->dispatcher( )->terminate( q::termination::linger );
 	}, qu );
 
 	bd->start( );
+	tpctx->dispatcher( )->await_termination( );
 }
