@@ -293,6 +293,13 @@ all( List&& list, const queue_ptr& queue )
 
 	for ( std::size_t i = 0; i < num; ++i )
 		list[ i ]
+		.then( [ i, part_completion ]
+		       ( element_type&& data ) mutable
+		{
+			part_completion(
+				i,
+				fulfill< element_type >( std::move( data ) ) );
+		} )
 		.fail( [ i, part_completion, any_failure ]
 		       ( std::exception_ptr&& e ) mutable
 		{
@@ -300,13 +307,6 @@ all( List&& list, const queue_ptr& queue )
 			part_completion(
 				i,
 				refuse< element_type >( std::move( e ) ) );
-		} )
-		.then( [ i, part_completion ]
-		       ( element_type&& data ) mutable
-		{
-			part_completion(
-				i,
-				fulfill< element_type >( std::move( data ) ) );
 		} );
 
 	return deferred->get_promise( );
