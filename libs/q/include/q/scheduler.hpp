@@ -37,8 +37,6 @@ public:
 
 	void add_queue( queue_ptr queue );
 
-	;//e
-
 protected:
 	scheduler( event_dispatcher_ptr event_dispatcher );
 

@@ -17,24 +17,34 @@
 #include <q/scheduler.hpp>
 
 #include <vector>
-#include <forward_list>
 
 namespace q {
 
+/**
+ * Circular list.
+ *
+ * This container can be iterated forward forever, by circulating over the same
+ * underlying list of elements. Useful for round-robin distribution.
+ */
 template< typename T >
 class circular_list
 {
 public:
 	circular_list( )
+	// TODO: Use q::make_unique
+	: mutex_( std::unique_ptr< q::mutex >(
+		new q::mutex( Q_HERE, "circular_list" ) ) )
 	{
 		next_ = list_.begin( );
 	}
 
 	void add( T&& t )
 	{
+		Q_AUTO_UNIQUE_LOCK( *mutex_ );
+
 		auto set_next = empty( );
 
-		list_.push_front( std::move( t ) );
+		list_.push_back( std::move( t ) );
 
 		if ( set_next )
 			next_ = list_.begin( );
@@ -49,23 +59,27 @@ public:
 	 * Returns a pointer to the "next" element, or nullptr if the circular
 	 * list is empty.
 	 */
-	T* next( )
+	T next( )
 	{
+		Q_AUTO_UNIQUE_LOCK( *mutex_ );
+
 		if ( list_.empty( ) )
-			return nullptr;
+			return T( );
 
 		auto ret = next_;
 
 		traverse( );
 
-		return &*ret;
+		return ret;
 	}
 
 	template< typename Cond >
-	T* find_first( Cond&& cond )
+	T find_first( Cond&& cond )
 	{
+		Q_AUTO_UNIQUE_LOCK( *mutex_ );
+
 		if ( list_.empty( ) )
-			return nullptr;
+			return T( );
 
 		auto here = next_;
 
@@ -77,13 +91,13 @@ public:
 
 				traverse( );
 
-				return &*ret;
+				return *ret;
 			}
 
 			traverse( );
 		} while ( here != next_ );
 
-		return nullptr;
+		return T( );
 	}
 
 	bool empty( ) const
@@ -98,14 +112,28 @@ private:
 			next_ = list_.begin( );
 	}
 
-	std::forward_list< T > list_;
-	typename std::forward_list< T >::iterator next_;
+	std::unique_ptr< q::mutex > mutex_;
+	std::vector< T > list_;
+	typename std::vector< T >::iterator next_;
+};
+
+template< typename T >
+struct deduct_element_type
+{
+	typedef typename T::element_type type;
+};
+template< typename T >
+struct deduct_element_type< std::shared_ptr< T > >
+{
+	typedef typename T::element_type type;
 };
 
 template< typename P, typename T >
 class round_robin_priority_list
 {
 public:
+	typedef typename deduct_element_type< T >::type element_type;
+
 	round_robin_priority_list( ) = default;
 
 	void add( P&& priority, T&& elem )
@@ -118,7 +146,7 @@ public:
 		if ( iter == list_.end( ) || iter->priority_ != priority )
 		{
 			// Insert new unique priority circular list
-			element_type element{ std::move( priority ) };
+			list_element_type element{ std::move( priority ) };
 			iter = list_.insert( iter, std::move( element ) );
 		}
 
@@ -130,24 +158,30 @@ public:
 		// TODO: Implement
 	}
 
-	template< typename Cond >
-	T* find_first( Cond&& condition )
+	element_type pop_next( )
 	{
 		for ( auto& elem : list_ )
 		{
 			if ( !elem.circular_list_.empty( ) )
 			{
-				auto pelem = elem.circular_list_.find_first( condition );
-				if ( pelem )
-					return pelem;
+				auto condition = [ ]( const queue_ptr& queue )
+				{
+					return !queue->empty( );
+				};
+
+				auto found = elem.circular_list_.find_first(
+					condition );
+
+				if ( !!found )
+					return found->pop( );
 			}
 		}
 
-		return nullptr;
+		return element_type( );
 	}
 
 private:
-	struct element_type
+	struct list_element_type
 	{
 		P priority_;
 		circular_list< T > circular_list_;
@@ -158,7 +192,7 @@ private:
 		}
 	};
 
-	std::vector< element_type > list_;
+	std::vector< list_element_type > list_;
 };
 
 struct scheduler::pimpl
@@ -191,13 +225,14 @@ void scheduler::add_queue( queue_ptr queue )
 
 void scheduler::poke( )
 {
-	auto This = shared_from_this( );
+	auto _this = shared_from_this( );
 
-	auto runner = [ This ]( ) mutable
+	auto runner = [ _this ]( ) mutable
 	{
 		// TODO: Ensure this doesn't throw...
-		auto t = This->next_task( );
-		t( );
+		auto t = _this->next_task( );
+		if ( !!t )
+			t( );
 	};
 
 	pimpl_->event_dispatcher_->add_task( std::move( runner ) );
@@ -205,17 +240,7 @@ void scheduler::poke( )
 
 task scheduler::next_task( )
 {
-	auto condition = [ ]( queue_ptr queue )
-	{
-		return !queue->empty( );
-	};
-
-	auto pqueue = pimpl_->queues_.find_first( condition );
-
-	if ( !pqueue )
-		throw 0; // TODO: Throw something good here as this should never happen! Or allow this to happen if it helps building a lock-free queue.
-
-	task ret = ( *pqueue )->pop( );
+	task ret = pimpl_->queues_.pop_next( );
 	return std::move( ret );
 }
 
