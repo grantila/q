@@ -33,6 +33,7 @@ class queue
 : public std::enable_shared_from_this< queue >
 {
 public:
+	typedef task element_type;
 	typedef std::function< void( std::size_t backlog ) > notify_type;
 
 	static queue_ptr construct( priority_t priority );
@@ -54,14 +55,12 @@ public:
 
 	bool empty( );
 
+	task pop( );
+
 protected:
 	queue( priority_t priority = 0 );
 
 private:
-	friend class scheduler;
-
-	task pop( );
-
 	struct pimpl;
 	std::unique_ptr< pimpl > pimpl_;
 };
