@@ -322,6 +322,16 @@ struct tuple_of< std::tuple< T... > >
 	typedef std::tuple< T... > type;
 };
 
+template< typename T, typename... Args >
+std::unique_ptr< T > make_unique( Args&&... args )
+{
+#if __cplusplus >= 201402L
+	return std::make_unique< T >( std::forward< Args >( args )... );
+#else
+	return std::unique_ptr< T >( new T( std::forward< Args >( args )... ) );
+#endif
+}
+
 } // namespace q
 
 #endif // LIBQ_TYPE_TRAITS_CORE_HPP
