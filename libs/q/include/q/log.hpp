@@ -190,16 +190,6 @@ make_logtype_adapter( T&&... t )
 void register_logtype_adapter( );
 void register_logger( );
 
-// TODO: Move and possibly rename
-template< typename Base, typename Derived >
-std::unique_ptr< Base >
-forward_as_unique( Derived&& derived )
-{
-	return std::unique_ptr< Base >(
-		new Derived( std::forward< Derived >( derived ) )
-	);
-}
-
 namespace detail {
 
 struct perform_logging
@@ -232,11 +222,8 @@ public:
 		           bool
 	           >::type = false )
 	: location_( location )
-	, adapter_(
-		forward_as_unique< logtype_adapter >(
-			std::forward< LogtypeAdapter >( adapter )
-		)
-	)
+	, adapter_( q::make_unique< LogtypeAdapter >(
+		std::forward< LogtypeAdapter >( adapter ) ) )
 	{ }
 
 	~logstream( )
@@ -272,11 +259,8 @@ public:
 		                     bool
 	                     >::type = false )
 	: location_( location )
-	, adapter_(
-		forward_as_unique< logtype_adapter >(
-			std::forward< LogtypeAdapter >( adapter )
-		)
-	)
+	, adapter_( q::make_unique< LogtypeAdapter >(
+		std::forward< LogtypeAdapter >( adapter ) ) )
 	, method_( method::normal )
 	{ }
 
