@@ -130,7 +130,8 @@ void benchmark_queueing_and_scheduling( Start&& start, Stop&& stop, bool paralle
 void benchmark_tasks_on_main_queue( std::size_t iterations, bool parallel )
 {
 	auto bd2 = q::make_shared< q::blocking_dispatcher >( "test" );
-	auto ctx2 = q::make_shared< q::execution_context >( bd2 );
+	auto s2 = q::make_shared< q::direct_scheduler >( bd2 );
+	auto ctx2 = q::make_shared< q::execution_context >( bd2, s2 );
 	auto queue = ctx2->queue( );
 
 	auto start = [ bd2 ]( )
@@ -154,12 +155,13 @@ void benchmark_tasks_on_main_queue( std::size_t iterations, bool parallel )
 void benchmark_tasks_on_threadpool( std::size_t iterations, bool parallel )
 {
 	auto bd2 = q::make_shared< q::blocking_dispatcher >( "test" );
-	auto ctx2 = q::make_shared< q::execution_context >( bd2 );
+	auto s2 = q::make_shared< q::direct_scheduler >( bd2 );
+	auto ctx2 = q::make_shared< q::execution_context >( bd2, s2 );
 	auto queue = ctx2->queue( );
 
 	auto tp = q::make_shared< q::threadpool >( "threadpool", queue );
 	auto bg_queue = q::make_shared< q::queue >( 0 );
-	auto bg_sched = q::make_shared< q::scheduler >( tp );
+	auto bg_sched = q::make_shared< q::direct_scheduler >( tp );
 
 	auto start = [ bd2, bg_sched, bg_queue ]( )
 	{
@@ -190,7 +192,8 @@ int main( int argc, char** argv )
 	auto scope = q::scoped_initialize( settings );
 
 	auto bd = q::make_shared< q::blocking_dispatcher >( "main" );
-	auto ctx = q::make_shared< q::execution_context >( bd );
+	auto s = q::make_shared< q::direct_scheduler >( bd );
+	auto ctx = q::make_shared< q::execution_context >( bd, s );
 	auto qu = ctx->queue( );
 
 	std::size_t iterations = 500 * 1000;

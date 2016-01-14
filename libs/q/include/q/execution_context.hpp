@@ -21,6 +21,7 @@
 #include <q/type_traits.hpp>
 #include <q/event_dispatcher.hpp>
 #include <q/blocking_dispatcher.hpp>
+#include <q/scheduler.hpp>
 
 #include <memory>
 
@@ -37,7 +38,7 @@ public:
 	queue_ptr queue( );
 
 protected:
-	execution_context( event_dispatcher_ptr ed );
+	execution_context( event_dispatcher_ptr ed, const scheduler_ptr& s );
 
 private:
 	struct pimpl;
@@ -55,21 +56,27 @@ public:
 	}
 
 protected:
-	specific_execution_context( std::shared_ptr< Dispatcher > ed )
-	: execution_context( ed )
+	specific_execution_context(
+		std::shared_ptr< Dispatcher > ed,
+		const scheduler_ptr& s )
+	: execution_context( ed, s )
 	, ed_( ed )
 	{ }
 
 	std::shared_ptr< Dispatcher > ed_;
 };
 
-template< typename EventDispatcher, typename... Args >
+template< typename EventDispatcher, typename Scheduler, typename... Args >
 std::shared_ptr< specific_execution_context< EventDispatcher > >
 make_execution_context( Args&&... args )
 {
 	auto ed = q::make_shared< EventDispatcher >(
 		std::forward< Args >( args )... );
-	return q::make_shared< specific_execution_context< EventDispatcher > >( ed );
+	auto s = q::make_shared< Scheduler >( ed );
+
+	return q::make_shared<
+		specific_execution_context< EventDispatcher >
+	>( ed, s );
 }
 
 } // namespace q

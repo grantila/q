@@ -9,7 +9,8 @@
 TEST( ExecutionContext, BlockDispatcher )
 {
 	auto bd = q::make_shared< q::blocking_dispatcher >( "test dispatcher" );
-	auto ctx = q::make_shared< q::execution_context >( bd );
+	auto s = q::make_shared< q::direct_scheduler >( bd );
+	auto ctx = q::make_shared< q::execution_context >( bd, s );
 
 	auto qu = ctx->queue( );
 
@@ -31,10 +32,13 @@ TEST( ExecutionContext, BlockDispatcher )
 TEST( ExecutionContext, ThreadPoolDispatcher )
 {
 	auto bd = q::make_shared< q::blocking_dispatcher >( "test dispatcher" );
-	auto ctx = q::make_shared< q::execution_context >( bd );
+	auto s = q::make_shared< q::direct_scheduler >( bd );
+	auto ctx = q::make_shared< q::execution_context >( bd, s );
 	auto qu = ctx->queue( );
 
-	auto tpctx = q::make_execution_context< q::threadpool >( "test pool", qu );
+	auto tpctx = q::make_execution_context<
+		q::threadpool, q::direct_scheduler
+	>( "test pool", qu );
 	auto tpqu = tpctx->queue( );
 
 	int num = 4711;

@@ -42,12 +42,14 @@ public:
 protected:
 	virtual void SetUp( )
 	{
-		bd = q::make_execution_context< q::blocking_dispatcher >(
-			"all" );
+		bd = q::make_execution_context<
+			q::blocking_dispatcher, q::direct_scheduler
+		>( "all" );
 		queue = bd->queue( );
 
-		tp = q::make_execution_context< q::threadpool >(
-			"test pool", queue );
+		tp = q::make_execution_context<
+			q::threadpool, q::direct_scheduler
+		>( "test pool", queue );
 		tp_queue = tp->queue( );
 	}
 
