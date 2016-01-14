@@ -32,8 +32,7 @@ class circular_list
 public:
 	circular_list( )
 	// TODO: Use q::make_unique
-	: mutex_( std::unique_ptr< q::mutex >(
-		new q::mutex( Q_HERE, "circular_list" ) ) )
+	: mutex_( q::make_unique< q::mutex >( Q_HERE, "circular_list" ) )
 	{
 		next_ = list_.begin( );
 	}
