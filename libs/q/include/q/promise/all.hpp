@@ -66,6 +66,7 @@ all( First&& first, Rest&&... rest )
 		auto data_tmp = Q_MOVE_TEMPORARILY_COPYABLE( data );
 
 		auto failer = [ ]( std::exception_ptr&& e ) mutable
+		-> rest_tuple_type
 		{
 			std::rethrow_exception( e );
 		};
@@ -299,7 +300,7 @@ all( List&& list, const queue_ptr& queue )
 			part_completion(
 				i,
 				fulfill< element_type >( std::move( data ) ) );
-		} )
+		}, queue )
 		.fail( [ i, part_completion, any_failure ]
 		       ( std::exception_ptr&& e ) mutable
 		{
@@ -307,7 +308,7 @@ all( List&& list, const queue_ptr& queue )
 			part_completion(
 				i,
 				refuse< element_type >( std::move( e ) ) );
-		} );
+		}, queue );
 
 	return deferred->get_promise( );
 }
@@ -371,11 +372,11 @@ all( List&& list, const queue_ptr& queue )
 		{
 			any_failure->store( true, std::memory_order_seq_cst );
 			part_completion( i, refuse< void >( std::move( e ) ) );
-		} )
+		}, queue )
 		.then( [ i, part_completion ]( ) mutable
 		{
 			part_completion( i, fulfill< void >( ) );
-		} );
+		}, queue );
 
 	return deferred->get_promise( );
 }
