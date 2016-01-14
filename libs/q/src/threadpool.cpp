@@ -116,6 +116,13 @@ void threadpool::add_task( task task )
 			if ( !pimpl_->running_ )
 			{
 				// Silenty ignore jobs
+				// TODO: Do better warning
+				std::cerr
+					<< "[libq] threadpool \""
+					<< pimpl_->name_
+					<< "\" got task while shutting down - "
+					<< "throwing away task"
+					<< std::endl;
 			}
 			else
 			{
@@ -190,6 +197,13 @@ void threadpool::start( )
 			do
 			{
 				auto item = fetch_next_task( );
+				if ( !pimpl_->running_ )
+				{
+					if ( !item )
+						// No more tasks and we've
+						// stopped running.
+						break;
+				}
 
 				if ( item )
 				{
@@ -198,9 +212,10 @@ void threadpool::start( )
 					invoker( std::move( *item ) );
 				}
 
-				pimpl_->cond_.wait( lock, predicate );
+				if ( pimpl_->running_ )
+					pimpl_->cond_.wait( lock, predicate );
 			}
-			while ( pimpl_->running_ );
+			while ( true );
 
 			_this->mark_completion( );
 		};
