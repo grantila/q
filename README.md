@@ -4,7 +4,7 @@ A platform-independent asynchronous IoC library for C++.
 
 Version
 ----
-0.0
+Still unversioned until closing in on 1.0. The API is likely not going to change until 1.0.
 
 License
 ----
