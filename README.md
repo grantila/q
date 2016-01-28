@@ -1,6 +1,8 @@
  q
 ===
-A platform-independent asynchronous IoC library for C++.
+A platform-independent promise library for C++, implementing asynchronous continuations.
+
+Web page: [libq.io](http://libq.io/)
 
 Version
 ----
