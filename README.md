@@ -15,13 +15,13 @@ Apache License 2.0
 What it is
 ==========
 
-The library q is not following, but lightly mimicing the [Promises/A+](http://promises-aplus.github.io/promises-spec/) specification, which provides a simplistic and straightforward API for deferring functions, and invoke completions asynchronously. The name is borrowed from the well-known JavaScript implementation with the [same name](http://github.com/kriskowal/q).
+The library q (or libq) is following the core ideas and naming in the [Promises/A+](http://promises-aplus.github.io/promises-spec/) specification, which provides a simplistic and straightforward API for deferring functions, and invoke completions asynchronously. The name is borrowed from the well-known JavaScript implementation with the [same name](http://github.com/kriskowal/q), but is influenced more by [Bluebird](http://bluebirdjs.com/) by providing a lot of functional tools such as `filter`, `map` and `reduce` as well as `finally`, `reflect` and `tap`. Although q provides a large amount of features, they all exist to make the promise implementation as solid and easy-to-use as possible. Event based asynchronicity, like `delay` or any asynchronous I/O (e.g. file or network), is not built-in. Instead, this is provided by support libraries (like q-io). This is to keep `q` free from any dependencies, it only depends on C++11.
 
 q provides, a part from the pure asynchronous IoC methods, a wide range of tools and helpers to make the use as simple and obvious as possible, while still being perfectly type safe. One example if this, is the automatic `std::tuple` expansion of *promise chains*.
 
 The concept of q is that tasks are dispatched on queues, and a queue is attached to an `event_dispatcher`. q comes with its own `blocking_dispatcher`, which is like an event loop, to dispatch asynchronous tasks in order, but it is also easily bridged with existing event loops, such as native Win32, GTK, QT or Node.js. However, q also comes with a thread pool, which also is an `event_dispatcher`.
 
-> One of the most important reasons to use q is that one can run tasks not only asynchronous, but also on different threads, without the need to use mutexes and other locks to isolate data, as one instead will perform certain tasks on certain queues which dispatches the tasks only on certain threads.
+> One of the most important reasons to use q is that one can run tasks not only asynchronous, but also on different threads, without the need to use mutexes and other locks to isolate data. Instead, one will perform tasks on certain queues which dispatches the tasks only on certain threads. This separation of logic and execution provides a means to decide on which thread a certain function should be called, allowing shared state to always be accessed from the same thread. It also provides fantastic means to, at any time, change what logic is supposed to run on what threads to optimize the program for performance.
 
 
 Components and features
@@ -69,7 +69,7 @@ However, q comes with a wide set of optional features surrounding this:
   - Can also be replaced by the user to allow for a custom implementation, which then will serve stacktraces to the rest of q.
  - `temporarily_copyable`
   - A way of allowing a non-copyable object to be copied, by internally doing a move-on-copy. This should be used with care!
-  - Serves a great purpose as current C++ standard won't allow data to be moved into lambdas, only copied.
+  - Serves a great purpose as C++11 won't allow data to be moved into lambdas, only copied. q is C++11 compatible.
  - `thread`
   - Like `mutex`, this is similar to the standard's `std::thread`, but providing very useful extra features:
     - Sets thread name, platform independently, by requiring threads to have names.
