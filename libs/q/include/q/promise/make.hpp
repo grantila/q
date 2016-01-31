@@ -19,21 +19,6 @@
 
 namespace q {
 
-template< typename Fn >
-typename std::enable_if<
-	Q_ARITY_OF( Fn ) == 0,
-	promise< std::tuple< Q_RESULT_OF( Fn ) > >
->::type
-make_promise( const queue_ptr& queue, Fn&& fn )
-{
-	auto deferred = ::q::detail::defer< Q_RESULT_OF( Fn ) >::
-		construct( queue );
-
-	deferred->set_by_fun( std::forward< Fn >( fn ) );
-
-	return deferred->get_promise( );
-}
-
 template< typename... Args >
 struct resolver
 {
@@ -102,6 +87,11 @@ struct resolve_helper_
 		return deferred_->get_promise( );
 	}
 
+	::q::promise< tuple_type > get_promise( ) const
+	{
+		return deferred_->get_promise( );
+	}
+
 private:
 	std::shared_ptr< ::q::detail::defer< Args... > > deferred_;
 	resolver< Args... > resolver_;
@@ -122,6 +112,41 @@ struct resolve_helper
 };
 
 } // namespace detail
+
+template< typename Fn >
+typename std::enable_if<
+	Q_ARITY_OF( Fn ) == 0,
+	promise< std::tuple< Q_RESULT_OF( Fn ) > >
+>::type
+make_promise( const queue_ptr& queue, Fn&& fn )
+{
+	auto deferred = ::q::detail::defer< Q_RESULT_OF( Fn ) >::
+		construct( queue );
+
+	auto tmp_fn = Q_TEMPORARILY_COPYABLE( fn );
+
+	queue->push( [ deferred, tmp_fn ]( ) mutable
+	{
+		deferred->set_by_fun( std::move( tmp_fn.consume( ) ) );
+	} );
+
+	return deferred->get_promise( );
+}
+
+template< typename Fn >
+typename std::enable_if<
+	Q_ARITY_OF( Fn ) == 0,
+	promise< std::tuple< Q_RESULT_OF( Fn ) > >
+>::type
+make_promise_sync( const queue_ptr& queue, Fn&& fn )
+{
+	auto deferred = ::q::detail::defer< Q_RESULT_OF( Fn ) >::
+		construct( queue );
+
+	deferred->set_by_fun( std::forward< Fn >( fn ) );
+
+	return deferred->get_promise( );
+}
 
 template< typename T >
 struct extract_resolver_args;
@@ -155,6 +180,39 @@ make_promise( const ::q::queue_ptr& queue, Fn&& fn )
 
 	auto helper = std::make_shared< resolve_helper >( queue );
 
+	auto tmp_fn = Q_TEMPORARILY_COPYABLE( fn );
+
+	queue->push( [ helper, tmp_fn ]( ) mutable
+	{
+		helper->run( std::move( tmp_fn.consume( ) ) );
+	} );
+
+	return helper->get_promise( );
+}
+
+template< typename Fn >
+typename std::enable_if<
+	true,
+	q::promise<
+		typename extract_resolver_args<
+			typename std::decay<
+				Q_FIRST_ARGUMENT_OF( Fn )
+			>::type
+		>::type::tuple_type
+	>
+>::type
+make_promise_sync( const ::q::queue_ptr& queue, Fn&& fn )
+{
+	typedef Q_FIRST_ARGUMENT_OF( Fn ) resolve_signature;
+	typedef typename extract_resolver_args<
+		typename std::decay< resolve_signature >::type
+	>::type                                  value_types;
+	typedef typename value_types::template apply<
+		detail::resolve_helper
+	>::type                                  resolve_helper;
+
+	auto helper = std::make_shared< resolve_helper >( queue );
+
 	return helper->run( std::forward< Fn >( fn ) );
 }
 
@@ -163,6 +221,44 @@ make_promise( const ::q::queue_ptr& queue, Fn&& fn )
 template< typename... Args, typename Fn >
 q::promise< std::tuple< typename q::remove_rvalue_reference< Args >::type... > >
 make_promise_of( const ::q::queue_ptr& queue, Fn&& fn )
+{
+	typedef std::tuple<
+		typename q::remove_rvalue_reference< Args >::type...
+	> tuple_type;
+
+	auto tmp_fn = Q_TEMPORARILY_COPYABLE( fn );
+
+	auto deferred = q::detail::defer< tuple_type >::construct( queue );
+
+	queue->push( [ deferred, tmp_fn ]( ) mutable
+	{
+		auto resolve = [ deferred ]( Args&&... args )
+		{
+			deferred->set_value( std::forward< Args >( args )... );
+		};
+
+		auto reject = [ deferred ]( auto e )
+		{
+			deferred->set_exception( Q_FORWARD( e ) );
+		};
+
+		try
+		{
+			tpm_fn.consume( )( resolve, reject );
+		}
+		catch ( ... )
+		{
+			deferred->set_exception( std::current_exception( ) );
+		}
+
+	} );
+
+	return deferred->get_promise( );
+}
+
+template< typename... Args, typename Fn >
+q::promise< std::tuple< typename q::remove_rvalue_reference< Args >::type... > >
+make_promise_sync_of( const ::q::queue_ptr& queue, Fn&& fn )
 {
 	typedef std::tuple<
 		typename q::remove_rvalue_reference< Args >::type...
