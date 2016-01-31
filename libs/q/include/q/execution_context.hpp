@@ -35,7 +35,9 @@ class execution_context
 public:
 	~execution_context( );
 
-	queue_ptr queue( );
+	queue_ptr queue( ) const;
+
+	scheduler_ptr scheduler( ) const;
 
 protected:
 	execution_context( event_dispatcher_ptr ed, const scheduler_ptr& s );

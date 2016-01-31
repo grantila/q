@@ -26,9 +26,14 @@ execution_context::execution_context(
 execution_context::~execution_context( )
 { }
 
-queue_ptr execution_context::queue( )
+queue_ptr execution_context::queue( ) const
 {
 	return pimpl_->queue_;
+}
+
+scheduler_ptr execution_context::scheduler( ) const
+{
+	return pimpl_->scheduler_;
 }
 
 } // namespace q
