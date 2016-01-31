@@ -68,7 +68,11 @@ protected:
 	std::shared_ptr< Dispatcher > ed_;
 };
 
-template< typename EventDispatcher, typename Scheduler, typename... Args >
+template<
+	typename EventDispatcher,
+	typename Scheduler = ::q::direct_scheduler,
+	typename... Args
+>
 std::shared_ptr< specific_execution_context< EventDispatcher > >
 make_execution_context( Args&&... args )
 {
