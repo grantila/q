@@ -61,12 +61,12 @@ template<
 	typename TerminationArgs = q::arguments< >,
 	typename Completion = std::tuple< >
 >
-class event_dispatcher
+class sync_event_dispatcher
 : public sync_termination< TerminationArgs >
 , public basic_event_dispatcher
 {
 public:
-	~event_dispatcher( )
+	~sync_event_dispatcher( )
 	{ }
 
 	/**
@@ -88,7 +88,7 @@ public:
 	using sync_termination< TerminationArgs >::do_terminate;
 
 protected:
-	event_dispatcher( )
+	sync_event_dispatcher( )
 	{ }
 };
 
@@ -96,12 +96,12 @@ template<
 	typename TerminationArgs = q::arguments< >,
 	typename Completion = std::tuple< >
 >
-class async_event_dispatcher
+class event_dispatcher
 : public async_termination< TerminationArgs, Completion >
 , public basic_event_dispatcher
 {
 public:
-	~async_event_dispatcher( )
+	~event_dispatcher( )
 	{ }
 
 	virtual void start( ) = 0;
@@ -119,7 +119,7 @@ public:
 	using async_termination< TerminationArgs, Completion >::do_terminate;
 
 protected:
-	async_event_dispatcher( const queue_ptr& queue )
+	event_dispatcher( const queue_ptr& queue )
 	: async_termination< TerminationArgs, Completion >( queue )
 	{ }
 };

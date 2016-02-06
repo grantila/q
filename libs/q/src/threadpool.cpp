@@ -82,7 +82,7 @@ struct threadpool::pimpl
 threadpool::threadpool( const std::string& name,
                         const queue_ptr& queue,
                         std::size_t threads )
-: async_event_dispatcher( queue )
+: event_dispatcher( queue )
 , pimpl_( new pimpl( queue, name, threads ) )
 {
 	pimpl_->running_ = true;

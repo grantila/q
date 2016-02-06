@@ -34,7 +34,7 @@ struct blocking_dispatcher::pimpl
 
 blocking_dispatcher::blocking_dispatcher(
 	const std::string& name )
-: event_dispatcher< q::arguments< termination > >( )
+: sync_event_dispatcher< q::arguments< termination > >( )
 , pimpl_( new pimpl( name ) )
 { }
 

@@ -23,7 +23,7 @@
 namespace q {
 
 class blocking_dispatcher
-: public event_dispatcher< arguments< termination > >
+: public sync_event_dispatcher< arguments< termination > >
 , public std::enable_shared_from_this< blocking_dispatcher >
 {
 public:

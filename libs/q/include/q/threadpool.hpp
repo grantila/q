@@ -23,7 +23,7 @@
 namespace q {
 
 class threadpool
-: public async_event_dispatcher< q::arguments< termination > >
+: public event_dispatcher< q::arguments< termination > >
 , public std::enable_shared_from_this< threadpool >
 {
 public:
