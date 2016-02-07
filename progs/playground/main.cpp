@@ -195,9 +195,9 @@ int main( int argc, char** argv )
 	auto q_scope = initialize( );
 
 	auto bd = q::make_shared< q::blocking_dispatcher >( "main" );
-	auto queue = q::make_shared< q::queue >( );
+	auto queue = q::make_shared< q::queue >( 0 );
 
-	auto sched = q::make_shared< q::scheduler >( bd );
+	auto sched = q::make_shared< q::direct_scheduler >( bd );
 	sched->add_queue( queue );
 
 	auto error_stuff  = q::with( queue ).share( );
@@ -278,7 +278,7 @@ int main( int argc, char** argv )
 	{
 		auto testpool = q::make_shared< q::threadpool >(
 			"testpool", queue );
-		testpool->terminate( ).then( [ ]( )
+		testpool->terminate( q::termination::linger ).then( [ ]( )
 		{
 			std::cerr << "thread pool destroyed" << std::endl;
 		} );
@@ -286,9 +286,9 @@ int main( int argc, char** argv )
 	std::cerr << "threadpool created and destroyed" << std::endl;
 
 	auto tpd = q::make_shared< q::threadpool >( "pool", queue );
-	auto bg_queue = q::make_shared< q::queue >( );
+	auto bg_queue = q::make_shared< q::queue >( 0 );
 
-	auto bg_sched = q::make_shared< q::scheduler >( tpd );
+	auto bg_sched = q::make_shared< q::direct_scheduler >( tpd );
 	bg_sched->add_queue( bg_queue );
 
 	auto testfun = [ ]( ) -> std::tuple< std::string >
@@ -365,7 +365,7 @@ int main( int argc, char** argv )
 		std::cout << "background thread got " << i << std::endl;
 		usleep( 100 * 1000 );
 		return i * 2;
-	}, q::temporary( bg_queue ) )
+	}, bg_queue )
 	.then( [ ]( int i )
 	{
 		usleep( 100 * 1000 );
@@ -402,7 +402,7 @@ int main( int argc, char** argv )
 	} )
 	.then( [ tpd, bd ]( )
 	{
-		return tpd->terminate( );
+		return tpd->terminate( q::termination::linger );
 	} )
 	.then( [ bd ]( )
 	{
