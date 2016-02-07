@@ -28,7 +28,7 @@
 
 
 #define AT_LEAST_ONE( n ) \
-	std::min< std::size_t >( static_cast< std::size_t >( n ), 1 )
+	std::max< std::size_t >( static_cast< std::size_t >( n ), 1 )
 
 namespace q {
 
