@@ -29,7 +29,9 @@ class blocking_dispatcher
 public:
 	~blocking_dispatcher( );
 
-	void add_task( task task ) override;
+	void notify( ) override;
+
+	void set_task_fetcher( task_fetcher_task&& ) override;
 
 	void start( ) override;
 

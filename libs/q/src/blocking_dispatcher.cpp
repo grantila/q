@@ -15,21 +15,21 @@ struct blocking_dispatcher::pimpl
 	pimpl( const std::string& name )
 	: name_( name )
 	, mutex_( Q_HERE, "[" + name + "] mutex" )
+	, should_wait_( true )
 	, started_( false )
 	, running_( false )
 	, stop_asap_( false )
-	, allow_more_jobs_( true )
 	{ }
 
 	std::string name_;
 	mutex running_mutex_;
 	mutex mutex_;
-	std::queue< task > tasks_;
 	std::condition_variable cond_;
+	bool should_wait_;
 	bool started_;
 	bool running_;
 	bool stop_asap_;
-	bool allow_more_jobs_;
+	task_fetcher_task task_fetcher_;
 };
 
 blocking_dispatcher::blocking_dispatcher(
@@ -43,35 +43,18 @@ blocking_dispatcher::~blocking_dispatcher( )
 	;
 }
 
-void blocking_dispatcher::add_task( task task )
+void blocking_dispatcher::notify( )
 {
 	{
 		Q_AUTO_UNIQUE_LOCK( pimpl_->mutex_ );
-
-		if ( !pimpl_->started_ )
-		{
-			pimpl_->tasks_.push( std::move( task ) );
-		}
-		else if ( !pimpl_->allow_more_jobs_ )
-		{
-			if ( !pimpl_->running_ )
-			{
-				// Silenty ignore jobs
-			}
-			else
-			{
-				// We aren't shutting down, but still not allow
-				// more jobs?
-				// TODO: throw something, or re-design
-			}
-		}
-		else
-		{
-			pimpl_->tasks_.push( std::move( task ) );
-		}
+		pimpl_->should_wait_ = false;
 	}
-
 	pimpl_->cond_.notify_one( );
+}
+
+void blocking_dispatcher::set_task_fetcher( task_fetcher_task&& fetcher )
+{
+	pimpl_->task_fetcher_ = std::move( fetcher );
 }
 
 void blocking_dispatcher::start( )
@@ -82,27 +65,30 @@ void blocking_dispatcher::start( )
 	pimpl_->running_ = true;
 	pimpl_->started_ = true;
 
-	auto predicate = [ this ]( )
-	{
-		return !pimpl_->running_ || !pimpl_->tasks_.empty( );
-	};
-
 	do
 	{
-		if ( !pimpl_->tasks_.empty( ) )
-		{
-			auto elem = std::move( pimpl_->tasks_.front( ) );
-			pimpl_->tasks_.pop( );
+		if ( pimpl_->stop_asap_ )
+			break;
 
+		task _task = std::move( pimpl_->task_fetcher_( ) );
+
+		if ( !pimpl_->running_ && !_task )
+			break;
+
+		if ( _task )
+		{
 			Q_AUTO_UNIQUE_UNLOCK( lock );
 
-			// Invoke task
-			elem( );
+			_task( );
 		}
 
-		pimpl_->cond_.wait( lock, predicate );
+		if ( !_task && pimpl_->should_wait_ )
+		{
+			pimpl_->cond_.wait( lock );
+			pimpl_->should_wait_ = true;
+		}
 	}
-	while ( pimpl_->running_ );
+	while ( true );
 }
 
 void blocking_dispatcher::do_terminate( termination method )
@@ -118,9 +104,6 @@ void blocking_dispatcher::do_terminate( termination method )
 				break;
 			case termination::annihilate:
 				pimpl_->stop_asap_ = true;
-			case termination::process_backlog:
-				pimpl_->allow_more_jobs_ = false;
-				break;
 		}
 	}
 

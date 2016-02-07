@@ -29,7 +29,9 @@ class threadpool
 public:
 	~threadpool( );
 
-	void add_task( task task ) override;
+	void notify( ) override;
+
+	void set_task_fetcher( task_fetcher_task&& ) override;
 
 	static std::shared_ptr< threadpool >
 	construct( const std::string& name,

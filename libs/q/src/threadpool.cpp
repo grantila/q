@@ -42,11 +42,6 @@ static std::string make_thread_name( const std::string& base,
 
 } // anonymous namespace
 
-static std::unique_ptr< task > make_unique_task( task&& t )
-{
-	return q::make_unique< task >( std::move( t ) );
-}
-
 struct threadpool::pimpl
 {
 	pimpl( const queue_ptr& queue,
@@ -59,7 +54,6 @@ struct threadpool::pimpl
 	, started_( false )
 	, running_( false )
 	, stop_asap_( false )
-	, allow_more_jobs_( true )
 	{ }
 
 	typedef std::shared_ptr< thread< > >         thread_type;
@@ -71,12 +65,11 @@ struct threadpool::pimpl
 	mutex                             mutex_;
 	std::size_t                       num_threads_;
 	std::vector< thread_type >        threads_;
-	std::queue< task >                tasks_;
 	std::condition_variable           cond_;
 	bool                              started_;
 	bool                              running_;
 	bool                              stop_asap_;
-	bool                              allow_more_jobs_;
+	task_fetcher_task                 task_fetcher_;
 };
 
 threadpool::threadpool( const std::string& name,
@@ -106,76 +99,37 @@ threadpool::construct( const std::string& name,
 	return tp;
 }
 
-void threadpool::add_task( task task )
+void threadpool::notify( )
 {
 	{
 		Q_AUTO_UNIQUE_LOCK( pimpl_->mutex_ );
-
-		if ( pimpl_->started_ && !pimpl_->allow_more_jobs_ )
-		{
-			if ( !pimpl_->running_ )
-			{
-				// Silenty ignore jobs
-				// TODO: Do better warning
-				std::cerr
-					<< "[libq] threadpool \""
-					<< pimpl_->name_
-					<< "\" got task while shutting down - "
-					<< "throwing away task"
-					<< std::endl;
-			}
-			else
-			{
-				// We aren't shutting down, but still not allow
-				// more jobs?
-				// TODO: throw something, or re-design
-			}
-		}
-		else
-		{
-			pimpl_->tasks_.push( std::move( task ) );
-		}
 	}
-
 	pimpl_->cond_.notify_one( );
+}
+
+void threadpool::set_task_fetcher( task_fetcher_task&& fetcher )
+{
+	pimpl_->task_fetcher_ = std::move( fetcher );
+
+	{
+		Q_AUTO_UNIQUE_LOCK( pimpl_->mutex_ );
+	}
+	pimpl_->cond_.notify_all( );
 }
 
 void threadpool::start( )
 {
 	auto _this = shared_from_this( );
 
-	auto predicate = [ _this ]( )
-	{
-		auto& pimpl_ = _this->pimpl_;
-
-		return !pimpl_->running_ || !pimpl_->tasks_.empty( );
-	};
-
-	auto fetch_next_task = [ _this ]( )
-	-> std::unique_ptr< task >
-	{
-		auto& pimpl_ = _this->pimpl_;
-		std::unique_ptr< task > ret;
-
-		if ( !pimpl_->tasks_.empty( ) )
-		{
-			ret = q::make_unique_task(
-				std::move( pimpl_->tasks_.front( ) ) );
-			pimpl_->tasks_.pop( );
-		}
-
-		return ret;
-	};
-
 	auto terminated = std::make_shared< std::atomic< size_t > >( 0 );
 	auto num_threads = pimpl_->num_threads_;
 
-	for ( std::size_t num = 1; num <= num_threads; ++num )
+	for ( std::size_t index = 0; index < num_threads; ++index )
 	{
 		auto thread_name = make_thread_name(
-			pimpl_->name_, num, pimpl_->num_threads_ );
+			pimpl_->name_, index + 1, pimpl_->num_threads_ );
 
-		auto fn = [ _this, predicate, fetch_next_task ]( )
+		auto fn = [ _this, index ]( )
 		{
 			auto& pimpl_ = _this->pimpl_;
 
@@ -196,24 +150,25 @@ void threadpool::start( )
 
 			do
 			{
-				auto item = fetch_next_task( );
-				if ( !pimpl_->running_ )
-				{
-					if ( !item )
-						// No more tasks and we've
-						// stopped running.
-						break;
-				}
+				if ( pimpl_->stop_asap_ )
+					break;
 
-				if ( item )
+				task _task = pimpl_->task_fetcher_
+					? std::move( pimpl_->task_fetcher_( ) )
+					: task_fetcher_task( );
+
+				if ( !pimpl_->running_ && !_task )
+					break;
+
+				if ( _task )
 				{
 					Q_AUTO_UNIQUE_UNLOCK( lock );
 
-					invoker( std::move( *item ) );
+					invoker( std::move( _task ) );
 				}
 
-				if ( pimpl_->running_ )
-					pimpl_->cond_.wait( lock, predicate );
+				if ( pimpl_->running_ && !_task )
+					pimpl_->cond_.wait( lock );
 			}
 			while ( true );
 
@@ -261,9 +216,7 @@ void threadpool::do_terminate( termination method )
 		pimpl_->running_ = false;
 
 		if ( method != q::termination::linger )
-			// TODO: Actually implement support for continuing to
-			//       allow more tasks. This currently doesn't work.
-			pimpl_->allow_more_jobs_ = false;
+			pimpl_->stop_asap_ = true;
 	}
 
 	pimpl_->cond_.notify_all( );

@@ -217,11 +217,16 @@ void priority_scheduler::add_queue( queue_ptr queue )
 {
 	pimpl_->queues_.add( queue->priority( ), queue_ptr( queue ) );
 
-	auto backlog = queue->set_consumer(
-		std::bind( &priority_scheduler::poke, this ) );
+	queue->set_consumer( std::bind( &priority_scheduler::poke, this ) );
 
-	for ( auto i = backlog; i > 0; --i )
-		poke( );
+	auto _this = shared_from_this( );
+
+	auto fetcher = [ _this ]( ) mutable
+	{
+		return std::move( _this->next_task( ) );
+	};
+
+	pimpl_->event_dispatcher_->set_task_fetcher( fetcher );
 }
 
 void priority_scheduler::poke( )
@@ -236,7 +241,7 @@ void priority_scheduler::poke( )
 			t( );
 	};
 
-	pimpl_->event_dispatcher_->add_task( std::move( runner ) );
+	pimpl_->event_dispatcher_->notify( );
 }
 
 task priority_scheduler::next_task( )
@@ -269,32 +274,27 @@ void direct_scheduler::add_queue( queue_ptr queue )
 	{
 		pimpl_->queue_ = queue;
 
-		auto backlog = queue->set_consumer(
+		queue->set_consumer(
 			std::bind( &direct_scheduler::poke, this ) );
-
-		for ( auto i = backlog; i > 0; --i )
-			poke( );
-
 	}
 	else
 	{
 		Q_THROW( not_unique_exception( ) );
 	}
+
+	auto _this = shared_from_this( );
+
+	auto fetcher = [ _this ]( ) mutable
+	{
+		return std::move( _this->next_task( ) );
+	};
+
+	pimpl_->event_dispatcher_->set_task_fetcher( fetcher );
 }
 
 void direct_scheduler::poke( )
 {
-	auto _this = shared_from_this( );
-
-	auto runner = [ _this ]( ) mutable
-	{
-		// TODO: Ensure this doesn't throw...
-		auto t = _this->next_task( );
-		if ( !!t )
-			t( );
-	};
-
-	pimpl_->event_dispatcher_->add_task( std::move( runner ) );
+	pimpl_->event_dispatcher_->notify( );
 }
 
 task direct_scheduler::next_task( )

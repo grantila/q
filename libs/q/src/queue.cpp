@@ -61,7 +61,6 @@ queue::~queue( )
 void queue::push( task&& task )
 {
 	notify_type notifyer;
-	std::size_t size;
 
 	{
 		Q_AUTO_UNIQUE_LOCK( pimpl_->mutex_, Q_HERE, "queue::push" );
@@ -69,11 +68,10 @@ void queue::push( task&& task )
 		pimpl_->queue_.push( std::move( task ) );
 
 		notifyer = pimpl_->notify_;
-		size = pimpl_->queue_.size( );
 	}
 
 	if ( notifyer )
-		notifyer( size );
+		notifyer( );
 }
 
 priority_t queue::priority( ) const
@@ -81,14 +79,11 @@ priority_t queue::priority( ) const
 	return pimpl_->priority_;
 }
 
-std::size_t queue::set_consumer( queue::notify_type fn )
+void queue::set_consumer( queue::notify_type fn )
 {
 	Q_AUTO_UNIQUE_LOCK( pimpl_->mutex_, Q_HERE, "queue::set_consumer" );
 
-	std::size_t backlog = pimpl_->queue_.size( );
 	pimpl_->notify_ = fn;
-
-	return backlog;
 }
 
 bool queue::empty( )
@@ -101,10 +96,7 @@ task queue::pop( )
 	Q_AUTO_UNIQUE_LOCK( pimpl_->mutex_, Q_HERE, "queue::pop" );
 
 	if ( pimpl_->queue_.empty( ) )
-	{
-		/* TODO: , "queue::pop: Queue empty" */
-		Q_THROW( queue_exception( ) );
-	}
+		return task( );
 
 	task task = std::move( pimpl_->queue_.front( ) );
 

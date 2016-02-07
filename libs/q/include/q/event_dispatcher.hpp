@@ -32,10 +32,17 @@ typedef std::shared_ptr< basic_event_dispatcher > event_dispatcher_ptr;
 class basic_event_dispatcher
 {
 public:
+	typedef std::function< task( void ) noexcept > task_fetcher_task;
+
 	/**
-	 * Runs a task as soon as possible
+	 * Trigger the event dispatcher to fetch another task
 	 */
-	virtual void add_task( task ) = 0;
+	virtual void notify( ) = 0;
+
+	/**
+	 * Sets the function which can be called to get a task
+	 */
+	virtual void set_task_fetcher( task_fetcher_task&& ) = 0;
 
 protected:
 	basic_event_dispatcher( )
@@ -47,10 +54,6 @@ enum class termination
 	/** Wait for backlog to empty out, and allow more tasks while doing so
 	 *  but terminate once there is no more jobs */
 	linger,
-
-	/** Disallow further tasks, but complete all current tasks in the
-	 *  backlog */
-	process_backlog,
 
 	/** Terminate ASAP, i.e. allow the current task(s) to complete, then
 	 *  shutdown, and ignore all other tasks */

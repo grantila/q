@@ -34,7 +34,7 @@ class queue
 {
 public:
 	typedef task element_type;
-	typedef std::function< void( std::size_t backlog ) > notify_type;
+	typedef std::function< void( void ) > notify_type;
 
 	static queue_ptr construct( priority_t priority );
 
@@ -47,11 +47,8 @@ public:
 	/**
 	 * Sets a function callback as consumer of the queue. The queue will call
 	 * this function each time a task is added to the queue.
-	 *
-	 * @returns the number of tasks currently in the queue exactly before the
-	 * first call to @c fn will occur.
 	 */
-	std::size_t set_consumer( notify_type fn );
+	void set_consumer( notify_type fn );
 
 	bool empty( );
 
