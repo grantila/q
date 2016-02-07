@@ -221,7 +221,7 @@ void priority_scheduler::add_queue( queue_ptr queue )
 
 	auto _this = shared_from_this( );
 
-	auto fetcher = [ _this ]( ) mutable
+	auto fetcher = [ _this ]( ) mutable noexcept
 	{
 		return std::move( _this->next_task( ) );
 	};
@@ -284,7 +284,7 @@ void direct_scheduler::add_queue( queue_ptr queue )
 
 	auto _this = shared_from_this( );
 
-	auto fetcher = [ _this ]( ) mutable
+	auto fetcher = [ _this ]( ) mutable noexcept
 	{
 		return std::move( _this->next_task( ) );
 	};
