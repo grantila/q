@@ -19,22 +19,47 @@
 
 #ifdef LIBQ_ON_WINDOWS
   // todo
+#elif defined( LIBQ_ON_OSX )
+#	include <sys/types.h>
+#	include <sys/sysctl.h>
 #elif defined( LIBQ_ON_POSIX )
 #	include <pthread.h>
 #endif
 
 
+#define AT_LEAST_ONE( n ) \
+	std::min< std::size_t >( static_cast< std::size_t >( n ), 1 )
+
 namespace q {
+
+std::size_t fallback_cores( )
+{
+	return AT_LEAST_ONE( std::thread::hardware_concurrency( ) );
+}
 
 // TODO: Move and change implementation. This is a decent default, nothing else
 std::size_t hard_cores( )
 {
-	return static_cast< std::size_t >( std::thread::hardware_concurrency( ) );
+#if defined( LIBQ_ON_OSX )
+	int count;
+	size_t count_len = sizeof( count );
+	::sysctlbyname( "hw.physicalcpu_max", &count, &count_len, NULL, 0 );
+	return AT_LEAST_ONE( count );
+#else
+	return fallback_cores( );
+#endif
 }
 
 std::size_t soft_cores( )
 {
-	return hard_cores( );
+#if defined( LIBQ_ON_OSX )
+	int count;
+	size_t count_len = sizeof( count );
+	::sysctlbyname( "hw.logicalcpu_max", &count, &count_len, NULL, 0 );
+	return AT_LEAST_ONE( count );
+#else
+	return fallback_cores( );
+#endif
 }
 
 namespace detail {
