@@ -25,17 +25,18 @@ struct process::pimpl
 {
 	pid_t parent_pid;
 	pid_t child_pid;
-	q:mutex mutex_;
+	::q::mutex mutex_;
 	std::condition_variable cond_;
 };
 
-std::shared_ptr< process > process::construct( )
+std::shared_ptr< process > process::construct( const ::q::queue_ptr& queue )
 {
-	return ::q::make_shared_using_constructor< process >( );
+	return ::q::make_shared_using_constructor< process >( queue );
 }
 
-process::process( )
-: pimpl_( new pimpl )
+process::process( const ::q::queue_ptr& queue )
+: q::async_termination< q::arguments< >, std::tuple< int > >( queue )
+, pimpl_( new pimpl )
 {
 	pimpl_->parent_pid = ::getpid( );
 
@@ -54,7 +55,7 @@ process::process( )
 
 void process::run( )
 {
-	while ( )
+	while ( false )
 	{
 		;
 	}
@@ -62,7 +63,7 @@ void process::run( )
 
 void process::do_terminate( )
 {
-	termination_done( );
+	termination_done( 127 );
 }
 
 } // namespace p

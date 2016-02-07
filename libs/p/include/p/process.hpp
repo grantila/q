@@ -34,18 +34,19 @@ class process
 public:
 	template< typename Fn >
 	typename std::enable_if<
-		,
-		promise< Q_RESULT_OF_AS_ARGUMENT_TYPE( Fn )::tuple_type >
+		false,
+		::q::promise< Q_RESULT_OF_AS_ARGUMENT_TYPE( Fn )::tuple_type >
 	>::type
 	run( Fn&& fn )
 	{
 		;
 	}
 
-	static std::shared_ptr< process > construct( );
+	static std::shared_ptr< process >
+	construct( const ::q::queue_ptr& queue );
 
 protected:
-	process( );
+	process( const ::q::queue_ptr& queue );
 
 private:
 	void run( );

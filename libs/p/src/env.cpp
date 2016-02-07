@@ -10,10 +10,10 @@ struct environment::pimpl
 	;
 };
 
-environment( )
+environment::environment( )
 : pimpl_( new pimpl )
 { }
-~environment( )
+environment::~environment( )
 { }
 
 
@@ -29,12 +29,11 @@ environment::holder::operator std::string( ) const
 
 environment::holder& environment::holder::operator=( std::string value )
 {
-	value_ = value;
-	std::setenv( name_.c_str( ), value.c_str( ), 1 );
+	::setenv( name_.c_str( ), value.c_str( ), 1 );
 	return *this;
 }
 
-environment::holder( environment& env, std::string&& name )
+environment::holder::holder( environment& env, std::string&& name )
 : env_( env )
 { }
 
