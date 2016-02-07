@@ -62,6 +62,18 @@ std::size_t soft_cores( )
 #endif
 }
 
+std::size_t processors( )
+{
+#if defined( LIBQ_ON_OSX )
+	int count;
+	size_t count_len = sizeof( count );
+	::sysctlbyname( "hw.packages", &count, &count_len, NULL, 0 );
+	return static_cast< std::size_t >( count );
+#else
+	return 0;
+#endif
+}
+
 namespace detail {
 
 void set_thread_name( const std::string& name )

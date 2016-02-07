@@ -33,6 +33,12 @@ std::size_t hard_cores( );
  */
 std::size_t soft_cores( );
 
+/**
+ * Returns the number of processors. If this cannot properly be detected on the
+ * current platform, zero will be returned.
+ */
+std::size_t processors( );
+
 namespace detail {
 
 void set_thread_name( const std::string& name );
