@@ -6,6 +6,8 @@
 
 #include <gtest/gtest.h>
 
+#include <queue>
+
 #include "q-test.hpp"
 
 TEST( ThreadPool, PerformTasks )
@@ -17,8 +19,15 @@ TEST( ThreadPool, PerformTasks )
 	>( "test" );
 	auto tp = q::threadpool::construct( "test", bd->queue( ) );
 
+	auto tasks = q::make_shared< q::queue >( 0 );
+
+	tp->set_task_fetcher( [ tasks ]( )
+	{
+		return tasks->pop( );
+	} );
+
 	auto task = EXPECT_CALL_WRAPPER( spy )(
-		[ tp, &spy ]( )
+		[ tasks, tp, &spy ]( )
 		{
 			auto task = EXPECT_CALL_WRAPPER( spy )(
 				[ tp ]( )
@@ -27,11 +36,14 @@ TEST( ThreadPool, PerformTasks )
 				}
 			);
 
-			tp->add_task( task );
+
+			tasks->push( task );
+			tp->notify( );
 		}
 	);
 
-	tp->add_task( task );
+	tasks->push( task );
+	tp->notify( );
 
 	tp->terminate( q::termination::linger )
 	.finally( [ bd ]( )
