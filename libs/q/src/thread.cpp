@@ -87,17 +87,23 @@ std::string get_thread_name( )
 {
 #ifdef LIBQ_ON_POSIX
 
+#	ifdef LIBQ_ON_LINUX
+#		define PTHREAD_NAME_MAX 16
+#	else
+#		define PTHREAD_NAME_MAX NAME_MAX
+#	endif
+
 	auto tid = pthread_self( );
-	char namebuf[ NAME_MAX ];
+	char namebuf[ PTHREAD_NAME_MAX ];
 
 #if defined( LIBQ_ON_OSX )
-	pthread_getname_np( tid, namebuf, NAME_MAX );
+	pthread_getname_np( tid, namebuf, PTHREAD_NAME_MAX );
 	return namebuf;
 #elif defined( LIBQ_ON_BSD )
-	pthread_get_name_np( tid, namebuf, NAME_MAX );
+	pthread_get_name_np( tid, namebuf, PTHREAD_NAME_MAX );
 	return namebuf;
 #else
-	pthread_getname_np( tid, namebuf, NAME_MAX );
+	pthread_getname_np( tid, namebuf, PTHREAD_NAME_MAX );
 	return namebuf;
 #endif
 
