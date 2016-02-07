@@ -70,7 +70,9 @@ void blocking_dispatcher::start( )
 		if ( pimpl_->stop_asap_ )
 			break;
 
-		task _task = std::move( pimpl_->task_fetcher_( ) );
+		task _task = pimpl_->task_fetcher_
+			? std::move( pimpl_->task_fetcher_( ) )
+			: task( );
 
 		if ( !pimpl_->running_ && !_task )
 			break;

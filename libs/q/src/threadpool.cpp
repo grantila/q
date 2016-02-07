@@ -155,7 +155,7 @@ void threadpool::start( )
 
 				task _task = pimpl_->task_fetcher_
 					? std::move( pimpl_->task_fetcher_( ) )
-					: task_fetcher_task( );
+					: task( );
 
 				if ( !pimpl_->running_ && !_task )
 					break;
