@@ -59,6 +59,7 @@ void f( Args&&... args )
 class Movable
 {
 public:
+	Movable( ) = default;
 	Movable( int i ) : i_( i ) { }
 	Movable( const Movable& ) = delete;
 	Movable& operator=( const Movable& ) = delete;
@@ -193,6 +194,9 @@ int main( int argc, char** argv )
 	Movable m( i );
 
 	auto q_scope = initialize( );
+
+	std::cout << "The computer has "
+		<< q::processors( ) << " processors" << std::endl;
 
 	auto bd = q::make_shared< q::blocking_dispatcher >( "main" );
 	auto queue = q::make_shared< q::queue >( 0 );
@@ -411,7 +415,7 @@ int main( int argc, char** argv )
 	/* */
 	;
 
-	auto chan = q::make_shared< q::channel< int, std::string > >( queue );
+	auto chan = q::make_shared< q::channel< int, std::string > >( queue, 2 );
 	chan->send( 12, std::string( "years old whiskey" ) );
 	chan->send( 12, "years old whiskey" );
 	chan->send( 99, "luftballoons" );

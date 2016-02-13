@@ -65,6 +65,10 @@ public:
 	}
 
 	virtual void send( tuple_type&& t ) = 0;
+
+	virtual bool should_send( ) = 0;
+
+	virtual void set_resume_notification( task fn ) = 0;
 };
 
 template< typename... T >
@@ -78,10 +82,22 @@ public:
 	typedef detail::defer< T... > defer_type;
 	typedef arguments< T... >     arguments_type;
 
-	channel( const queue_ptr& queue /* q::location, name */ )
+	static constexpr std::size_t default_resume_count( std::size_t count )
+	{
+		return count < 3 ? count : ( ( count * 3 ) / 4 );
+	}
+
+	channel( const queue_ptr& queue, std::size_t buffer_count )
+	: channel( queue, buffer_count, default_resume_count( buffer_count ) )
+	{ }
+
+	channel( const queue_ptr& queue, std::size_t buffer_count, std::size_t resume_count /* q::location, name */ )
 	: default_queue_( queue )
 	, mutex_( Q_HERE, "channel" )
 	, closed_( false )
+	, paused_( false )
+	, buffer_count_( buffer_count )
+	, resume_count_( resume_count )
 	{ }
 
 	void close( )
@@ -102,6 +118,9 @@ public:
 
 		if ( waiters_.empty( ) )
 		{
+			if ( queue_.size( ) >= buffer_count_ )
+				paused_ = true;
+
 			queue_.push( std::move( t ) );
 		}
 		else
@@ -128,6 +147,7 @@ public:
 				default_queue_ );
 
 			waiters_.push( defer );
+			resume( );
 
 			return defer->get_promise( );
 		}
@@ -135,6 +155,9 @@ public:
 		{
 			tuple_type t = std::move( queue_.front( ) );
 			queue_.pop( );
+
+			if ( queue_.size( ) < resume_count_ )
+				resume( );
 
 			auto defer = ::q::make_shared< defer_type >(
 				default_queue_ );
@@ -145,13 +168,39 @@ public:
 		}
 	}
 
+	inline bool should_send( ) override
+	{
+		return !paused_;
+	}
+
 private:
+	inline void resume( )
+	{
+		if ( paused_.exchange( false ) )
+		{
+			auto& trigger_resume = resume_notification_;
+			if ( trigger_resume )
+				trigger_resume( );
+		}
+	}
+
+	void set_resume_notification( task fn ) override
+	{
+		Q_AUTO_UNIQUE_LOCK( mutex_ );
+
+		resume_notification_ = fn;
+	}
+
 	queue_ptr default_queue_;
 	// TODO: Make this lock-free and consider other list types
 	mutex mutex_;
 	std::queue< std::shared_ptr< defer_type > > waiters_;
 	std::queue< tuple_type > queue_;
 	std::atomic< bool > closed_;
+	std::atomic< bool > paused_;
+	const std::size_t buffer_count_;
+	const std::size_t resume_count_;
+	task resume_notification_;
 };
 
 } // namespace q
