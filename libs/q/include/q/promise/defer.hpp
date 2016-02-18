@@ -144,6 +144,13 @@ public:
 		signal_->done( );
 	}
 
+	void set_current_exception( )
+	{
+		auto e = std::current_exception( );
+		promise_.set_value( ::q::refuse< tuple_type >( e ) );
+		signal_->done( );
+	}
+
 	/**
 	 * fn( args... ), set_value( void )
 	 */
@@ -165,7 +172,7 @@ public:
 		}
 		catch ( ... )
 		{
-			set_exception( std::current_exception( ) );
+			set_current_exception( );
 		}
 	}
 
@@ -195,7 +202,7 @@ public:
 		}
 		catch ( ... )
 		{
-			set_exception( std::current_exception( ) );
+			set_current_exception( );
 		}
 	}
 
@@ -226,7 +233,7 @@ public:
 		}
 		catch ( ... )
 		{
-			set_exception( std::current_exception( ) );
+			set_current_exception( );
 		}
 	}
 
@@ -260,7 +267,7 @@ public:
 		}
 		catch ( ... )
 		{
-			set_exception( std::current_exception( ) );
+			set_current_exception( );
 		}
 	}
 
