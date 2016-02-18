@@ -69,4 +69,75 @@
 #define LIBQ_FIRST( x, ... ) x
 #define LIBQ_REST( x, ... ) __VA_ARGS__
 
+// TODO: Make this more portable
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+#	define LIBQ_LITTLE_ENDIAN
+#endif
+
+
+#define Q_ENUM_FLAGS( Name ) \
+	static inline constexpr Name operator&( Name x, Name y ) \
+	{ \
+		return static_cast< Name >( \
+			static_cast< \
+				typename std::underlying_type< Name >::type \
+			>( x ) \
+			& \
+			static_cast< \
+				typename std::underlying_type< Name >::type \
+			>( y ) ); \
+	} \
+	static inline constexpr Name operator|( Name x, Name y ) \
+	{ \
+		return static_cast< Name >( \
+			static_cast< \
+				typename std::underlying_type< Name >::type \
+			>( x ) \
+			| \
+			static_cast< \
+				typename std::underlying_type< Name >::type \
+			>( y ) ); \
+	} \
+	static inline constexpr Name operator^( Name x, Name y ) \
+	{ \
+		return static_cast< Name >( \
+			static_cast< \
+				typename std::underlying_type< Name >::type \
+			>( x ) \
+			^ \
+			static_cast< \
+				typename std::underlying_type< Name >::type \
+			>( y ) ); \
+	} \
+	static inline constexpr Name operator~( Name x ) \
+	{ \
+		return static_cast< Name >( \
+			~static_cast< \
+				typename std::underlying_type< Name >::type \
+			>( x ) ); \
+	} \
+	static inline Name& operator&=( Name& x, Name y ) \
+	{ \
+		x = x & y; \
+		return x; \
+	} \
+	static inline Name& operator|=( Name& x, Name y ) \
+	{ \
+		x = x | y; \
+		return x; \
+	} \
+	static inline Name& operator^=( Name& x, Name y ) \
+	{ \
+		x = x ^ y; \
+		return x; \
+	}
+
+#define Q_DEFINE_ENUM_FLAGS( Name ) \
+	enum class Name; \
+	Q_ENUM_FLAGS( Name ) \
+	enum class Name
+
+#define Q_ENUM_HAS( val, option ) \
+	( ( val & option ) == option )
+
 #endif // LIBQ_PP_HPP
