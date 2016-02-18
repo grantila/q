@@ -148,7 +148,22 @@ terminate( FnArgs&&... args )
 	typedef async_termination< q::arguments< Args...>, Completion > subclass;
 	auto& at = static_cast< subclass& >( *this );
 
-	this->do_terminate( std::forward< FnArgs >( args )... );
+	try
+	{
+		::q::call_with_args(
+			&subclass::do_terminate,
+			this,
+			std::forward< FnArgs >( args )... );
+	}
+	catch ( ... )
+	{
+		// Now we're in a very bad state. It is semantically wrong to
+		// at all end up here - it means the do_terminate threw an
+		// exception, and we have no idea if termination_done( ) will
+		// ever be called or not.
+		// TODO: Potentially log this as a critical error
+		at.deferred_termination_->set_current_exception( );
+	}
 
 	return at.deferred_termination_->get_promise( );
 }
