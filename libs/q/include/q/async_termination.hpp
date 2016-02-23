@@ -148,10 +148,7 @@ terminate( FnArgs&&... args )
 	typedef async_termination< q::arguments< Args...>, Completion > subclass;
 	auto& at = static_cast< subclass& >( *this );
 
-	::q::call_with_args(
-		&async_termination_interface< q::arguments< Args... >, Completion >::do_terminate,
-		this,
-		std::forward< FnArgs >( args )... );
+	this->do_terminate( std::forward< FnArgs >( args )... );
 
 	return at.deferred_termination_->get_promise( );
 }

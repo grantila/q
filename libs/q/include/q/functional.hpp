@@ -364,7 +364,10 @@ call_with_args_by_tuple( Fn&& fn, Tuple&& tuple, q::index_tuple< Indexes... > )
 } // namespace detail
 
 template< typename Fn, class Tuple >
-Q_RESULT_OF( Fn )
+typename std::enable_if<
+	!std::is_same< typename std::decay< Tuple >::type, std::tuple< > >::value,
+	Q_RESULT_OF( Fn )
+>::type
 call_with_args_by_tuple( Fn&& fn, Tuple&& tuple )
 {
 	typedef q::tuple_arguments< Tuple > arguments;
@@ -372,6 +375,13 @@ call_with_args_by_tuple( Fn&& fn, Tuple&& tuple )
 	return detail::call_with_args_by_tuple(
 		std::forward< Fn >( fn ),
 		std::forward< Tuple >( tuple ), indexes( ) );
+}
+
+template< typename Fn >
+Q_RESULT_OF( Fn )
+call_with_args_by_tuple( Fn&& fn, const std::tuple< >& tuple )
+{
+	return fn( );
 }
 
 template< typename Fn, typename InnerFn, typename... Args >
