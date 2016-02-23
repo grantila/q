@@ -232,7 +232,10 @@ struct function_traits
 {
 	using typename detail::function_traits< Fn >::type;
 
-	using typename detail::function_traits< Fn >::using_call_operator;
+	// MSVC 2015 gets an ICE on this 'using'. Similar to GCC below on
+	// 'match'... This seems hard for compilers to get right.
+	//using typename detail::function_traits< Fn >::using_call_operator;
+	typedef typename detail::function_traits< Fn >::using_call_operator using_call_operator;
 
 	// TODO: GCC Seems to not allow this using statement, which is why the
 	// typedef is necessary.
