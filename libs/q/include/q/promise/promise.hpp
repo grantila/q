@@ -125,6 +125,8 @@ public:
 	 */
 	template< typename Fn, typename Queue = queue_ptr >
 	typename std::enable_if<
+		Q_FIRST_ARGUMENT_IS_TUPLE( Fn )
+		&&
 		::q::is_argument_same_or_convertible<
 			arguments< tuple_type >, Q_ARGUMENTS_OF( Fn )
 		>::value
@@ -157,6 +159,8 @@ public:
 	 */
 	template< typename Fn, typename Queue = queue_ptr >
 	typename std::enable_if<
+		Q_FIRST_ARGUMENT_IS_TUPLE( Fn )
+		&&
 		::q::is_argument_same_or_convertible<
 			arguments< tuple_type >, Q_ARGUMENTS_OF( Fn )
 		>::value

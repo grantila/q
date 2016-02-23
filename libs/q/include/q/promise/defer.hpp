@@ -101,6 +101,14 @@ public:
 
 	template< typename... Args >
 	typename std::enable_if<
+		(
+			q::arguments< Args... >::size::value != 1
+			||
+			!q::is_tuple<
+				typename std::decay< Args >::type...
+			>::value
+		)
+		&&
 		::q::is_argument_same_or_convertible<
 			q::arguments< Args... >,
 			q::arguments< T... >
@@ -108,7 +116,7 @@ public:
 	>::type
 	set_value( Args&&... args )
 	{
-		set_value( std::forward_as_tuple( std::forward< Args >( args )... ) );
+		set_value( std::make_tuple( std::forward< Args >( args )... ) );
 	}
 
 	/**

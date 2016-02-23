@@ -50,6 +50,13 @@
 #define Q_FIRST_ARGUMENT_OF( Fn ) \
 	typename ::q::function_traits< Fn >::argument_types::first_type
 
+#define Q_FIRST_ARGUMENT_IS_TUPLE( Fn ) \
+	::q::is_tuple< \
+		typename ::std::decay< \
+			typename ::q::function_traits< Fn >::argument_types::first_type \
+		>::type \
+	>::value
+
 #define Q_ARGUMENTS_ARE( Fn, ... ) \
 	::q::is_argument_same< \
 		Q_ARGUMENTS_OF( Fn ), \

@@ -78,6 +78,8 @@ then( Fn&& fn, Queue&& queue )
 template< bool Shared, typename... Args >
 template< typename Fn, typename Queue >
 typename std::enable_if<
+	Q_FIRST_ARGUMENT_IS_TUPLE( Fn )
+	&&
 	::q::is_argument_same_or_convertible<
 		arguments< std::tuple< Args... > >,
 		Q_ARGUMENTS_OF( Fn )
@@ -166,6 +168,8 @@ then( Fn&& fn, Queue&& queue )
 template< bool Shared, typename... Args >
 template< typename Fn, typename Queue >
 typename std::enable_if<
+	Q_FIRST_ARGUMENT_IS_TUPLE( Fn )
+	&&
 	::q::is_argument_same_or_convertible<
 		arguments< std::tuple< Args... > >,
 		Q_ARGUMENTS_OF( Fn )
