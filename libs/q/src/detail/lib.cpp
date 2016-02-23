@@ -33,6 +33,9 @@
 
 #ifdef _WIN32
 #	define EXPORT __declspec(dllexport)
+#	ifndef PATH_MAX
+#		define PATH_MAX _MAX_PATH
+#	endif
 #else
 #	define EXPORT
 #endif
@@ -49,8 +52,7 @@ noexcept
 {
 	static char filename[ PATH_MAX ];
 #ifdef _WIN32
-	LPTSTR  strDLLPath1 = new TCHAR[_MAX_PATH];
-	::GetModuleFileName((HINSTANCE)&__ImageBase, strDLLPath1, _MAX_PATH);
+	::GetModuleFileName( ( HINSTANCE )&__ImageBase, filename, PATH_MAX );
 #else // not _WIN32
 
 	silly_function( );
