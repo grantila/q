@@ -23,10 +23,6 @@
 #include <cstdlib>
 #include <cstring>
 
-#ifndef LIBQ_ON_WINDOWS
-#	include <execinfo.h>
-#endif
-
 namespace q {
 
 stacktrace::stacktrace( std::vector< frame >&& frames )
@@ -64,8 +60,8 @@ noexcept
 
 	for ( auto& frame : st.frames( ) )
 	{
-		if ( max_frame < frame.frame )
-			max_frame = frame.frame;
+		if ( max_frame < frame.frameno )
+			max_frame = frame.frameno;
 		if ( max_lib < frame.lib.size( ) )
 			max_lib = frame.lib.size( );
 		if ( max_addr < frame.addr.size( ) )
@@ -80,7 +76,7 @@ noexcept
 
 	for ( auto& frame : st.frames( ) )
 		os << "Frame " << std::setfill( ' ' )
-		<< std::setw( max_frame ) << frame.frame << ": "
+		<< std::setw( max_frame ) << frame.frameno << ": "
 		<< std::setw( max_lib ) << std::left << frame.lib << std::right
 		<< std::setw( max_addr ) << frame.addr << " "
 		<< frame.symbol << " "
@@ -91,28 +87,6 @@ noexcept
 namespace {
 
 std::atomic< stacktrace_function > _stacktrace_function( nullptr );
-
-stacktrace default_stacktrace( )
-{
-	static const std::size_t buflen = 128;
-	void* addresses[ buflen ];
-	std::size_t size = backtrace( addresses, buflen );
-
-	char** raw_frames = backtrace_symbols( addresses, size );
-
-	std::vector< stacktrace::frame > frames;
-	frames.reserve( size );
-
-	for ( std::size_t i = 0; i < size; ++i )
-	{
-		auto frame = ::q::detail::parse_stack_frame( raw_frames[ i ] );
-		frame.frame = i;
-		frame.symbol = demangle_cxx( frame.symbol.c_str( ) );
-		frames.push_back( frame );
-	}
-
-	return stacktrace( std::move( frames ) );
-}
 
 } // anonymous namespace
 
@@ -133,7 +107,7 @@ noexcept
 		if ( fn )
 			return fn( );
 
-		return default_stacktrace( );
+		return detail::default_stacktrace( );
 	}
 	catch ( ... )
 	{

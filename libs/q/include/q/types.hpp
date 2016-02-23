@@ -20,6 +20,7 @@
 #include <q/pp.hpp>
 
 #include <memory>
+#include <functional>
 #include <string>
 #include <sstream>
 

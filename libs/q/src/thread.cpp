@@ -18,7 +18,8 @@
 #include <q/pp.hpp>
 
 #ifdef LIBQ_ON_WINDOWS
-  // todo
+#	include <windows.h>
+	static thread_local std::string threadname_;
 #elif defined( LIBQ_ON_OSX )
 #	include <sys/types.h>
 #	include <sys/sysctl.h>
@@ -92,7 +93,40 @@ void set_thread_name( const std::string& name )
 	pthread_setname_np( tid, name.c_str( ) );
 #endif
 
-#endif // LIBQ_ON_POSIX
+#elif defined( LIBQ_ON_WINDOWS )
+
+	// Since Windows has no way of getting the thread name, once set, it
+	// needs to be stored by q.
+	threadname_ = name;
+
+	const DWORD MS_VC_EXCEPTION = 0x406D1388;
+#	pragma pack( push, 8 )
+	typedef struct {
+		DWORD dwType;
+		LPCSTR szName;
+		DWORD dwThreadID;
+		DWORD dwFlags;
+	} THREADNAME_INFO;
+#	pragma pack( pop )
+
+	THREADNAME_INFO info{ 0x1000, name.c_str( ), ~( DWORD )0, 0 };
+
+#	pragma warning( push )
+#	pragma warning( disable: 6320 6322 )
+	__try
+	{
+		::RaiseException(
+			MS_VC_EXCEPTION,
+			0,
+			sizeof( info ) / sizeof( ULONG_PTR ),
+			reinterpret_cast< ULONG_PTR* >( &info ) );
+	}
+	__except ( EXCEPTION_EXECUTE_HANDLER )
+	{
+	}
+#	pragma warning( pop )
+
+#endif
 }
 
 std::string get_thread_name( )
@@ -118,6 +152,10 @@ std::string get_thread_name( )
 	pthread_getname_np( tid, namebuf, PTHREAD_NAME_MAX );
 	return namebuf;
 #endif
+
+#elif defined( LIBQ_ON_WINDOWS )
+
+	return threadname_;
 
 #endif // LIBQ_ON_POSIX
 }

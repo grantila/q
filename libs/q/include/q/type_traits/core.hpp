@@ -17,6 +17,7 @@
 #ifndef LIBQ_TYPE_TRAITS_CORE_HPP
 #define LIBQ_TYPE_TRAITS_CORE_HPP
 
+#include <ciso646>
 #include <type_traits>
 #include <tuple>
 #include <memory>
@@ -125,10 +126,26 @@ struct is_copyable< std::tuple< T... > >
 { };
 */
 
+
+template< typename... T >
+struct is_nothrow_default_constructible;
+
+template< typename... T >
+struct is_copy_constructible;
+
+template< typename... T >
+struct is_nothrow_copy_constructible;
+
+template< typename... T >
+struct is_copy_assignable;
+
+template< typename... T >
+struct is_move_constructible;
+
 template< typename T >
 struct is_nothrow_copyable
 : bool_type<
-	std::is_nothrow_copy_constructible< T >::value ||
+	q::is_nothrow_copy_constructible< T >::value ||
 	std::is_nothrow_copy_assignable< T >::value
 >
 { };
@@ -136,7 +153,7 @@ struct is_nothrow_copyable
 template< typename T >
 struct is_movable
 : bool_type<
-	std::is_move_constructible< T >::value ||
+	q::is_move_constructible< T >::value ||
 	std::is_move_assignable< T >::value
 >
 { };

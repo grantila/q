@@ -17,6 +17,7 @@
 #ifndef LIBQ_STACKTRACE_HPP
 #define LIBQ_STACKTRACE_HPP
 
+#include <q/types.hpp>
 #include <q/async_termination.hpp>
 
 #include <iosfwd>
@@ -29,7 +30,7 @@ class stacktrace
 public:
 	struct frame
 	{
-		std::size_t frame;
+		std::size_t frameno;
 		std::string lib;
 		std::string addr;
 		std::string symbol;

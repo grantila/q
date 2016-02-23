@@ -72,8 +72,7 @@ public:
 		return ret;
 	}
 
-	template< typename Cond >
-	T find_first( Cond&& cond )
+	T find_first( bool( cond )( const queue_ptr& queue ) )
 	{
 		Q_AUTO_UNIQUE_LOCK( *mutex_ );
 
@@ -84,7 +83,7 @@ public:
 
 		do
 		{
-			if ( Cond( *next_ ) )
+			if ( cond( *next_ ) )
 			{
 				auto ret = next_;
 
@@ -164,6 +163,7 @@ public:
 			if ( !elem.circular_list_.empty( ) )
 			{
 				auto condition = [ ]( const queue_ptr& queue )
+				-> bool
 				{
 					return !queue->empty( );
 				};

@@ -427,7 +427,7 @@ public:
 
 
 template< >
-class expect< void, false, false >
+class expect< void, true, true >
 : public detail::expect_exception
 , private detail::expect_value< void >
 {
@@ -449,11 +449,11 @@ public:
 	: detail::expect_exception( e )
 	{ }
 
-	expect( expect< void, false >&& ) = default;
-	expect( const expect< void, false >& ) = default;
+	expect( expect< void, true, true >&& ) = default;
+	expect( const expect< void, true, true >& ) = default;
 
-	expect& operator=( expect< void, false >&& ) = default;
-	expect& operator=( const expect< void, false >& ) = default;
+	expect& operator=( expect< void, true, true >&& ) = default;
+	expect& operator=( const expect< void, true, true >& ) = default;
 
 	void get( ) const
 	{

@@ -18,6 +18,7 @@
 #define LIBQ_FUNCTIONAL_HPP
 
 #include <iostream>
+#include <functional>
 #include <q/type_traits.hpp>
 
 // TODO: For C++14, alias the types to get rid of typename in the macros,
@@ -169,13 +170,21 @@ struct identity
 	typedef std::false_type using_call_operator;
 };
 
+// This is only needed due to a bug in MSVC (incl 2015 Update 2)
+template< typename Fn >
+struct wrapped_is_noexcept
+{
+	typedef bool_type< noexcept( Fn ) > type;
+};
+
 template< typename Fn >
 struct identity< Fn, false, true >
 {
 	typedef typename std::decay< Fn >::type decayed_type;
 	typedef decltype( fn_type( &decayed_type::operator( ) ) ) match;
-	typedef bool_type< noexcept( &decayed_type::operator( ) ) >
-		is_noexcept;
+	typedef typename wrapped_is_noexcept<
+		decltype( &decayed_type::operator( ) )
+	>::type is_noexcept;
 	typedef std::true_type using_call_operator;
 };
 

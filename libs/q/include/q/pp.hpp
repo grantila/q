@@ -17,7 +17,7 @@
 #ifndef LIBQ_PP_HPP
 #define LIBQ_PP_HPP
 
-#ifdef WIN32
+#ifdef _WIN32
 #	define LIBQ_ON_WINDOWS
 #elif defined( __APPLE__ )
 #	define LIBQ_ON_OSX
@@ -48,7 +48,11 @@
 
 #define LIBQ_LINE __LINE__
 #define LIBQ_FILE __FILE__
-#define LIBQ_FUNCTION __PRETTY_FUNCTION__
+#ifdef LIBQ_ON_WINDOWS
+#	define LIBQ_FUNCTION __FUNCTION__
+#else
+#	define LIBQ_FUNCTION __PRETTY_FUNCTION__
+#endif
 
 #define LIBQ_LOCATION LIBQ_FILE, LIBQ_LINE, LIBQ_FUNCTION
 
@@ -57,7 +61,8 @@
 
 #define LIBQ_UNIQUE_COMPILETIME_VALUE LIBQ_DATE "-" LIBQ_TIME
 
-
+// EXPAND is needed sometimes due to MSVC bugs
+#define LIBQ_EXPAND( x ) x
 #define LIBQ_FIRST( x, ... ) x
 #define LIBQ_REST( x, ... ) __VA_ARGS__
 

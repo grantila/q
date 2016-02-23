@@ -6,10 +6,12 @@ if [ "a$BUILDTYPE" == "a" ]; then
 		BUILDTYPE="Unix Makefiles"
 	elif [ `uname -s` == Darwin ]; then
 		BUILDTYPE=Xcode
+	elif [ `uname -o` == Msys ]; then
+		BUILDTYPE=VS
 	fi
 fi
 
-mkdir obj
+mkdir -p obj
 cd obj
 
 if [ "$BUILDTYPE" == "Unix Makefiles" ]; then
@@ -25,5 +27,7 @@ if [ "$BUILDTYPE" == "Unix Makefiles" ]; then
 	cd debug-static   ; make -j$CORES ; cd ..
 elif [ "$BUILDTYPE" == "Xcode" ]; then
 	cmake -G "$BUILDTYPE" ..
+elif [ "$BUILDTYPE" == "VS" ]; then
+	cmake -G "Visual Studio 14 2015" ..
 fi
 

@@ -26,6 +26,8 @@ namespace detail {
 ::q::stacktrace::frame parse_stack_frame( const char* data )
 noexcept;
 
+stacktrace default_stacktrace( ) noexcept;
+
 } // namespace detail
 
 } // namespace q

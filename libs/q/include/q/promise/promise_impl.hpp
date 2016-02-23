@@ -27,7 +27,7 @@ template< typename Fn, typename Queue >
 inline typename std::enable_if<
 	generic_promise<
 		Shared, std::tuple< Args... >
-	>::this_type::template is_valid_arguments<
+	>::template is_valid_arguments<
 		Q_ARGUMENTS_OF( Fn )
 	>::value
 	&&
@@ -79,9 +79,7 @@ template< bool Shared, typename... Args >
 template< typename Fn, typename Queue >
 typename std::enable_if<
 	::q::is_argument_same_or_convertible<
-		arguments< typename generic_promise<
-			Shared, std::tuple< Args... >
-		>::tuple_type >,
+		arguments< std::tuple< Args... > >,
 		Q_ARGUMENTS_OF( Fn )
 	>::value
 	&&
@@ -125,7 +123,7 @@ template< typename Fn, typename Queue >
 typename std::enable_if<
 	generic_promise<
 		Shared, std::tuple< Args... >
-	>::this_type::template is_valid_arguments<
+	>::template is_valid_arguments<
 		Q_ARGUMENTS_OF( Fn )
 	>::value
 	&&
@@ -169,9 +167,7 @@ template< bool Shared, typename... Args >
 template< typename Fn, typename Queue >
 typename std::enable_if<
 	::q::is_argument_same_or_convertible<
-		arguments< typename generic_promise<
-			Shared, std::tuple< Args... >
-		>::tuple_type >,
+		arguments< std::tuple< Args... > >,
 		Q_ARGUMENTS_OF( Fn )
 	>::value
 	&&

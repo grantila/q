@@ -15,11 +15,18 @@
  */
 
 #include <q/abi.hpp>
+#include <q/pp.hpp>
 
 #include <atomic>
-#include <cxxabi.h>
-
 #include <cstdlib>
+
+#ifdef LIBQ_ON_WINDOWS
+#	include <Windows.h>
+#	include <Dbghelp.h>
+#	include <q/mutex.hpp>
+#else
+#	include <cxxabi.h>
+#endif
 
 namespace q {
 
@@ -27,8 +34,27 @@ namespace {
 
 std::atomic< demangle_function > _demangle_function( nullptr );
 
+#ifdef LIBQ_ON_WINDOWS
+	q::mutex win32_mutex;
+	const int win32_buflen = 4096;
+	char win32_buf[ win32_buflen ];
+#endif
+
 std::string default_demangle_cxx( const char* name )
 {
+	if ( name[ 0 ] == 0 )
+		return name;
+
+#ifdef LIBQ_ON_WINDOWS
+	Q_AUTO_UNIQUE_LOCK( win32_mutex );
+	auto len = UnDecorateSymbolName(
+		name, win32_buf, win32_buflen, UNDNAME_COMPLETE );
+	if ( len > 0 )
+		return std::string( win32_buf, len );
+	else
+		// Some error occured - ignore and use mangled name
+		return name;
+#else
 	int status;
 	char* demangled_name;
 
@@ -45,6 +71,7 @@ std::string default_demangle_cxx( const char* name )
 	// Something went wrong with the demangling (memory issue or bad name),
 	// so just return the raw string, mangled.
 	return name;
+#endif
 }
 
 } // anonymous namespace

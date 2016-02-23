@@ -23,8 +23,6 @@
 #include <sstream>
 #include <set>
 
-#include <unistd.h>
-
 namespace q {
 
 namespace {
@@ -129,7 +127,7 @@ void threadpool::start( )
 		auto thread_name = make_thread_name(
 			pimpl_->name_, index + 1, pimpl_->num_threads_ );
 
-		auto fn = [ _this, index ]( )
+		auto fn = [ _this, index ]( ) -> void
 		{
 			auto& pimpl_ = _this->pimpl_;
 

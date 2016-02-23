@@ -16,13 +16,17 @@
 
 #include <q/pp.hpp>
 
-#if !defined( LIBQ_ON_LINUX ) && !defined( LIBQ_ON_OSX )
-
 #include "stacktrace.hpp"
+
+#ifndef LIBQ_ON_WINDOWS
+#	include <execinfo.h>
+#endif
 
 namespace q {
 
 namespace detail {
+
+#if !defined( LIBQ_ON_LINUX ) && !defined( LIBQ_ON_OSX )
 
 stacktrace::frame parse_stack_frame( const char* data )
 noexcept
@@ -30,8 +34,35 @@ noexcept
 	return stacktrace::frame{ 0, "", "", data, "" };
 }
 
-}
+#endif
 
+#ifndef LIBQ_ON_WINDOWS
+
+stacktrace default_stacktrace( ) noexcept
+{
+
+	static const std::size_t buflen = 128;
+	void* addresses[ buflen ];
+	std::size_t size = backtrace( addresses, buflen );
+
+	char** raw_frames = backtrace_symbols( addresses, size );
+
+	std::vector< stacktrace::frame > frames;
+	frames.reserve( size );
+
+	for ( std::size_t i = 0; i < size; ++i )
+	{
+		auto frame = parse_stack_frame( raw_frames[ i ] );
+		frame.frame = i;
+		frame.symbol = demangle_cxx( frame.symbol.c_str( ) );
+		frames.push_back( frame );
+	}
+
+	return stacktrace( std::move( frames ) );
 }
 
 #endif
+
+} // namespace detail
+
+} // namespace q

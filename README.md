@@ -222,3 +222,10 @@ git clone git@github.com:grantila/q.git
 cd q
 BUILDTYPE=Xcode ./build.sh ; open obj/q.xcodeproj
 ```
+
+For Visual Studio (2015) (using Git Bash shell)
+```sh
+git clone git@github.com:grantila/q.git
+cd q
+./build.sh ; start obj/q.sln
+```
