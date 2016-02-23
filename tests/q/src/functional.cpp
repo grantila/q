@@ -149,7 +149,7 @@ TEST( Functional, FunctionArgumentTypes )
 struct C
 {
 	C( int ) { }
-	float fn( long ) { return 3.14; }
+	float fn( long ) { return (float)3.14; }
 };
 
 TEST( Functional, ClassFunctionArgumentTypes )

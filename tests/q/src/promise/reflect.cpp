@@ -48,7 +48,7 @@ TEST_F( Reflect, ReflectTupleWithTwoElements )
 		{
 			EXPECT_FALSE( exp.has_exception( ) );
 			EXPECT_EQ( 17, std::get< 0 >( exp.get( ) ) );
-			EXPECT_FLOAT_EQ( 3.14, std::get< 1 >( exp.get( ) ) );
+			EXPECT_FLOAT_EQ( (float)3.14, std::get< 1 >( exp.get( ) ) );
 		} ) )
 		.fail( EXPECT_NO_CALL_WRAPPER( spy )(
 		[ ]( std::exception_ptr )
@@ -112,7 +112,7 @@ TEST_F( Reflect, ReflectTupleWithTwoElementsWithException )
 		[ ]( int i, float f ) -> std::tuple< int, float >
 		{
 			EXPECT_EQ( 17, i );
-			EXPECT_FLOAT_EQ( 3.14, f );
+			EXPECT_FLOAT_EQ( (float)3.14, f );
 			throw Error( );
 		} ) )
 		.reflect_tuple( )
@@ -175,7 +175,7 @@ TEST_F( Reflect, ReflectWithTwoElements )
 		{
 			EXPECT_FALSE( exp.has_exception( ) );
 			EXPECT_EQ( 17, std::get< 0 >( exp.get( ) ) );
-			EXPECT_FLOAT_EQ( 3.14, std::get< 1 >( exp.get( ) ) );
+			EXPECT_FLOAT_EQ( (float)3.14, std::get< 1 >( exp.get( ) ) );
 		} ) )
 		.fail( EXPECT_NO_CALL_WRAPPER( spy )(
 		[ ]( std::exception_ptr )
@@ -239,7 +239,7 @@ TEST_F( Reflect, ReflectWithTwoElementsWithException )
 		[ ]( int i, float f ) -> std::tuple< int, float >
 		{
 			EXPECT_EQ( 17, i );
-			EXPECT_FLOAT_EQ( 3.14, f );
+			EXPECT_FLOAT_EQ( (float)3.14, f );
 			throw Error( );
 		} ) )
 		.reflect( )

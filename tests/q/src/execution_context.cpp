@@ -50,7 +50,7 @@ TEST( ExecutionContext, ThreadPoolDispatcher )
 
 	for ( std::size_t i = 0; i < tasks; ++i )
 		promises.push_back(
-			prom.then( [ &val ]( int i )
+			prom.then( [ &val ]( int i2 )
 			{
 				val += 1;
 			}, tpqu )
