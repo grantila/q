@@ -8,6 +8,8 @@ include( "cmake/projects.cmake" )
 set( CMAKE_DEBUG_POSTFIX "d" )
 
 if ( MSVC )
+	set( CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd" )
+	set( CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT" )
 else ( )
 	set( CMAKE_CXX_FLAGS "-g" )
 	set( CMAKE_CXX_FLAGS_RELEASE "-O2" )
@@ -23,6 +25,8 @@ else ( )
 	endif ( )
 
 	add_definitions( "-Wno-comment" )
+
+        set( GENERIC_LIB_DEPS pthread dl )
 endif ( )
 
 include_directories( "libs/q/include" )
