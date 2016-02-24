@@ -206,9 +206,7 @@ public:
 	typename std::enable_if<
 		sizeof...( T ) == 0
 		&&
-		Q_RESULT_OF_AS_ARGUMENT( Fn )::template equals<
-			::q::arguments< T... >
-		>::value
+		Q_RESULT_OF_AS_ARGUMENT( Fn )::size::value == 0
 		&&
 		::q::is_tuple< Args >::value
 		&&
@@ -313,7 +311,9 @@ public:
 	typename std::enable_if<
 		is_tuple< Args >::value
 		&&
-		Q_ARITY_OF( Fn ) == tuple_arguments< Args >::size::value
+		tuple_arguments< Args >::template is_convertible_to<
+			Q_ARGUMENTS_OF( Fn )
+		>::value
 		&&
 		::q::is_promise< Q_RESULT_OF( Fn ) >::value
 	>::type

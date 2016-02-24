@@ -22,7 +22,10 @@
 #ifdef LIBQ_ON_WINDOWS
 
 #include <Windows.h>
+#pragma warning( push )
+#pragma warning( disable: 4091 )
 #include "DbgHelp.h"
+#pragma warning( pop )
 #pragma comment( lib, "Dbghelp.lib" )
 
 // In Windows Server 2003 and Windows XP, FramesToSkip + FramesToCapture must

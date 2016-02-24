@@ -16,8 +16,6 @@
 #include <string>
 #include <iostream>
 
-#include <unistd.h>
-
 template< typename... Args >
 void noop( Args&&... ) { }
 
@@ -365,16 +363,16 @@ int main( int argc, char** argv )
 	auto bg_prom = q::with( queue, 5 )
 	.then( [ ]( int i ) -> int
 	{
-		usleep( 100 * 1000 );
+		std::this_thread::sleep_for( std::chrono::milliseconds( 100 ) );
 		std::cout << "background thread got " << i << std::endl;
-		usleep( 100 * 1000 );
+		std::this_thread::sleep_for( std::chrono::milliseconds( 100 ) );
 		return i * 2;
 	}, bg_queue )
 	.then( [ ]( int i )
 	{
-		usleep( 100 * 1000 );
+		std::this_thread::sleep_for( std::chrono::milliseconds( 100 ) );
 		std::cout << "background thread got " << i << std::endl;
-		usleep( 100 * 1000 );
+		std::this_thread::sleep_for( std::chrono::milliseconds( 100 ) );
 	}, bg_queue );
 
 	auto shared_prom = prom.share( );
@@ -404,7 +402,7 @@ int main( int argc, char** argv )
 	{
 		std::cout << "then movable: " << m1 << m2 << std::endl;
 	} )
-	.then( [ tpd, bd ]( )
+	.then( [ tpd ]( )
 	{
 		return tpd->terminate( q::termination::linger );
 	} )

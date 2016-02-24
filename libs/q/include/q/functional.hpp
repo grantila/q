@@ -19,6 +19,8 @@
 
 #include <iostream>
 #include <functional>
+
+#include <q/pp.hpp>
 #include <q/type_traits.hpp>
 
 // TODO: For C++14, alias the types to get rid of typename in the macros,
@@ -163,6 +165,13 @@ struct has_call_operator<
 : public std::true_type
 { };
 
+// This is only needed due to a bug in MSVC (incl 2015 Update 2)
+template< typename Fn >
+struct wrapped_is_noexcept
+{
+	typedef bool_type< noexcept( Fn ) > type;
+};
+
 template<
 	typename Fn,
 	bool Valid = fn_match< Fn >::valid::value,
@@ -170,18 +179,16 @@ template<
 >
 struct identity
 {
+#ifdef LIBQ_ON_WINDOWS
+	typedef Fn decayed_type;
+#else
 	typedef typename std::decay< Fn >::type decayed_type;
+#endif
 	typedef decltype( fn_type( std::declval< decayed_type >( ) ) ) match;
-	typedef bool_type< noexcept( std::declval< decayed_type >( ) ) >
-		is_noexcept;
+	typedef typename wrapped_is_noexcept<
+		decltype( std::declval< decayed_type >( ) )
+	>::type is_noexcept;
 	typedef std::false_type using_call_operator;
-};
-
-// This is only needed due to a bug in MSVC (incl 2015 Update 2)
-template< typename Fn >
-struct wrapped_is_noexcept
-{
-	typedef bool_type< noexcept( Fn ) > type;
 };
 
 template< typename Fn >
