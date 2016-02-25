@@ -255,9 +255,14 @@ TEST( Functional, is_memberfunction )
 	{
 		bool fn( int, long );
 	};
-	auto fn = [ ]( int, long ) { return true; };
+	// Lambdas are function objects, hence member functions
+	auto fn_lambda = [ ]( int, long ) { return true; };
+	// Non-capturing lambdas can be cast to raw C-functions
+	bool ( *fn_raw )( int, long ) = fn_lambda;
+
 	EXPECT_TRUE( q::is_memberfunction< decltype( &C::fn ) > );
-	EXPECT_FALSE( q::is_memberfunction< decltype( fn ) > );
+	EXPECT_TRUE( q::is_memberfunction< decltype( fn_lambda ) > );
+	EXPECT_FALSE( q::is_memberfunction< decltype( fn_raw ) > );
 	EXPECT_FALSE( q::is_memberfunction< C > );
 }
 
