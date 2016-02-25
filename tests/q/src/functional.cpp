@@ -298,6 +298,23 @@ TEST( Functional, arity_of )
 	EXPECT_EQ( 2, q::arity_of< decltype( &C::fn2 ) > );
 }
 
+TEST( Functional, is_const_of )
+{
+	struct C
+	{
+		bool fn_c( ) const;
+		bool fn_nc( );
+	};
+
+	auto fn_mutable_lambda = [ ]( ) mutable { };
+	auto fn_lambda = [ ]( ) { };
+
+	EXPECT_TRUE( q::is_const_of< decltype( &C::fn_c ) > );
+	EXPECT_FALSE( q::is_const_of< decltype( &C::fn_nc ) > );
+	EXPECT_TRUE( q::is_const_of< decltype( fn_lambda ) > );
+	EXPECT_FALSE( q::is_const_of< decltype( fn_mutable_lambda ) > );
+}
+
 TEST( Functional, first_argument_is_tuple )
 {
 	struct C

@@ -81,6 +81,9 @@
 #define Q_NOEXCEPT_OF( Fn ) \
 	::q::function_traits< Fn >::is_noexcept::value
 
+#define Q_IS_CONST_OF( Fn ) \
+	::q::function_traits< Fn >::is_const::value;
+
 namespace q {
 
 namespace detail {
@@ -120,12 +123,15 @@ struct fn_match< R( A... ) >
 	typedef R( *signature_ptr )( A... );
 	typedef void memberclass_type;
 	typedef void member_signature_ptr;
+	typedef std::false_type is_const;
 };
 
 template< typename R, typename C, typename... A >
 struct fn_match< R( C::* )( A... ) >
 : public fn_match< R( C::* )( A... ) const >
-{ };
+{
+	typedef std::false_type is_const;
+};
 
 template< typename R, typename C, typename... A >
 struct fn_match< R( C::* )( A... ) const >
@@ -137,6 +143,7 @@ struct fn_match< R( C::* )( A... ) const >
 	typedef R( *signature_ptr )( A... );
 	typedef C memberclass_type;
 	typedef R( C::*member_signature_ptr )( A... );
+	typedef std::true_type is_const;
 };
 
 
@@ -209,6 +216,7 @@ struct invalid_match
 	typedef void signature;
 	typedef void signature_ptr;
 	typedef void member_signature_ptr;
+	typedef void is_const;
 };
 
 // Fn is not any kind of function
@@ -309,6 +317,11 @@ struct function_traits
 	 * The arity of the function, i.e. the number of arguments it expects
 	 */
 	typedef typename argument_types::size        arity;
+
+	/**
+	 * Detects whether a member function is const or not
+	 */
+	typedef typename match::is_const             is_const;
 };
 
 template< typename Fn >
@@ -342,6 +355,9 @@ constexpr bool is_noexcept = Q_NOEXCEPT_OF( Fn );
 
 template< typename Fn >
 constexpr std::size_t arity_of = Q_ARITY_OF( Fn );
+
+template< typename Fn >
+constexpr bool is_const_of = Q_IS_CONST_OF( Fn );
 
 template< typename Fn >
 constexpr bool first_argument_is_tuple = Q_FIRST_ARGUMENT_IS_TUPLE( Fn );
