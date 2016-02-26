@@ -280,9 +280,40 @@ TEST( Functional, is_noexcept )
 {
 	struct C
 	{
-		bool fn( int, long );
-		bool fn_ne( int, long ) noexcept;
+		bool fn( int, long ) const;
+		bool fn_ne( int, long ) const noexcept;
 	};
+
+
+	std::cout << std::endl << std::endl;
+	std::cout << typeid( decltype( &C::fn ) ).name() << std::endl;
+	std::cout << typeid( decltype( &C::fn_ne ) ).name() << std::endl;
+	std::cout << noexcept( std::declval< decltype( &C::fn ) >( ) ) << std::endl;
+	std::cout << noexcept( std::declval< decltype( &C::fn_ne ) >( ) ) << std::endl;
+	std::cout << q::is_noexcept< decltype( &C::fn ) > << std::endl;
+	std::cout << q::is_noexcept< decltype( &C::fn_ne ) > << std::endl;
+
+//((C*)0)->
+	std::cout
+		<< noexcept(
+			( ((C*)0)->*std::declval< decltype( &C::fn ) >( ) )
+			( int(), long() )
+		)
+//		<< noexcept( ( *reinterpret_cast< decltype( &C::fn ) >( 0 ) )( std::declval< int, long >( )... ) )
+		<< std::endl;
+	std::cout
+		<< noexcept(
+			( ((C*)0)->C::fn_ne )
+			( int(), long() )
+		)
+//		<< noexcept( ( *reinterpret_cast< decltype( &C::fn ) >( 0 ) )( std::declval< int, long >( )... ) )
+		<< std::endl;
+
+//	std::cout << noexcept( ( (*(C*)0).fn_ne )( ) ) << std::endl;
+	std::cout << std::endl << std::endl;
+//std::is_nothrow_constructible<sdf, sdaf>
+//    : public integral_constant<bool, noexcept(_Tp(declval<_Args>()...))>
+
 	EXPECT_TRUE( q::is_noexcept< decltype( &C::fn_ne ) > );
 	EXPECT_FALSE( q::is_noexcept< decltype( &C::fn ) > );
 }

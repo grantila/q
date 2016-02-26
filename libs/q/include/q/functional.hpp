@@ -144,6 +144,13 @@ struct fn_match< R( C::* )( A... ) const >
 	typedef C memberclass_type;
 	typedef R( C::*member_signature_ptr )( A... );
 	typedef std::true_type is_const;
+/*
+	typedef
+	q::bool_type<
+		noexcept( ( *reinterpret_cast< signature_ptr* >( 0 ) )( std::declval< A&& >( )... ) )
+	>
+	is_noexcept;
+*/
 };
 
 
@@ -170,13 +177,6 @@ struct has_call_operator<
 : public std::true_type
 { };
 
-// This is only needed due to a bug in MSVC (incl 2015 Update 2)
-template< typename Fn >
-struct wrapped_is_noexcept
-{
-	typedef bool_type< noexcept( std::declval< Fn >( ) ) > type;
-};
-
 template<
 	typename Fn,
 	bool Valid = fn_match< Fn >::valid::value,
@@ -190,9 +190,6 @@ struct identity
 	typedef typename std::decay< Fn >::type decayed_type;
 #endif
 	typedef decltype( fn_type( std::declval< decayed_type >( ) ) ) match;
-	typedef typename wrapped_is_noexcept<
-		decltype( std::declval< decayed_type >( ) )
-	>::type is_noexcept;
 	typedef std::false_type using_call_operator;
 };
 
@@ -201,9 +198,6 @@ struct identity< Fn, false, true >
 {
 	typedef typename std::decay< Fn >::type decayed_type;
 	typedef decltype( fn_type( &decayed_type::operator( ) ) ) match;
-	typedef typename wrapped_is_noexcept<
-		decltype( &decayed_type::operator( ) )
-	>::type is_noexcept;
 	typedef std::true_type using_call_operator;
 };
 
@@ -217,6 +211,7 @@ struct invalid_match
 	typedef void signature_ptr;
 	typedef void member_signature_ptr;
 	typedef void is_const;
+	typedef void is_noexcept;
 };
 
 // Fn is not any kind of function
@@ -227,6 +222,38 @@ struct identity< Fn, false, false >
 	typedef bool_type< false > is_noexcept;
 	typedef invalid_match match;
 	typedef std::false_type using_call_operator;
+};
+
+template<
+	typename Fn,
+	bool MemberFunction = !std::is_void<
+		typename identity< Fn >::match::memberclass_type
+	>::value,
+	bool CallOperator = identity< Fn >::using_call_operator::value,
+	typename Args = typename identity< Fn >::match::argument_types
+>
+struct is_noexcept
+{
+	typedef std::false_type type;
+};
+
+template< typename Fn, typename... Args >
+struct is_noexcept< Fn, true, false, q::arguments< Args... > >
+{
+	typedef typename identity< Fn >::match::memberclass_type C;
+//operator( )
+
+
+	//std::declval< Fn >( )
+	static constexpr const Fn fn = 0;
+//  (p->*fptr)("str");//call: Foo::f() through a pointer
+
+	typedef ::q::bool_type<
+		noexcept(
+			( ((C*)0)->*( std::declval< Fn >( ) ) )
+			( std::declval< Args&& >( )... )
+		)
+	> type;
 };
 
 template< typename Fn >
@@ -241,7 +268,7 @@ struct function_traits
 	 * std::true_type or std::false_type depending on whether the function
 	 * is attributed 'noexcept' or not
 	 */
-	typedef typename ident::is_noexcept is_noexcept;
+	typedef typename is_noexcept< Fn >::type is_noexcept;
 };
 
 } // namespace detail

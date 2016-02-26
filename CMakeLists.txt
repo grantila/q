@@ -15,7 +15,7 @@ else ( )
 	set( CMAKE_CXX_FLAGS_RELEASE "-O2" )
 
 	add_definitions( "-Wall" )
-	add_definitions( "-std=c++11" )
+	add_definitions( "-std=c++14" )
 
 	if ( NOT CMAKE_COMPILER_IS_GNUCXX )
 		add_definitions( "-stdlib=libc++" )
