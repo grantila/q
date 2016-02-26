@@ -34,7 +34,7 @@ struct deleter
 : holder
 {
 	deleter( T&& t )
-	: holder_( new T( std::move( t ) ) )
+	: holder_( q::make_unique< T >( std::move( t ) ) )
 	{ }
 
 	~deleter( )
@@ -76,7 +76,7 @@ typename std::enable_if<
 >::type
 make_scope( T&& t )
 {
-	detail::holder_ptr deleter( new detail::deleter< T >( std::move( t ) ) );
+	auto deleter = q::make_unique< detail::deleter< T > >( std::move( t ) );
 
 	return scope( std::move( deleter ) );
 }
