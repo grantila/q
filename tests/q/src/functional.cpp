@@ -276,17 +276,6 @@ TEST( Functional, is_function )
 	EXPECT_FALSE( q::is_function< C > );
 }
 
-TEST( Functional, is_noexcept )
-{
-	struct C
-	{
-		bool fn( int, long );
-		bool fn_ne( int, long ) noexcept;
-	};
-	EXPECT_TRUE( q::is_noexcept< decltype( &C::fn_ne ) > );
-	EXPECT_FALSE( q::is_noexcept< decltype( &C::fn ) > );
-}
-
 TEST( Functional, arity_of )
 {
 	struct C

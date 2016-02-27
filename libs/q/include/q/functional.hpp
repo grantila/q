@@ -170,13 +170,6 @@ struct has_call_operator<
 : public std::true_type
 { };
 
-// This is only needed due to a bug in MSVC (incl 2015 Update 2)
-template< typename Fn >
-struct wrapped_is_noexcept
-{
-	typedef bool_type< noexcept( std::declval< Fn >( ) ) > type;
-};
-
 template<
 	typename Fn,
 	bool Valid = fn_match< Fn >::valid::value,
@@ -184,26 +177,16 @@ template<
 >
 struct identity
 {
-#ifdef LIBQ_ON_WINDOWS
-	typedef Fn decayed_type;
-#else
-	typedef typename std::decay< Fn >::type decayed_type;
-#endif
-	typedef decltype( fn_type( std::declval< decayed_type >( ) ) ) match;
-	typedef typename wrapped_is_noexcept<
-		decltype( std::declval< decayed_type >( ) )
-	>::type is_noexcept;
+	typedef typename std::remove_reference< Fn >::type decayed_type;
+	typedef fn_match< decayed_type > match;
 	typedef std::false_type using_call_operator;
 };
 
 template< typename Fn >
 struct identity< Fn, false, true >
 {
-	typedef typename std::decay< Fn >::type decayed_type;
+	typedef typename std::remove_reference< Fn >::type decayed_type;
 	typedef decltype( fn_type( &decayed_type::operator( ) ) ) match;
-	typedef typename wrapped_is_noexcept<
-		decltype( &decayed_type::operator( ) )
-	>::type is_noexcept;
 	typedef std::true_type using_call_operator;
 };
 
@@ -319,7 +302,8 @@ struct function_traits
 	typedef typename argument_types::size        arity;
 
 	/**
-	 * Detects whether a member function is const or not
+	 * If this is a member function, is_const is std::true_type if it is a
+	 * const member function. Is std::false_type otherwise.
 	 */
 	typedef typename match::is_const             is_const;
 };
