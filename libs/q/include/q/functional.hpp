@@ -144,13 +144,6 @@ struct fn_match< R( C::* )( A... ) const >
 	typedef C memberclass_type;
 	typedef R( C::*member_signature_ptr )( A... );
 	typedef std::true_type is_const;
-/*
-	typedef
-	q::bool_type<
-		noexcept( ( *reinterpret_cast< signature_ptr* >( 0 ) )( std::declval< A&& >( )... ) )
-	>
-	is_noexcept;
-*/
 };
 
 
@@ -184,19 +177,15 @@ template<
 >
 struct identity
 {
-#ifdef LIBQ_ON_WINDOWS
-	typedef Fn decayed_type;
-#else
-	typedef typename std::decay< Fn >::type decayed_type;
-#endif
-	typedef decltype( fn_type( std::declval< decayed_type >( ) ) ) match;
+	typedef typename std::remove_reference< Fn >::type decayed_type;
+	typedef fn_match< decayed_type > match;
 	typedef std::false_type using_call_operator;
 };
 
 template< typename Fn >
 struct identity< Fn, false, true >
 {
-	typedef typename std::decay< Fn >::type decayed_type;
+	typedef typename std::remove_reference< Fn >::type decayed_type;
 	typedef decltype( fn_type( &decayed_type::operator( ) ) ) match;
 	typedef std::true_type using_call_operator;
 };
@@ -211,7 +200,6 @@ struct invalid_match
 	typedef void signature_ptr;
 	typedef void member_signature_ptr;
 	typedef void is_const;
-	typedef void is_noexcept;
 };
 
 // Fn is not any kind of function
@@ -372,7 +360,7 @@ using memberclass_of = Q_MEMBERCLASS_OF( Fn );
 #ifdef LIBQ_WITH_CPP14
 
 template< typename Fn >
-constexpr bool is_memberfunction = !std::is_void< memberclass_of< Fn > >::value;
+constexpr bool is_memberfunction = Q_IS_MEMBERFUNCTION( Fn )::value;
 
 template< typename Fn >
 constexpr bool is_function = Q_IS_FUNCTION( Fn )::value;
@@ -412,6 +400,7 @@ typename std::enable_if<
 	Q_RESULT_OF( Fn )
 >::type
 call_with_args( Fn&& fn, Args&&... args )
+noexcept( noexcept( fn( std::forward< Args >( args )... ) ) )
 {
 	return fn( std::forward< Args >( args )... );
 }
@@ -433,6 +422,7 @@ typename std::enable_if<
 	Q_RESULT_OF( Fn )
 >::type
 call_with_args( Fn&& fn, Class&& obj, Args&&... args )
+noexcept( noexcept( ( obj->*fn )( std::forward< Args >( args )... ) ) )
 {
 	return ( obj->*fn )( std::forward< Args >( args )... );
 }
@@ -454,6 +444,7 @@ typename std::enable_if<
 	Q_RESULT_OF( Fn )
 >::type
 call_with_args( Fn&& fn, Class&& obj, Args&&... args )
+noexcept( noexcept( ( obj.*fn )( std::forward< Args >( args )... ) ) )
 {
 	return ( obj.*fn )( std::forward< Args >( args )... );
 }
@@ -463,6 +454,17 @@ namespace detail {
 template< typename Fn, class Tuple, std::size_t... Indexes >
 Q_RESULT_OF( Fn )
 call_with_args_by_tuple( Fn&& fn, Tuple&& tuple, q::index_tuple< Indexes... > )
+noexcept( noexcept(
+	Q_RESULT_OF( Fn )(
+		call_with_args(
+			std::forward< Fn >( fn ),
+			std::forward<
+				typename std::tuple_element< Indexes, Tuple >
+					::type
+			>( std::get< Indexes >( tuple ) )...
+		)
+	)
+) )
 {
 	return call_with_args(
 		std::forward< Fn >( fn ),
@@ -471,37 +473,59 @@ call_with_args_by_tuple( Fn&& fn, Tuple&& tuple, q::index_tuple< Indexes... > )
 		>( std::get< Indexes >( tuple ) )... );
 }
 
+template< typename Tuple >
+using index_tuple = typename q::make_index_tuple<
+		q::tuple_arguments< Tuple >::size::value
+	>::type;
+
 } // namespace detail
 
 template< typename Fn, class Tuple >
 typename std::enable_if<
-	!std::is_same< typename std::decay< Tuple >::type, std::tuple< > >::value,
+	!std::is_same<
+		typename std::decay< Tuple >::type,
+		std::tuple< >
+	>::value,
 	Q_RESULT_OF( Fn )
 >::type
 call_with_args_by_tuple( Fn&& fn, Tuple&& tuple )
+noexcept( noexcept(
+	detail::call_with_args_by_tuple(
+		std::forward< Fn >( fn ),
+		std::forward< Tuple >( tuple ),
+		detail::index_tuple< Tuple >( ) )
+) )
 {
-	typedef q::tuple_arguments< Tuple > arguments;
-	typedef typename q::make_index_tuple< arguments::size::value >::type indexes;
 	return detail::call_with_args_by_tuple(
 		std::forward< Fn >( fn ),
-		std::forward< Tuple >( tuple ), indexes( ) );
+		std::forward< Tuple >( tuple ),
+		detail::index_tuple< Tuple >( )
+	);
 }
 
 template< typename Fn >
 Q_RESULT_OF( Fn )
 call_with_args_by_tuple( Fn&& fn, const std::tuple< >& tuple )
+noexcept( noexcept( fn( ) ) )
 {
 	return fn( );
 }
 
 template< typename Fn, typename InnerFn, typename... Args >
 typename std::enable_if<
-	Q_RESULT_OF_AS_ARGUMENT( InnerFn )::size::value == 0 &&
-	Q_ARITY_OF( Fn ) == 0 &&
+	Q_RESULT_OF_AS_ARGUMENT( InnerFn )::size::value == 0
+	and
+	Q_ARITY_OF( Fn ) == 0
+	and
 	Q_ARGUMENTS_ARE_CONVERTIBLE_FROM( InnerFn, Args... )::value,
 	Q_RESULT_OF( Fn )
 >::type
 call_with_args_by_fun( Fn&& fn, InnerFn&& inner_fn, Args&&... args )
+noexcept(
+	noexcept( inner_fn( std::forward< Args >( args )... ) )
+	and
+	noexcept( Q_RESULT_OF( Fn )( fn( ) ) )
+)
 {
 	inner_fn( std::forward< Args >( args )... );
 	return fn( );
@@ -509,26 +533,37 @@ call_with_args_by_fun( Fn&& fn, InnerFn&& inner_fn, Args&&... args )
 
 template< typename Fn, typename InnerFn, typename... Args >
 typename std::enable_if<
-	( Q_RESULT_OF_AS_ARGUMENT( InnerFn )::size::value > 0 ) &&
+	( Q_RESULT_OF_AS_ARGUMENT( InnerFn )::size::value > 0 )
+	and
 	::q::is_argument_same_or_convertible<
 		Q_RESULT_OF_AS_ARGUMENT_TYPE( InnerFn ),
 		Q_ARGUMENTS_OF( Fn )
-	>::value &&
+	>::value
+	and
 	Q_ARGUMENTS_ARE_CONVERTIBLE_FROM( InnerFn, Args... )::value,
 	Q_RESULT_OF( Fn )
 >::type
 call_with_args_by_fun( Fn&& fn, InnerFn&& inner_fn, Args&&... args )
+noexcept( noexcept(
+	Q_RESULT_OF( Fn )( fn( inner_fn( std::forward< Args >( args )... ) ) )
+) )
 {
 	return fn( inner_fn( std::forward< Args >( args )... ) );
 }
 
 template< typename Class, typename Fn, typename... Args >
 typename std::enable_if<
-	Q_RESULT_OF_AS_ARGUMENT( Fn )::size::value == 0 &&
+	Q_RESULT_OF_AS_ARGUMENT( Fn )::size::value == 0
+	and
 	std::is_default_constructible< Class >::value,
 	Class
 >::type
 construct_with_function_call( Fn&& fn, Args&&... args )
+noexcept(
+	noexcept( fn( std::forward< Args >( args )... ) )
+	and
+	noexcept( Class( Class( ) ) )
+)
 {
 	fn( std::forward< Args >( args )... );
 	return Class( );
@@ -536,7 +571,8 @@ construct_with_function_call( Fn&& fn, Args&&... args )
 
 template< typename Class, typename Fn, typename... Args >
 typename std::enable_if<
-	( Q_RESULT_OF_AS_ARGUMENT( Fn )::size::value > 0 ) &&
+	( Q_RESULT_OF_AS_ARGUMENT( Fn )::size::value > 0 )
+	and
 	merge<
 		std::is_constructible,
 		q::arguments< Class >,
@@ -545,6 +581,7 @@ typename std::enable_if<
 	Class
 >::type
 construct_with_function_call( Fn&& fn, Args&&... args )
+noexcept( noexcept( Class( Class( fn( std::forward< Args >( args )... ) ) ) ) )
 {
 	return Class( fn( std::forward< Args >( args )... ) );
 }

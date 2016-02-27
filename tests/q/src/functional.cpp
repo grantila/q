@@ -296,18 +296,33 @@ TEST( Functional, is_noexcept )
 //((C*)0)->
 	std::cout
 		<< noexcept(
-			( ((C*)0)->*std::declval< decltype( &C::fn ) >( ) )
+			( reinterpret_cast< Q_MEMBERCLASS_OF( decltype( &C::fn ) )* >( 0 )->*(&C::fn) )
 			( int(), long() )
 		)
 //		<< noexcept( ( *reinterpret_cast< decltype( &C::fn ) >( 0 ) )( std::declval< int, long >( )... ) )
 		<< std::endl;
+
 	std::cout
 		<< noexcept(
-			( ((C*)0)->C::fn_ne )
+			( reinterpret_cast< Q_MEMBERCLASS_OF( decltype( &C::fn_ne ) )* >( 0 )->C::fn_ne )
 			( int(), long() )
 		)
-//		<< noexcept( ( *reinterpret_cast< decltype( &C::fn ) >( 0 ) )( std::declval< int, long >( )... ) )
 		<< std::endl;
+
+	std::cout
+		<< noexcept(
+			::q::call_with_args(
+				( &C::fn_ne ),
+				reinterpret_cast< Q_MEMBERCLASS_OF( decltype( &C::fn_ne ) )* >( 0 ),
+				int(), long()
+			)
+		)
+		<< std::endl;
+
+//template< typename... Args >
+//using _declsadfasdfval< q::arguments< Args... > > = std::declval< Args... >;
+
+//		<< noexcept( ( *reinterpret_cast< decltype( &C::fn ) >( 0 ) )( std::declval< int, long >( )... ) )
 
 //	std::cout << noexcept( ( (*(C*)0).fn_ne )( ) ) << std::endl;
 	std::cout << std::endl << std::endl;
