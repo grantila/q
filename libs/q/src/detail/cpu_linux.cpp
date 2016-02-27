@@ -20,6 +20,7 @@
 
 #include "exec.hpp"
 #include <stdlib.h>
+#include <limits.h>
 #include <algorithm>
 #include <iostream>
 #include <regex>

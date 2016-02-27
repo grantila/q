@@ -239,7 +239,7 @@ TEST( Functional, memberclass_of )
 {
 	struct C
 	{
-		bool fn( int, long );
+		bool fn( int, long ) { return true; }
 	};
 	struct D { };
 	typedef q::memberclass_of< decltype( &C::fn ) > test;

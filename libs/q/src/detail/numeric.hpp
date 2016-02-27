@@ -29,61 +29,76 @@ namespace q {
 
 namespace detail {
 
-template<
-	typename integer_type,
-	std::size_t integer_size = sizeof( integer_type )
->
+namespace {
+
+static inline std::size_t fallback_msb( std::uint64_t num )
+{
+	for ( int i = 63; i >= 0; --i )
+		if ( num & ( std::uint64_t( 1 ) << i ) )
+			return static_cast< std::size_t >( i );
+	return 0;
+}
+
+} // empty namespace
+
+#ifdef LIBQ_ON_WINDOWS
+template< typename type, std::size_t size = sizeof( type ) >
+typename std::enable_if< ( size < 5 ), std::size_t >::type
+msb_win32( type num )
+{
+	unsigned long ret;
+	_BitScanReverse( &ret, static_cast< unsigned long >( num ) );
+	return ret;
+}
+template< typename type, std::size_t size = sizeof( type ) >
+typename std::enable_if< ( size > 4 ), std::size_t >::type
+msb_win32( type num )
+{
+#	ifndef LIBQ_ON_X86
+	unsigned long ret;
+	_BitScanReverse64( &ret, static_cast< unsigned __int64 >( num ) );
+	return ret;
+#	else
+	return fallback_msb( num );
+#	endif
+}
+#endif // LIBQ_ON_WINDOWS
+
+template< typename type, std::size_t size = sizeof( type ) >
 typename std::enable_if<
 #ifdef LIBQ_ON_GCC
-	sizeof( integer_type ) <= sizeof( long long int ),
+	sizeof( type ) <= sizeof( long long int ),
 #else
 	true,
 #endif
 	std::size_t
 >::type
-msb( integer_type&& _num )
+msb( type&& _num )
 {
+#ifndef LIBQ_ON_WINDOWS
 	auto num = static_cast<
 #ifdef LIBQ_ON_GCC
 		unsigned long long int
-#elif defined( LIBQ_ON_WINDOWS )
-		typename std::conditional<
-			( sizeof( integer_type ) < 5 ),
-			unsigned long,
-			unsigned __int64
-		>::type
 #else
 		std::uint64_t
 #endif
 	>( _num );
+#endif
 
 #ifdef LIBQ_ON_GCC
 	return static_cast< std::size_t >(
 		( 8 * sizeof( unsigned long long int ) ) -
 		__builtin_clzll( num ) );
 #elif defined( LIBQ_ON_WINDOWS )
-	unsigned long ret;
-	if ( sizeof( integer_type ) < 5 )
-		_BitScanReverse( &ret, num );
-	else
-		_BitScanReverse64( &ret, num );
-	return ret;
-#else
-	for ( int i = 63; i >= 0; --i )
-		if ( num & ( std::uint64_t( 1 ) << i ) )
-			return static_cast< std::size_t >( i );
+	return msb_win32( _num );
+#else // Fallback solution
+	return fallback_msb( _num );
 #endif
 }
 
-template<
-	typename integer_type,
-	std::size_t integer_size = sizeof( integer_type )
->
-typename std::enable_if<
-	sizeof( integer_type ) <= sizeof( long long int ),
-	std::size_t
->::type
-lsb( integer_type&& _num )
+template< typename type, std::size_t size = sizeof( type ) >
+typename std::enable_if< size <= sizeof( long long int ), std::size_t >::type
+lsb( type&& _num )
 {
 	auto num = static_cast< unsigned long long int >( _num );
 

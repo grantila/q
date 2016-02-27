@@ -32,7 +32,8 @@ public:
 	{
 		std::size_t frameno;
 		std::string lib;
-		std::string addr;
+		std::string lib_path;
+		std::uint64_t addr;
 		std::string symbol;
 		std::string extra;
 	};

@@ -21,6 +21,8 @@
 
 #ifdef LIBQ_ON_WINDOWS
 
+#include <unordered_map>
+#define NOMINMAX
 #include <Windows.h>
 #pragma warning( push )
 #pragma warning( disable: 4091 )
@@ -58,8 +60,7 @@ stacktrace::frame frame_from_address( HANDLE process, void* address )
 	{
 		symbol_info->Name[ symbol_info->NameLen ] = 0;
 		frame.symbol = q::demangle_cxx( symbol_info->Name );
-		// TODO: Fix this, make frame::addr a number
-		//frame.addr = symbol_info->Address;
+		frame.addr = symbol_info->Address;
 	}
 
 	return frame;
@@ -77,10 +78,44 @@ stacktrace default_stacktrace( ) noexcept
 	auto nframes = ::CaptureStackBackTrace(
 		0, MAX_FRAMES_PER_CALL, buf, nullptr );
 
+	// Module to <filename, path>
+	std::unordered_map< HMODULE, std::pair< std::string, std::string > >
+		module_names;
+
 	for ( std::size_t i = 0; i < nframes; ++i )
 	{
 		auto frame = frame_from_address( process, buf[ i ] );
 		frame.frameno = i;
+
+		HMODULE mod;
+		if ( ::GetModuleHandleEx(
+			GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS,
+			reinterpret_cast< LPCSTR >( frame.addr ),
+			&mod
+		) )
+		{
+			auto found = module_names.find( mod );
+			if ( found != module_names.end( ) )
+			{
+				frame.lib = found->second.first;
+				frame.lib_path = found->second.second;
+			}
+			else
+			{
+				char name_buf[ MAX_PATH ];
+				if ( ::GetModuleFileName(
+					mod, name_buf, MAX_PATH
+				) )
+				{
+					auto names = get_file_name( name_buf );
+					frame.lib = names.first;
+					frame.lib_path = names.second;
+
+					module_names[ mod ] = names;
+				}
+			}
+		}
+
 		frames.push_back( frame );
 	}
 

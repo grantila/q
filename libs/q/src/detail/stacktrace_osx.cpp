@@ -44,10 +44,13 @@ noexcept
 		pos2 = std::strchr( pos, ' ' );
 
 		if ( pos2 )
-			frame.lib.append( pos, pos2 - pos );
-		else
-			frame.lib.append( pos );
-		pos = pos2;
+			// On OSX, backtrace_symbols return string is modifyable
+			const_cast< char& >( pos2[ 0 ] ) = 0;
+		auto names = get_file_name( pos );
+		frame.lib = std::move( names.first );
+		frame.lib_path = std::move( names.second );
+
+		pos = pos2 + 1;
 	}
 
 	if ( pos )
@@ -55,10 +58,9 @@ noexcept
 		pos += std::strspn( pos, " " );
 		pos2 = std::strchr( pos, ' ' );
 
-		if ( pos2 )
-			frame.addr.append( pos, pos2 - pos );
-		else
-			frame.addr.append( pos );
+		if ( pos[ 0 ] == '0' && pos[ 1 ] == 'x' )
+			frame.addr = hex_to_dec( pos + 2 );
+
 		pos = pos2;
 	}
 
