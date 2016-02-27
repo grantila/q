@@ -27,12 +27,14 @@ namespace q {
 
 namespace detail {
 
-#if !defined( LIBQ_ON_LINUX ) && !defined( LIBQ_ON_OSX )
+#if !defined( LIBQ_ON_WINDOWS ) && \
+	!defined( LIBQ_ON_LINUX ) && \
+	!defined( LIBQ_ON_OSX )
 
 stacktrace::frame parse_stack_frame( const char* data )
 noexcept
 {
-	return stacktrace::frame{ 0, "", "", data, "" };
+	return stacktrace::frame{ 0, "", 0, data, "" };
 }
 
 #endif

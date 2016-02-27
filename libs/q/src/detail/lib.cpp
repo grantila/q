@@ -24,7 +24,9 @@
 #	include <q/detail/platform/windows.hpp>
 	EXTERN_C IMAGE_DOS_HEADER __ImageBase;
 #elif defined( __linux__ )
-#	define _GNU_SOURCE
+#	ifndef _GNU_SOURCE
+#		define _GNU_SOURCE
+#	endif
 #	include <dlfcn.h>
 #	include <linux/limits.h>
 #else // posix

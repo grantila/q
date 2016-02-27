@@ -19,6 +19,9 @@
 
 #ifdef _WIN32
 #	define LIBQ_ON_WINDOWS
+#	ifdef _M_IX86
+#		define LIBQ_ON_X86
+#	endif
 #elif defined( __APPLE__ )
 #	define LIBQ_ON_OSX
 #	define LIBQ_ON_POSIX
@@ -43,6 +46,10 @@
 #	define LIBQ_ON_POSIX
 #else
 #	define LIBQ_ON_UNKNOWN
+#endif
+
+#ifdef __GNUC__
+#	define LIBQ_ON_GCC
 #endif
 
 #if __cplusplus >= 201402L

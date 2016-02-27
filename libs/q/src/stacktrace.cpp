@@ -15,6 +15,8 @@
  */
 
 #include "detail/stacktrace.hpp"
+#include "detail/numeric.hpp"
+
 #include <q/abi.hpp>
 
 #include <iostream>
@@ -51,6 +53,14 @@ noexcept
 	}
 }
 
+std::size_t addr_str_len( std::uint64_t addr )
+{
+	std::size_t high_bit = detail::msb( addr );
+	// Coerce bit position to hex character position
+	std::size_t high_hex = ( high_bit + 3 ) / 4;
+	return high_hex;
+}
+
 std::ostream& operator<<( std::ostream& os, const stacktrace& st )
 noexcept
 {
@@ -60,12 +70,14 @@ noexcept
 
 	for ( auto& frame : st.frames( ) )
 	{
+		auto addr_len = addr_str_len( frame.addr );
+
 		if ( max_frame < frame.frameno )
 			max_frame = frame.frameno;
 		if ( max_lib < frame.lib.size( ) )
 			max_lib = frame.lib.size( );
-		if ( max_addr < frame.addr.size( ) )
-			max_addr = frame.addr.size( );
+		if ( max_addr < addr_len )
+			max_addr = addr_len;
 	}
 
 	char buf[16];
@@ -78,7 +90,8 @@ noexcept
 		os << "Frame " << std::setfill( ' ' )
 		<< std::setw( max_frame ) << frame.frameno << ": "
 		<< std::setw( max_lib ) << std::left << frame.lib << std::right
-		<< std::setw( max_addr ) << frame.addr << " "
+		<< std::setw( max_addr + 2 ) << std::showbase << std::hex
+			<< frame.addr << std::dec << " "
 		<< frame.symbol << " "
 		<< frame.extra << std::endl;
 	return os;
