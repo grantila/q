@@ -52,6 +52,10 @@
 #	define LIBQ_ON_GCC
 #endif
 
+#if defined( LIBQ_ON_GCC ) || defined( LIBQ_ON_WINDOWS )
+#	define LIBQ_WITH_BROKEN_NOEXCEPT
+#endif
+
 #if __cplusplus >= 201402L
 #	define LIBQ_WITH_CPP14
 #endif
