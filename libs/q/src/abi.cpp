@@ -22,7 +22,10 @@
 
 #ifdef LIBQ_ON_WINDOWS
 #	include <Windows.h>
-#	include <Dbghelp.h>
+#	pragma warning( push )
+#	pragma warning( disable: 4091 )
+#	include "DbgHelp.h"
+#	pragma warning( pop )
 #	include <q/mutex.hpp>
 #else
 #	include <cxxabi.h>
