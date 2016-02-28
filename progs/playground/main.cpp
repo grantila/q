@@ -460,10 +460,14 @@ int main( int argc, char** argv )
 		<< Q_ARITY_OF( decltype( &Movable::dummy ) )
 		<< ", "
 		<< Q_ARITY_OF( decltype( &Movable::dummy_const ) )
+
+#ifndef LIBQ_ON_WINDOWS
 		<< ", "
 		<< variadic_traits::arity::value
 		<< ", "
 		<< typeid( variadic_traits::type ).name( )
+#endif
+
 //		<< ", "
 //		<< typeid( variadic_traits::deduced_type ).name( )
 		<< ", "
