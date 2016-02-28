@@ -47,8 +47,8 @@ std::size_t hard_cores( )
 	size_t count_len = sizeof( count );
 	::sysctlbyname( "hw.physicalcpu_max", &count, &count_len, NULL, 0 );
 	return AT_LEAST_ONE( count );
-#elif defined( LIBQ_ON_WINDOWS )
-	return detail::get_cpu_info( ).hard_cores;
+#elif defined( LIBQ_ON_WINDOWS ) || defined( LIBQ_ON_POSIX )
+	return AT_LEAST_ONE( detail::get_cpu_info( ).hard_cores );
 #else
 // TODO: Move and change implementation. This is a decent default, nothing else
 	return fallback_cores( );
@@ -62,8 +62,8 @@ std::size_t soft_cores( )
 	size_t count_len = sizeof( count );
 	::sysctlbyname( "hw.logicalcpu_max", &count, &count_len, NULL, 0 );
 	return AT_LEAST_ONE( count );
-#elif defined( LIBQ_ON_WINDOWS )
-	return detail::get_cpu_info( ).soft_cores;
+#elif defined( LIBQ_ON_WINDOWS ) || defined( LIBQ_ON_POSIX )
+	return AT_LEAST_ONE( detail::get_cpu_info( ).soft_cores );
 #else
 	return fallback_cores( );
 #endif
@@ -76,8 +76,8 @@ std::size_t processors( )
 	size_t count_len = sizeof( count );
 	::sysctlbyname( "hw.packages", &count, &count_len, NULL, 0 );
 	return static_cast< std::size_t >( count );
-#elif defined( LIBQ_ON_WINDOWS )
-	return detail::get_cpu_info( ).processors;
+#elif defined( LIBQ_ON_WINDOWS ) || defined( LIBQ_ON_POSIX )
+	return AT_LEAST_ONE( detail::get_cpu_info( ).processors );
 #else
 	return 0;
 #endif

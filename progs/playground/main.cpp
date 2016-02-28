@@ -194,7 +194,10 @@ int main( int argc, char** argv )
 	auto q_scope = initialize( );
 
 	std::cout << "The computer has "
-		<< q::processors( ) << " processors" << std::endl;
+		<< q::processors( ) << " processors, "
+		<< q::hard_cores() << " hard cores, "
+		<< q::soft_cores() << " soft cores"
+		<< std::endl;
 
 	auto bd = q::make_shared< q::blocking_dispatcher >( "main" );
 	auto queue = q::make_shared< q::queue >( 0 );
