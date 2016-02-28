@@ -400,7 +400,9 @@ typename std::enable_if<
 	Q_RESULT_OF( Fn )
 >::type
 call_with_args( Fn&& fn, Args&&... args )
+#ifndef LIBQ_ON_WINDOWS
 noexcept( noexcept( fn( std::forward< Args >( args )... ) ) )
+#endif
 {
 	return fn( std::forward< Args >( args )... );
 }
@@ -422,7 +424,9 @@ typename std::enable_if<
 	Q_RESULT_OF( Fn )
 >::type
 call_with_args( Fn&& fn, Class&& obj, Args&&... args )
+#ifndef LIBQ_ON_WINDOWS
 noexcept( noexcept( ( obj->*fn )( std::forward< Args >( args )... ) ) )
+#endif
 {
 	return ( obj->*fn )( std::forward< Args >( args )... );
 }
@@ -444,7 +448,9 @@ typename std::enable_if<
 	Q_RESULT_OF( Fn )
 >::type
 call_with_args( Fn&& fn, Class&& obj, Args&&... args )
+#ifndef LIBQ_ON_WINDOWS
 noexcept( noexcept( ( obj.*fn )( std::forward< Args >( args )... ) ) )
+#endif
 {
 	return ( obj.*fn )( std::forward< Args >( args )... );
 }
@@ -454,6 +460,7 @@ namespace detail {
 template< typename Fn, class Tuple, std::size_t... Indexes >
 Q_RESULT_OF( Fn )
 call_with_args_by_tuple( Fn&& fn, Tuple&& tuple, q::index_tuple< Indexes... > )
+#ifndef LIBQ_ON_WINDOWS
 noexcept( noexcept(
 	Q_RESULT_OF( Fn )(
 		call_with_args(
@@ -465,6 +472,7 @@ noexcept( noexcept(
 		)
 	)
 ) )
+#endif
 {
 	return call_with_args(
 		std::forward< Fn >( fn ),
@@ -489,12 +497,14 @@ typename std::enable_if<
 	Q_RESULT_OF( Fn )
 >::type
 call_with_args_by_tuple( Fn&& fn, Tuple&& tuple )
+#ifndef LIBQ_ON_WINDOWS
 noexcept( noexcept(
 	detail::call_with_args_by_tuple(
 		std::forward< Fn >( fn ),
 		std::forward< Tuple >( tuple ),
 		detail::index_tuple< Tuple >( ) )
 ) )
+#endif
 {
 	return detail::call_with_args_by_tuple(
 		std::forward< Fn >( fn ),
@@ -506,7 +516,9 @@ noexcept( noexcept(
 template< typename Fn >
 Q_RESULT_OF( Fn )
 call_with_args_by_tuple( Fn&& fn, const std::tuple< >& tuple )
+#ifndef LIBQ_ON_WINDOWS
 noexcept( noexcept( fn( ) ) )
+#endif
 {
 	return fn( );
 }
@@ -521,11 +533,13 @@ typename std::enable_if<
 	Q_RESULT_OF( Fn )
 >::type
 call_with_args_by_fun( Fn&& fn, InnerFn&& inner_fn, Args&&... args )
+#ifndef LIBQ_ON_WINDOWS
 noexcept(
 	noexcept( inner_fn( std::forward< Args >( args )... ) )
 	and
 	noexcept( Q_RESULT_OF( Fn )( fn( ) ) )
 )
+#endif
 {
 	inner_fn( std::forward< Args >( args )... );
 	return fn( );
@@ -544,9 +558,11 @@ typename std::enable_if<
 	Q_RESULT_OF( Fn )
 >::type
 call_with_args_by_fun( Fn&& fn, InnerFn&& inner_fn, Args&&... args )
+#ifndef LIBQ_ON_WINDOWS
 noexcept( noexcept(
 	Q_RESULT_OF( Fn )( fn( inner_fn( std::forward< Args >( args )... ) ) )
 ) )
+#endif
 {
 	return fn( inner_fn( std::forward< Args >( args )... ) );
 }
@@ -559,11 +575,13 @@ typename std::enable_if<
 	Class
 >::type
 construct_with_function_call( Fn&& fn, Args&&... args )
+#ifndef LIBQ_ON_WINDOWS
 noexcept(
 	noexcept( fn( std::forward< Args >( args )... ) )
 	and
 	noexcept( Class( Class( ) ) )
 )
+#endif
 {
 	fn( std::forward< Args >( args )... );
 	return Class( );
@@ -581,7 +599,9 @@ typename std::enable_if<
 	Class
 >::type
 construct_with_function_call( Fn&& fn, Args&&... args )
+#ifndef LIBQ_ON_WINDOWS
 noexcept( noexcept( Class( Class( fn( std::forward< Args >( args )... ) ) ) ) )
+#endif
 {
 	return Class( fn( std::forward< Args >( args )... ) );
 }
