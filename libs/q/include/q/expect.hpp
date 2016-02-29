@@ -590,7 +590,6 @@ typename std::enable_if<
 	expect< T >
 >::type
 refuse( E&& e )
-noexcept
 {
 	return expect< T >( std::forward< E >( e ), false );
 }
