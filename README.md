@@ -2,7 +2,11 @@
 ===
 A platform-independent promise library for C++, implementing asynchronous continuations.
 
-Web page: [libq.io](http://libq.io/)
+Tested on GCC (Linux), XCode (OSX) and Visual Studio 2015 (Windows).
+
+ * [x] Web: [libq.io](http://libq.io/) ([API](http://libq.io/api))
+ * [x] Chat: [libq.slack.com](https://libq.slack.com)
+ * [x] Twitter: [@grantila](https://twitter.com/grantila)
 
 Version
 ----
