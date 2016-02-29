@@ -22,8 +22,6 @@
 #include <q/threadpool.hpp>
 #include <q/scope.hpp>
 
-#include <gtest/gtest.h>
-
 #include "../q-test.hpp"
 
 
