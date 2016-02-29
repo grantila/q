@@ -37,7 +37,7 @@ namespace detail {
 
 cpu_info get_cpu_info( )
 {
-	cpu_info info{ 0, 0, 0, { 0, 0 }, { 0, 0 }, { 0, 0 } };
+	cpu_info info{ 0, 0, 0, 0, 0, 0, 0 };
 
 	std::string data = exec_read_all( "lscpu" );
 
@@ -89,9 +89,9 @@ cpu_info get_cpu_info( )
 	info.hard_cores = soft_cores / tpc;
 	info.processors = processors;
 
-	info.level_1_cache.size = l1c;
-	info.level_2_cache.size = l2c;
-	info.level_3_cache.size = l3c;
+	info.level_1_cache_size = l1c;
+	info.level_2_cache_size = l2c;
+	info.level_3_cache_size = l3c;
 
 	return info;
 }

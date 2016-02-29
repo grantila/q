@@ -23,12 +23,15 @@
 #	include <windows.h>
 	static thread_local std::string threadname_;
 #elif defined( LIBQ_ON_OSX )
-#	include <sys/types.h>
-#	include <sys/sysctl.h>
 #elif defined( LIBQ_ON_POSIX )
 #	include <pthread.h>
 #endif
 
+#if defined( LIBQ_ON_WINDOWS ) \
+	|| defined( LIBQ_ON_POSIX ) \
+	|| defined( LIBQ_ON_OSX )
+#	define HAS_CUSTOM_CPU_INFO
+#endif
 
 #define AT_LEAST_ONE( n ) \
 	std::max< std::size_t >( static_cast< std::size_t >( n ), 1 )
@@ -42,27 +45,16 @@ std::size_t fallback_cores( )
 
 std::size_t hard_cores( )
 {
-#if defined( LIBQ_ON_OSX )
-	int count;
-	size_t count_len = sizeof( count );
-	::sysctlbyname( "hw.physicalcpu_max", &count, &count_len, NULL, 0 );
-	return AT_LEAST_ONE( count );
-#elif defined( LIBQ_ON_WINDOWS ) || defined( LIBQ_ON_POSIX )
+#if defined( HAS_CUSTOM_CPU_INFO )
 	return AT_LEAST_ONE( detail::get_cpu_info( ).hard_cores );
 #else
-// TODO: Move and change implementation. This is a decent default, nothing else
 	return fallback_cores( );
 #endif
 }
 
 std::size_t soft_cores( )
 {
-#if defined( LIBQ_ON_OSX )
-	int count;
-	size_t count_len = sizeof( count );
-	::sysctlbyname( "hw.logicalcpu_max", &count, &count_len, NULL, 0 );
-	return AT_LEAST_ONE( count );
-#elif defined( LIBQ_ON_WINDOWS ) || defined( LIBQ_ON_POSIX )
+#if defined( HAS_CUSTOM_CPU_INFO )
 	return AT_LEAST_ONE( detail::get_cpu_info( ).soft_cores );
 #else
 	return fallback_cores( );
@@ -71,13 +63,8 @@ std::size_t soft_cores( )
 
 std::size_t processors( )
 {
-#if defined( LIBQ_ON_OSX )
-	int count;
-	size_t count_len = sizeof( count );
-	::sysctlbyname( "hw.packages", &count, &count_len, NULL, 0 );
-	return static_cast< std::size_t >( count );
-#elif defined( LIBQ_ON_WINDOWS ) || defined( LIBQ_ON_POSIX )
-	return AT_LEAST_ONE( detail::get_cpu_info( ).processors );
+#if defined( HAS_CUSTOM_CPU_INFO )
+	return detail::get_cpu_info( ).processors;
 #else
 	return 0;
 #endif
