@@ -351,8 +351,15 @@ constexpr bool arguments_of_are_convertible_from =
 
 template< typename Fn, typename... Args >
 typename std::enable_if<
-	!Q_IS_MEMBERFUNCTION( Fn )::value ||
-	Q_FUNCTIONTRAITS( Fn )::using_call_operator::value,
+	Q_IS_FUNCTION( Fn )::value
+	and
+	Q_ARGUMENTS_ARE_CONVERTIBLE_FROM( Fn, Args... )::value
+	and
+	(
+		!Q_IS_MEMBERFUNCTION( Fn )::value
+		or
+		Q_FUNCTIONTRAITS( Fn )::using_call_operator::value
+	),
 	Q_RESULT_OF( Fn )
 >::type
 call_with_args( Fn&& fn, Args&&... args )
@@ -481,6 +488,10 @@ noexcept( noexcept( fn( ) ) )
 
 template< typename Fn, typename InnerFn, typename... Args >
 typename std::enable_if<
+	Q_IS_FUNCTION( Fn )::value
+	and
+	Q_IS_FUNCTION( InnerFn )::value
+	and
 	Q_RESULT_OF_AS_ARGUMENT( InnerFn )::size::value == 0
 	and
 	Q_ARITY_OF( Fn ) == 0
@@ -503,6 +514,10 @@ noexcept(
 
 template< typename Fn, typename InnerFn, typename... Args >
 typename std::enable_if<
+	Q_IS_FUNCTION( Fn )::value
+	and
+	Q_IS_FUNCTION( InnerFn )::value
+	and
 	( Q_RESULT_OF_AS_ARGUMENT( InnerFn )::size::value > 0 )
 	and
 	::q::is_argument_same_or_convertible<
