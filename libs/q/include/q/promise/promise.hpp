@@ -35,6 +35,19 @@ public:
 	typedef promise_state< tuple_type, false >         unique_state_type;
 	typedef unique_this_type                           promise_type;
 	typedef shared_this_type                           shared_promise_type;
+	typedef ::q::is_one_argument_and<
+		is_iterable, Args...
+	>                                                  is_list_argument;
+	typedef typename std::conditional<
+		is_list_argument::value,
+		typename first_argument_or< void, Args... >::type,
+		void
+	>::type                                            list_type;
+	typedef typename std::conditional<
+		is_list_argument::value,
+		typename value_type_of< list_type >::type,
+		void
+	>::type                                            list_element_type;
 	typedef typename std::conditional<
 		sizeof...( Args ) < 2,
 		::q::expect<
@@ -97,8 +110,8 @@ public:
 	 *   * then( T, ... )        -> X... => generic_promise< tuple< X > >
 	 *   * then( tuple< T... > ) -> X... => generic_promise< tuple< X > >
 	 *
-	 *   * fail( E ) -> void // Can not be continued (except for done())
-	 *   * fail( E ) -> generic_promise< tuple< T... > > // Can be continued, suitable for "retry" flow
+	 *   * fail( E ) -> generic_promise< tuple< T... > >
+	 *       Can be continued, suitable for "retry" flow
 	 *
 	 *   * done( ) -> void
 	 *
@@ -376,6 +389,306 @@ public:
 		return reflect_tuple( );
 	}
 
+	/**
+	 * Traditional functional map function, available when the promise
+	 * resolves to a container of elements or promises of elements.
+	 *
+	 * The function fn will be called for each element in the container,
+	 * await the value if necessary, and the map function will return a
+	 * promise of a container of the same type as the input, but with
+	 * elements of the type equal to the return type of @c fn.
+	 *
+	 * TODO: Implement options, e.g. for concurrency settings
+	 *
+	 * E.g:
+	 * Given the input std::vector< promise< int > > and the mapper function
+	 * being in the form: float( int ), the returned type of this function
+	 * will be: promise< std::vector< float > >.
+	 */
+	template<
+		template< typename... > class Container = default_template,
+		typename Fn,
+		typename Queue = queue_ptr
+	>
+	typename std::enable_if<
+		is_list_argument::value
+		and
+		(
+			Q_ARGUMENTS_ARE_CONVERTIBLE_FROM(
+				Fn,
+				list_element_type
+			)::value
+			or
+			Q_ARGUMENTS_ARE_CONVERTIBLE_FROM(
+				Fn,
+				list_element_type,
+				size_t
+			)::value
+		)
+		and
+		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
+		promise< std::tuple<
+			typename std::conditional<
+				std::is_same<
+					Container< void >,
+					default_template< void >
+				>::value,
+				typename rewrap_container<
+					list_type,
+					Q_RESULT_OF( Fn )
+				>::type,
+				Container< Q_RESULT_OF( Fn ) >
+			>::type
+		> >
+	>::type
+	map(
+		Fn&& fn,
+		Queue&& queue = nullptr,
+		::q::concurrency concurrency = ::q::concurrency( )
+	);
+
+/*
+
+TODO:
+
+For normal arrays:
+
+input 1: vec< promise< T > >
+input 2: vec< T >
+
+map 1: T -> U                       // Same as map_sync
+map 2: T -> promise< U >
+map 3: promise< T > -> U
+map 4: promise< T > -> promise< U >
+
+map< container = same >
+
+input 1, map 1
+input 1, map 2
+input 1, map 3
+input 1, map 4
+
+input 2, map 1
+input 2, map 2
+
+
+For associative arrays (maps):
+
+input 1: map< promise< T > >
+input 1: map< T >
+
+map 1: K, Vi -> Vo            // Re-uses same key
+map 2: K, Vi -> pair< K, Vo > // New key and value
+
+map< container = same >
+
+map 1: K, Vi -> Vo            // Re-uses same key
+map 2: K, Vi -> pair< K, Vo > // New key and value
+
+
+For sets:
+
+input 1: set< promise< T > >
+input 2: set< T >
+
+
+For array to associative array (or set):
+
+input 1: vec< promise< T > >
+input 2: vec< T >
+
+mapify 1: T -> < K, V >
+mapify 2: T -> promise< K, V >
+mapify 3: promise< T > -> < K, V >
+mapify 4: promise< T > -> promise< K, V >
+
+mapify< container = map >
+
+
+*/
+
+	template< typename Fn >
+	typename std::enable_if<
+		is_list_argument::value,
+		promise< std::tuple< std::vector< Q_RESULT_OF( Fn ) > > >
+	>::type
+	map(
+		Fn&& fn,
+		::q::concurrency concurrency
+	)
+	{
+		return map(
+			std::forward< Fn >( fn ),
+			queue_ptr( nullptr ),
+			concurrency
+		);
+	}
+
+	//  opts;
+
+
+	// TODO: Implement:
+	/*
+	 * reduce( )
+	 * filter( )
+	 *
+	 * And _sync versions
+	 */
+
+
+	/**
+	 * Traditional functional map function, available when the promise
+	 * resolves to a container of elements or promises of elements.
+	 *
+	 * The function fn will be called for each element in the container.
+	 * The elements of the container are the input to the map function, and
+	 * the output of the map function will be the content of the resulting
+	 * container.
+	 *
+	 * As oppose to map( ), this function doesn't await promises, neither
+	 * if the container elements are promises, nor if the map function
+	 * returns a promise.
+	 *
+	 * This function is useful e.g. to iterate a vector of promises and run
+	 * reflect( ) of each element, and return a new vector of reflected
+	 * promises so that it can be iterated with map( ) in success-flow, and
+	 * inspect each element for values and exceptions.
+	 *
+	 * NOTE; When this promise resolves to its container, the map function
+	 * will run over each element synchronously. It will *not* schedule
+	 * each map function on a queue, so for large containers and complex
+	 * map functions, this will "block" the queue it runs on until all
+	 * elements are iterated.
+	 */
+	template<
+		template< typename... > class Container = default_template,
+		typename Fn,
+		typename Queue = queue_ptr
+	>
+	typename std::enable_if<
+		is_list_argument::value
+		and
+		(
+			Q_ARGUMENTS_ARE_CONVERTIBLE_FROM(
+				Fn,
+				list_element_type
+			)::value
+			or
+			Q_ARGUMENTS_ARE_CONVERTIBLE_FROM(
+				Fn,
+				list_element_type,
+				size_t
+			)::value
+		)
+		and
+		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
+		promise< std::tuple<
+			typename std::conditional<
+				std::is_same<
+					Container< void >,
+					default_template< void >
+				>::value,
+				typename rewrap_container<
+					list_type,
+					Q_RESULT_OF( Fn )
+				>::type,
+				Container< Q_RESULT_OF( Fn ) >
+			>::type
+		> >
+	>::type
+	map_sync( Fn&& fn, Queue&& queue = nullptr );
+
+	/**
+	 * Traditional functional filter function, available when the promise
+	 * resolves to a container of elements or promises of elements.
+	 *
+	 * The function fn will be called for each element in the container.
+	 * The elements of the container are the input to the filter function,
+	 * and the output of the filter function decides whether the element
+	 * should be part of the resulting list or not. Hence, the return type
+	 * must be a bool.
+	 *
+	 * As oppose to filter( ), this function doesn't await promises.
+	 */
+	template< typename Fn, typename Queue = queue_ptr >
+	typename std::enable_if<
+		is_list_argument::value
+		and
+		::q::is_argument_same_or_convertible<
+			arguments< list_element_type >, Q_ARGUMENTS_OF( Fn )
+		>::value
+		and
+		std::is_same< Q_RESULT_OF( Fn ), bool >::value
+		and
+		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
+		this_type
+	>::type
+	filter_sync( Fn&& fn, Queue&& queue = nullptr );
+
+	/**
+	 * Traditional functional fold (or reduce) function, available when the
+	 * promise resolves to a container of elements or promises of elements.
+	 *
+	 * The function fn will be called for each element in the container.
+	 * Each fn gets a "previous" value, a "current" value (the current
+	 * container element), and an optional index. The "previous" value is
+	 * the return value of the last call to fn. The first time fn is called,
+	 * the "previous" value is usually called a "nil"-value (or simple a
+	 * start value), which this function takes as second argument. This
+	 * function will ultimately return the return value of the last call to
+	 * fn.
+	 *
+	 * As oppose to reduce( ), this function doesn't await promises,
+	 * neither if the container elements are promises, nor if the reduce
+	 * function returns a promise.
+	 */
+	template< typename Fn, typename Prev, typename Queue = queue_ptr >
+	typename std::enable_if<
+		is_list_argument::value
+		and
+		(
+			Q_ARGUMENTS_ARE_CONVERTIBLE_FROM(
+				Fn,
+				Prev,
+				list_element_type
+			)::value
+			or
+			Q_ARGUMENTS_ARE_CONVERTIBLE_FROM(
+				Fn,
+				Prev,
+				list_element_type,
+				size_t
+			)::value
+		)
+		and
+		::q::is_argument_same_or_convertible<
+			::q::arguments< Prev >,
+			::q::arguments< Q_RESULT_OF( Fn ) >
+		>::value
+		and
+		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
+		promise< std::tuple< Q_RESULT_OF( Fn ) > >
+	>::type
+	reduce_sync( Fn&& fn, Prev&& prev, Queue&& queue = nullptr );
+
+/*
+
+reduce function signature:
+U reduce(U, T, [size_t index])
+
+previousValue
+currentValue
+currentIndex
+*/
+
+
+	// TODO: Consider not having this functions at all. Applications should
+	//       end chains with a function returning void, and after that,
+	//       check for errors.
+	//       q should ensure that the final error handler exists, and warn
+	//       about chains ending without an error handler (i.e. where
+	//       errors either are *or could* be left unhandled, i.e. when the
+	//       inner state is destructed and never handled).
 	void done( )
 	{
 		// TODO: Implement

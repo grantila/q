@@ -729,6 +729,368 @@ reflect( )
 	return deferred->get_promise( );
 }
 
+template< bool Shared, typename... Args >
+template<
+	template< typename... > class Container,
+	typename Fn,
+	typename Queue
+>
+typename std::enable_if<
+	generic_promise< Shared, std::tuple< Args... > >
+		::is_list_argument::value
+	and
+	(
+		Q_ARGUMENTS_ARE_CONVERTIBLE_FROM(
+			Fn,
+			typename generic_promise<
+				Shared, std::tuple< Args... >
+			>::list_element_type
+		)::value
+		or
+		Q_ARGUMENTS_ARE_CONVERTIBLE_FROM(
+			Fn,
+			typename  generic_promise<
+				Shared, std::tuple< Args... >
+			>::list_element_type,
+			size_t
+		)::value
+	)
+	and
+	Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
+	promise< std::tuple<
+		typename std::conditional<
+			std::is_same<
+				Container< void >,
+				default_template< void >
+			>::value,
+			typename rewrap_container<
+				typename generic_promise<
+					Shared, std::tuple< Args... >
+				>::list_type,
+				Q_RESULT_OF( Fn )
+			>::type,
+			Container< Q_RESULT_OF( Fn ) >
+		>::type
+	> >
+>::type
+generic_promise< Shared, std::tuple< Args... > >::
+map( Fn&& fn, Queue&& queue, ::q::concurrency concurrency )
+{
+	//return this;
+	//decltype( std::declval< T >().foo())
+	//std::begin( declval( Fn ) )std::iterator_traits<Iterator>::iterator_category
+	// std::distance( );
+
+	typedef Q_RESULT_OF( Fn ) element_type;
+	typedef std::vector< element_type > return_type; // TODO: Maybe not vector
+	typedef std::tuple< return_type > return_tuple_type;
+
+	auto deferred = detail::defer< return_tuple_type >::construct(
+		is_set_default< Queue >::value
+		? ensure( set_default_get( queue ) )
+		: get_queue( ) );
+	auto tmp_fn = Q_TEMPORARILY_COPYABLE( fn );
+	auto state = state_;
+
+	auto perform = [ deferred, tmp_fn, state ]( ) mutable
+	{
+		auto expected_value = state->consume( );
+
+		if ( expected_value.has_exception( ) )
+		{
+			// Redirect exception
+			deferred->set_exception( expected_value.exception( ) );
+			return;
+		}
+
+		auto value = std::get< 0 >( expected_value.consume( ) );
+		auto fn = tmp_fn.consume( );
+
+		return_type ret;
+		ret.reserve( value.size( ) );
+
+		for ( auto elem : value )
+		{
+			fn( std::move( elem ) );
+		}
+
+		deferred->set_value( ret );
+	};
+
+	state_->signal( )->push( std::move( perform ),
+	                         ensure( set_default_forward( queue ) ) );
+
+	return std::move( deferred->get_promise( ) );
+}
+
+
+template< bool Shared, typename... Args >
+template<
+	template< typename... > class Container,
+	typename Fn,
+	typename Queue
+>
+typename std::enable_if<
+	generic_promise< Shared, std::tuple< Args... > >
+		::is_list_argument::value
+	and
+	(
+		Q_ARGUMENTS_ARE_CONVERTIBLE_FROM(
+			Fn,
+			typename generic_promise<
+				Shared, std::tuple< Args... >
+			>::list_element_type
+		)::value
+		or
+		Q_ARGUMENTS_ARE_CONVERTIBLE_FROM(
+			Fn,
+			typename generic_promise<
+				Shared, std::tuple< Args... >
+			>::list_element_type,
+			size_t
+		)::value
+	)
+	and
+	Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
+	promise< std::tuple<
+		typename std::conditional<
+			std::is_same<
+				Container< void >,
+				default_template< void >
+			>::value,
+			typename rewrap_container<
+				typename generic_promise<
+					Shared, std::tuple< Args... >
+				>::list_type,
+				Q_RESULT_OF( Fn )
+			>::type,
+			Container< Q_RESULT_OF( Fn ) >
+		>::type
+	> >
+>::type
+generic_promise< Shared, std::tuple< Args... > >::
+map_sync( Fn&& fn, Queue&& queue )
+{
+	typedef Q_RESULT_OF( Fn ) element_type;
+
+	typedef typename rewrap_container<
+		typename generic_promise<
+			Shared, std::tuple< Args... >
+		>::list_type,
+		element_type
+	>::type container_type;
+
+	typedef std::tuple< container_type > return_tuple_type;
+
+
+	auto deferred = detail::defer< return_tuple_type >::construct(
+		is_set_default< Queue >::value
+		? ensure( set_default_get( queue ) )
+		: get_queue( ) );
+	auto tmp_fn = Q_TEMPORARILY_COPYABLE( fn );
+	auto state = state_;
+
+	auto perform = [ deferred, tmp_fn, state ]( ) mutable
+	{
+		auto expected_value = state->consume( );
+
+		if ( expected_value.has_exception( ) )
+		{
+			// Redirect exception
+			deferred->set_exception( expected_value.exception( ) );
+			return;
+		}
+
+		auto value = std::move( std::get< 0 >( std::move(
+			expected_value.consume( )
+		) ) );
+		auto fn = tmp_fn.consume( );
+
+		container_type ret;
+		reserve_same_size( ret, value );
+
+		for ( auto elem : value )
+			ret.push_back( fn( std::move( elem ) ) );
+
+		deferred->set_value( ret );
+	};
+
+	state_->signal( )->push( std::move( perform ),
+	                         ensure( set_default_forward( queue ) ) );
+
+	return std::move( deferred->get_promise( ) );
+}
+
+template< bool Shared, typename... Args >
+template< typename Fn, typename Queue>
+typename std::enable_if<
+	generic_promise< Shared, std::tuple< Args... > >::
+		is_list_argument::value
+	and
+	::q::is_argument_same_or_convertible<
+		arguments<
+			typename generic_promise<
+				Shared, std::tuple< Args... >
+			>::list_element_type
+		>, Q_ARGUMENTS_OF( Fn )
+	>::value
+	and
+	std::is_same< Q_RESULT_OF( Fn ), bool >::value
+	and
+	Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
+	typename generic_promise< Shared, std::tuple< Args... > >::this_type
+>::type
+generic_promise< Shared, std::tuple< Args... > >::
+filter_sync( Fn&& fn, Queue&& queue )
+{
+	typedef std::tuple< list_type > return_tuple_type;
+
+	auto deferred = detail::defer< return_tuple_type >::construct(
+		is_set_default< Queue >::value
+		? ensure( set_default_get( queue ) )
+		: get_queue( ) );
+	auto tmp_fn = Q_TEMPORARILY_COPYABLE( fn );
+	auto state = state_;
+
+	auto perform = [ deferred, tmp_fn, state ]( ) mutable
+	{
+		auto expected_value = state->consume( );
+
+		if ( expected_value.has_exception( ) )
+		{
+			// Redirect exception
+			deferred->set_exception( expected_value.exception( ) );
+			return;
+		}
+
+		auto value = std::move( std::get< 0 >( std::move(
+			expected_value.consume( )
+		) ) );
+		auto fn = tmp_fn.consume( );
+
+		list_type ret;
+		reserve_same_size( ret, value );
+
+		for ( const auto& elem : value )
+			if ( fn( elem ) )
+				ret.push_back( std::move( elem ) );
+
+		deferred->set_value( ret );
+	};
+
+	state_->signal( )->push( std::move( perform ),
+	                         ensure( set_default_forward( queue ) ) );
+
+	return std::move( deferred->get_promise( ) );
+}
+
+template<
+	size_t N, typename Fn, typename T1, typename T2, typename T3,
+	typename std::enable_if< N == 3, int >::type Enabled = 0
+>
+auto call_3_fun( Fn&& fn, T1&& t1, T2&& t2, T3&& t3 ) -> Q_RESULT_OF( Fn )
+{
+	return std::forward< Fn >( fn )(
+		std::forward< T1 >( t1 ),
+		std::forward< T2 >( t2 ),
+		std::forward< T3 >( t3 )
+	);
+}
+
+template<
+	size_t N, typename Fn, typename T1, typename T2, typename T3,
+	typename std::enable_if< N == 2, int >::type Enabled = 0
+>
+auto call_3_fun( Fn&& fn, T1&& t1, T2&& t2, T3&& t3 ) -> Q_RESULT_OF( Fn )
+{
+	return std::forward< Fn >( fn )(
+		std::forward< T1 >( t1 ),
+		std::forward< T2 >( t2 )
+	);
+}
+
+
+template< bool Shared, typename... Args >
+template< typename Fn, typename Prev, typename Queue >
+typename std::enable_if<
+	generic_promise< Shared, std::tuple< Args... > >
+		::is_list_argument::value
+	and
+	(
+		Q_ARGUMENTS_ARE_CONVERTIBLE_FROM(
+			Fn,
+			Prev,
+			typename generic_promise<
+				Shared, std::tuple< Args... >
+			>::list_element_type
+		)::value
+		or
+		Q_ARGUMENTS_ARE_CONVERTIBLE_FROM(
+			Fn,
+			Prev,
+			typename generic_promise<
+				Shared, std::tuple< Args... >
+			>::list_element_type,
+			size_t
+		)::value
+	)
+	and
+	::q::is_argument_same_or_convertible<
+		::q::arguments< Prev >,
+		::q::arguments< Q_RESULT_OF( Fn ) >
+	>::value
+	and
+	Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
+	promise< std::tuple< Q_RESULT_OF( Fn ) > >
+>::type
+generic_promise< Shared, std::tuple< Args... > >::
+reduce_sync( Fn&& fn, Prev&& prev, Queue&& queue )
+{
+	typedef Q_RESULT_OF( Fn ) result_type;
+	typedef std::tuple< result_type > return_tuple_type;
+
+	auto deferred = detail::defer< return_tuple_type >::construct(
+		is_set_default< Queue >::value
+		? ensure( set_default_get( queue ) )
+		: get_queue( ) );
+	auto tmp_fn = Q_TEMPORARILY_COPYABLE( fn );
+	auto tmp_prev = Q_TEMPORARILY_COPYABLE( prev );
+	auto state = state_;
+
+	auto perform = [ deferred, tmp_fn, tmp_prev, state ]( ) mutable
+	{
+		auto expected_value = state->consume( );
+
+		if ( expected_value.has_exception( ) )
+		{
+			// Redirect exception
+			deferred->set_exception( expected_value.exception( ) );
+			return;
+		}
+
+		auto value = std::move( std::get< 0 >( std::move(
+			expected_value.consume( )
+		) ) );
+		auto fn = tmp_fn.consume( );
+
+		result_type ret( std::move( tmp_prev.consume( ) ) );
+
+		size_t index = 0;
+		for ( const auto& elem : value )
+			ret = std::move(
+				call_3_fun< Q_ARITY_OF( Fn ) >(
+					fn, std::move( ret ), elem, index++ )
+			);
+
+		deferred->set_value( std::move( ret ) );
+	};
+
+	state_->signal( )->push( std::move( perform ),
+	                         ensure( set_default_forward( queue ) ) );
+
+	return std::move( deferred->get_promise( ) );
+}
+
 } } // namespace detail, namespace q
 
 #endif // LIBQ_PROMISE_PROMISE_IMPL_HPP

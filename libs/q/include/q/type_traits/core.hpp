@@ -40,6 +40,9 @@ T identity_fn( T&& );
 template< typename T >
 typename std::remove_reference< T >::type identity_fn_noref( T&& );
 
+template< typename... >
+struct default_template;
+
 } // namespace detail
 
 /**
@@ -101,6 +104,18 @@ struct is_same_type
 	>::type
 >
 { };
+
+/**
+ * Composable is_same_type
+ */
+template< typename A >
+struct same
+{
+	template< typename B >
+	struct as
+	: is_same_type< A, B >
+	{ };
+};
 
 template< typename... T >
 struct is_tuple
@@ -340,7 +355,11 @@ struct tuple_of< std::tuple< T... > >
 };
 
 template< typename T, typename... Args >
-std::unique_ptr< T > make_unique( Args&&... args )
+typename std::enable_if<
+	!std::is_array< T >::value,
+	std::unique_ptr< T >
+>::type
+make_unique( Args&&... args )
 {
 #ifdef LIBQ_WITH_CPP14
 	return std::make_unique< T >( std::forward< Args >( args )... );
@@ -348,6 +367,106 @@ std::unique_ptr< T > make_unique( Args&&... args )
 	return std::unique_ptr< T >( new T( std::forward< Args >( args )... ) );
 #endif
 }
+
+template< typename T >
+typename std::enable_if<
+	std::is_array< T >::value,
+	std::unique_ptr< T >
+>::type
+make_unique( std::size_t size )
+{
+#if __cplusplus >= 201402L
+	return std::make_unique< T >( size );
+#else
+	typedef typename std::remove_extent< T >::type Tbase;
+	return std::unique_ptr< T >( new Tbase[ size ] );
+#endif
+}
+
+namespace detail {
+
+struct two_bytes
+{
+	char c[ 2 ];
+};
+
+template< typename List >
+char test( decltype( std::begin( std::declval< List >( ) ) )* );
+
+template< typename List >
+two_bytes test( ... );
+
+template< typename List >
+struct is_iterable
+: ::q::bool_type< sizeof( detail::test< List >( 0 ) ) == 1 >
+{ };
+
+template< typename List, bool Iterable = detail::is_iterable< List >::value >
+struct iterator_of
+{
+	typedef void type;
+};
+
+template< typename List >
+struct iterator_of< List, true >
+{
+	typedef decltype( std::begin( std::declval< List >( ) ) ) type;
+};
+
+template< typename Default, typename... Args >
+struct first_argument_or
+{
+	typedef Default type;
+};
+
+template< typename Default, typename First, typename... Args >
+struct first_argument_or< Default, First, Args... >
+{
+	typedef First type;
+};
+
+template< typename List, typename Any = typename iterator_of< List >::type >
+struct value_type_of
+{
+	typedef typename List::value_type type;
+};
+
+template< typename List >
+struct value_type_of< List, void >
+{
+	typedef void type;
+};
+
+template< typename Container, typename... Contents >
+struct rewrap_container;
+
+template<
+	typename... Args,
+	template< typename... > class Container,
+	typename... Contents
+>
+struct rewrap_container< Container< Args... >, Contents... >
+{
+	typedef Container< Contents... > type;
+};
+
+template< typename ToList, typename FromList >
+void reserve_same_size( ToList& dest, FromList&& src )
+{ }
+
+template< typename ToList, typename FromList >
+typename std::enable_if<
+	std::is_same<
+		decltype( std::declval< ToList >( ).reserve( ) ),
+		decltype( std::declval< ToList >( ).reserve( ) )
+	>::value
+>::type
+reserve_same_size( ToList& dest, FromList&& src )
+{
+	dest.reserve( src.size( ) );
+}
+
+} // namespace detail
 
 } // namespace q
 
