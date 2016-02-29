@@ -2,6 +2,8 @@
 
 TODO
 obj
+3rdparty/libevent-*
+dist
 
 CMakeCache.txt
 CMakeFiles

@@ -3,14 +3,18 @@ cmake_minimum_required( VERSION 2.8 )
 
 project( q )
 
+set( Q_ROOT ${PROJECT_SOURCE_DIR} )
+
 include( "cmake/projects.cmake" )
 
 set( CMAKE_DEBUG_POSTFIX "d" )
 
 if ( MSVC )
+	set( STATIC_LIB_SUFFIX 'lib' )
 	set( CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd" )
 	set( CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT" )
 else ( )
+	set( STATIC_LIB_SUFFIX 'a' )
 	set( CMAKE_CXX_FLAGS "-g" )
 	set( CMAKE_CXX_FLAGS_RELEASE "-O2" )
 
@@ -30,6 +34,9 @@ else ( )
 endif ( )
 
 include_directories( "libs/q/include" )
+
+include_directories( "3rdparty/dist/include" )
+set( LIBEVENT_LIB "${Q_ROOT}/3rdparty/dist/lib/libevent.${STATIC_LIB_SUFFIX}" )
 
 add_subdirectory( "libs/q" )
 add_subdirectory( "libs/p" )
