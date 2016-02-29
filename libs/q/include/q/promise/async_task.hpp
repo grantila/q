@@ -47,10 +47,11 @@ public:
 
 	template< typename Fn >
 	typename std::enable_if<
-		Q_IS_FUNCTION( Fn )::value and
-		std::is_same< Q_RESULT_OF( Fn ), void >::value and
-		Q_ARGUMENTS_ARE( Fn, q::expect< > )::value and
-		Q_NOEXCEPT_OF( Fn )
+		Q_IS_FUNCTION( Fn )::value
+		and
+		std::is_same< Q_RESULT_OF( Fn ), void >::value
+		and
+		Q_ARGUMENTS_ARE( Fn, q::expect< > )::value
 	>::type
 	run( Fn&& fn )
 	{
