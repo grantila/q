@@ -29,7 +29,7 @@ namespace detail {
 
 cpu_info get_cpu_info( )
 {
-	cpu_info info{ 0, 0, 0, { 0, 0 }, { 0, 0 }, { 0, 0 } };
+	cpu_info info{ 0, 0, 0, 0, 0, 0, 0 };
 
 	DWORD bufsize = 0;
 
@@ -83,20 +83,25 @@ cpu_info get_cpu_info( )
 		}
 		if ( part.Relationship == RelationCache )
 		{
-			cpu_cache* cache = nullptr;
 			if ( part.Cache.Level == 1 )
-				cache = &info.level_1_cache;
+				info.level_1_cache_size =
+					static_cast< std::uint64_t >(
+						part.Cache.Size );
 			else if ( part.Cache.Level == 2 )
-				cache = &info.level_2_cache;
+				info.level_2_cache_size =
+					static_cast< std::uint64_t >(
+						part.Cache.Size );
 			else if ( part.Cache.Level == 3 )
-				cache = &info.level_3_cache;
+				info.level_2_cache_size =
+					static_cast< std::uint64_t >(
+						part.Cache.Size );
 			else
 				continue;
 
-			cache->size = static_cast< std::size_t >(
-				part.Cache.Size );
-			cache->line_size = static_cast< std::size_t >(
-				part.Cache.LineSize );
+			if ( info.cache_line_size == 0 )
+				info.cache_line_size =
+					static_cast< std::size_t >(
+						part.Cache.LineSize );
 		}
 		if ( part.Relationship == RelationProcessorPackage )
 		{
