@@ -17,7 +17,18 @@
 #ifndef LIBQ_TEST_QTEST_HPP
 #define LIBQ_TEST_QTEST_HPP
 
+#include <q/pp.hpp>
+
+#ifdef LIBQ_ON_GCC
+#	pragma GCC diagnostic push
+#	pragma GCC diagnostic ignored "-Wsign-compare"
+#endif // LIBQ_ON_GCC
+
 #include <gtest/gtest.h>
+
+#ifdef LIBQ_ON_GCC
+#	pragma GCC diagnostic pop
+#endif // LIBQ_ON_GCC
 
 
 #define EXPECT_CALL( spy, ... ) \
