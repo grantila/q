@@ -17,9 +17,4 @@
 #ifndef LIBP_PP_HPP
 #define LIBP_PP_HPP
 
-// TODO: Make this more portable
-#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-#	define LIBP_LITTLE_ENDIAN
-#endif
-
 #endif // LIBP_PP_HPP
