@@ -14,50 +14,50 @@
  * limitations under the License.
  */
 
-#ifndef LIBP_ENDIAN_HPP
-#define LIBP_ENDIAN_HPP
+#ifndef LIBQ_ENDIAN_HPP
+#define LIBQ_ENDIAN_HPP
 
 #include <q/pp.hpp>
 
 #ifdef LIBQ_ON_LINUX
 #	include <byteswap.h>
-#	define LIBP_SWAP_16 bswap_16
-#	define LIBP_SWAP_32 bswap_32
-#	define LIBP_SWAP_64 bswap_64
+#	define LIBQ_SWAP_16 bswap_16
+#	define LIBQ_SWAP_32 bswap_32
+#	define LIBQ_SWAP_64 bswap_64
 #else
-#	define LIBP_SWAP_CHUNK( chunk, x ) \
+#	define LIBQ_SWAP_CHUNK( chunk, x ) \
 		( ( ( x ) >> chunk ) | ( ( x ) << chunk ) )
-#	define LIBP_SWAP_16( x ) \
-		LIBP_SWAP_CHUNK( 8, x )
-#	define LIBP_SWAP_32( x ) \
-		LIBP_SWAP_CHUNK( 16, \
+#	define LIBQ_SWAP_16( x ) \
+		LIBQ_SWAP_CHUNK( 8, x )
+#	define LIBQ_SWAP_32( x ) \
+		LIBQ_SWAP_CHUNK( 16, \
 			( ( ( x ) << 8 ) & 0xFF00FF00 ) | \
 			( ( ( x ) >> 8 ) & 0xFF00FF ) \
 		)
-#	define LIBP_SWAP_64_HALF( x ) \
+#	define LIBQ_SWAP_64_HALF( x ) \
 			( ( ( x ) << 16 ) & 0xFFFF0000FFFF0000ULL ) | \
 			( ( ( x ) >> 16 ) & 0x0000FFFF0000FFFFULL )
-#	define LIBP_SWAP_64( x ) \
-		LIBP_SWAP_CHUNK( 32, \
-			LIBP_SWAP_64_HALF( \
+#	define LIBQ_SWAP_64( x ) \
+		LIBQ_SWAP_CHUNK( 32, \
+			LIBQ_SWAP_64_HALF( \
 				( ( ( x ) << 8 ) & 0xFF00FF00FF00FF00ULL ) | \
 				( ( ( x ) >> 8 ) & 0x00FF00FF00FF00FFULL ) \
 			) \
 		)
 #endif
 
-#define LIBP_SWAP_ANY( x, size ) \
-		( size == 1 ) \
-		? ( x ) \
-		: ( size == 2 ) \
-		  ? LIBP_SWAP_16( x ) \
-		  : ( size == 4 ) \
-		    ? LIBP_SWAP_32( x ) \
-		    : ( size == 8 ) \
-		      ? LIBP_SWAP_64( x ) \
-		      : ( x ) // Error
+#define LIBQ_SWAP_ANY( x, size ) \
+	( size == 1 ) \
+	? ( x ) \
+	: ( size == 2 ) \
+	  ? LIBQ_SWAP_16( x ) \
+	  : ( size == 4 ) \
+	    ? LIBQ_SWAP_32( x ) \
+	    : ( size == 8 ) \
+	      ? LIBQ_SWAP_64( x ) \
+	      : ( x ) // Error
 
-namespace p {
+namespace q {
 
 namespace detail {
 
@@ -68,15 +68,15 @@ template< > struct endian_size_type< 2 > { typedef std::uint16_t type; };
 template< > struct endian_size_type< 4 > { typedef std::uint32_t type; };
 template< > struct endian_size_type< 8 > { typedef std::uint64_t type; };
 
-template< typename Size >
+template< std::size_t Size >
 inline typename endian_size_type< Size >::type
 endian_swap( typename endian_size_type< Size >::type value )
 {
-	return LIBP_SWAP_ANY( value, Size );
+	return LIBQ_SWAP_ANY( value, Size );
 }
 
 template< int Size, bool Swap = true >
-inline void endian_swap( void* to, void* from )
+inline void endian_swap( void* to, const void* from )
 {
 	typedef typename endian_size_type< Size >::type size_type;
 
@@ -86,10 +86,10 @@ inline void endian_swap( void* to, void* from )
 		*( size_type* )to = *( size_type* )from;
 }
 
-template< bool Big, int Size >
-void ensure_endian( void* to, void* from )
+template< bool Big, std::size_t Size >
+inline void ensure_endian( void* to, const void* from )
 {
-#ifdef LIBP_LITTLE_ENDIAN
+#ifdef LIBQ_LITTLE_ENDIAN
 	endian_swap< Size, Big >( to, from );
 #else
 	endian_swap< Size, !Big >( to, from );
@@ -108,42 +108,45 @@ public:
 
 	endian( T t )
 	{
-		detail::ensure_endian< Big, sizeof T >( t_, &t );
+		detail::ensure_endian< Big, sizeof( T ) >(
+			reinterpret_cast< void* >( t_ ),
+			reinterpret_cast< const void* >( &t ) );
 	}
 
 	operator T( ) const
 	{
 		T t;
-		detail::ensure_endian< Big, sizeof T >( &t, t_ );
+		detail::ensure_endian< Big, sizeof( T ) >(
+			reinterpret_cast< void* >( &t ),
+			reinterpret_cast< const void* >( t_ ) );
 		return std::move( t );
 	}
 
 	void store( T t )
 	{
-		detail::ensure_endian< Big, sizeof T >( t_, &t );
+		detail::ensure_endian< Big, sizeof( T ) >(
+			reinterpret_cast< void* >( t_ ),
+			reinterpret_cast< const void* >( &t ) );
 	}
 
 private:
-	uint8_t t_[ sizeof T ];
+	uint8_t t_[ sizeof( T ) ];
 };
 
 template< typename T >
 class le
 : public endian< false, T >
 {
-	using endian::endian;
+	using endian< false, T >::endian;
 };
 
 template< typename T >
 class be
 : public endian< true, T >
 {
-	using endian::endian;
+	using endian< true, T >::endian;
 };
 
-le< int > li;
-be< long > bi;
+} // namespace q
 
-} // namespace p
-
-#endif // LIBP_ENDIAN_HPP
+#endif // LIBQ_ENDIAN_HPP
