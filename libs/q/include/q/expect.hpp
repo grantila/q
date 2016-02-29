@@ -19,6 +19,7 @@
 
 #include <q/type_traits.hpp>
 #include <q/exception.hpp>
+#include <q/pp.hpp>
 
 #include <utility>
 
@@ -536,7 +537,9 @@ typename std::enable_if<
 	expect< T >
 >::type
 fulfill( T&& t )
+#ifndef LIBQ_WITH_BROKEN_NOEXCEPT
 noexcept( noexcept( expect< T >( expect< T >( std::forward< T >( t ) ) ) ) )
+#endif
 {
 	return expect< T >( std::forward< T >( t ) );
 }
@@ -547,7 +550,9 @@ typename std::enable_if<
 	expect< void >
 >::type
 fulfill( )
+#ifndef LIBQ_WITH_BROKEN_NOEXCEPT
 noexcept( noexcept( expect< void >( expect< void >( ) ) ) )
+#endif
 {
 	return expect< void >( );
 }
@@ -559,7 +564,9 @@ typename std::enable_if<
 	expect< T >
 >::type
 refuse( E&& e )
+#ifndef LIBQ_WITH_BROKEN_NOEXCEPT
 noexcept( noexcept( expect< T >( expect< T >( std::forward< E >( e ) ) ) ) )
+#endif
 {
 	return expect< T >( std::forward< E >( e ) );
 }
@@ -583,6 +590,7 @@ typename std::enable_if<
 	expect< T >
 >::type
 refuse( E&& e )
+noexcept
 {
 	return expect< T >( std::forward< E >( e ), false );
 }
