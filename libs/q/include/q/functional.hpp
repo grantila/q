@@ -78,9 +78,6 @@
 #define Q_IS_FUNCTION( Fn ) \
 	::q::function_traits< Fn >::valid
 
-#define Q_NOEXCEPT_OF( Fn ) \
-	::q::function_traits< Fn >::is_noexcept::value
-
 #define Q_IS_CONST_OF( Fn ) \
 	::q::function_traits< Fn >::is_const::value;
 
@@ -364,9 +361,6 @@ constexpr bool is_memberfunction = Q_IS_MEMBERFUNCTION( Fn )::value;
 
 template< typename Fn >
 constexpr bool is_function = Q_IS_FUNCTION( Fn )::value;
-
-template< typename Fn >
-constexpr bool is_noexcept = Q_NOEXCEPT_OF( Fn );
 
 template< typename Fn >
 constexpr std::size_t arity_of = Q_ARITY_OF( Fn );
