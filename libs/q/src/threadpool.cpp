@@ -31,10 +31,11 @@ static std::string make_thread_name( const std::string& base,
                                      std::size_t num,
                                      std::size_t total )
 {
+	if ( total <= 1 )
+		return base;
+
 	std::stringstream ret;
-	ret << base;
-	if ( total > 1 )
-		ret << " (#" << num << "/" << total << ")";
+	ret << base << " (#" << num << "/" << total << ")";
 	return ret.str( );
 }
 
