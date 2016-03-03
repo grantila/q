@@ -8,6 +8,8 @@ Tested on GCC (Linux), XCode (OSX) and Visual Studio 2015 (Windows).
  * [x] Chat: [libq.slack.com](https://libq.slack.com)
  * [x] Twitter: [@grantila](https://twitter.com/grantila)
 
+[![Build Status](https://semaphoreci.com/api/v1/gustaf/q/branches/master/badge.svg)](https://semaphoreci.com/gustaf/q)
+
 Version
 ----
 Still unversioned until closing in on 1.0. The API is likely not going to change until 1.0.
