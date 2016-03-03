@@ -17,6 +17,8 @@
 #include <q/block.hpp>
 #include <q/exception.hpp>
 
+#include <cstring>
+
 namespace q {
 
 byte_block::byte_block( )
@@ -29,7 +31,7 @@ byte_block::byte_block( const std::string& s )
 , size_( s.size( ) )
 {
 	data_.resize( size_ );
-	memcpy( &data_[ 0 ], s.data( ), size_ );
+	std::memcpy( &data_[ 0 ], s.data( ), size_ );
 }
 
 byte_block::byte_block( std::size_t size )
