@@ -20,6 +20,7 @@
 #include <q/exception.hpp>
 #include <q/mutex.hpp>
 #include <q/promise.hpp>
+#include <q/types.hpp>
 
 #include <queue>
 #include <atomic>
