@@ -1,18 +1,16 @@
 
+#include <q-test/q-test.hpp>
+
 #include <q/execution_context.hpp>
 #include <q/blocking_dispatcher.hpp>
 #include <q/threadpool.hpp>
 #include <q/promise.hpp>
 
-#include <gtest/gtest.h>
-
 #include <queue>
-
-#include "q-test.hpp"
 
 TEST( ThreadPool, PerformTasks )
 {
-	qtest::spy spy;
+	q::test::spy spy;
 
 	auto bd = q::make_execution_context<
 		q::blocking_dispatcher, q::direct_scheduler
