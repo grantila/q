@@ -159,6 +159,18 @@ using readable_ptr = std::shared_ptr< readable< T... > >;
 template< typename... T >
 using channel_ptr = std::shared_ptr< channel< T... > >;
 
+// Execution context
+
+class execution_context;
+typedef std::shared_ptr< execution_context > execution_context_ptr;
+
+template< typename Dispatcher >
+class specific_execution_context;
+
+template< typename Dispatcher >
+using specific_execution_context_ptr =
+	std::shared_ptr< specific_execution_context< Dispatcher > >;
+
 } // namespace q
 
 #endif // LIBQ_TYPES_HPP

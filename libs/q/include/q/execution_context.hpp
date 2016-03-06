@@ -27,9 +27,6 @@
 
 namespace q {
 
-class execution_context;
-typedef std::shared_ptr< execution_context > execution_context_ptr;
-
 class execution_context
 {
 public:
@@ -73,7 +70,7 @@ template<
 	typename Scheduler = ::q::direct_scheduler,
 	typename... Args
 >
-std::shared_ptr< specific_execution_context< EventDispatcher > >
+specific_execution_context_ptr< EventDispatcher >
 make_execution_context( Args&&... args )
 {
 	auto ed = q::make_shared< EventDispatcher >(
