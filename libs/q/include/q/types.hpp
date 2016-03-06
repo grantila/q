@@ -139,6 +139,18 @@ typedef int priority_t;
 
 typedef std::function< void( void ) noexcept > task;
 
+// Execution context
+
+class execution_context;
+typedef std::shared_ptr< execution_context > execution_context_ptr;
+
+template< typename Dispatcher >
+class specific_execution_context;
+
+template< typename Dispatcher >
+using specific_execution_context_ptr =
+	std::shared_ptr< specific_execution_context< Dispatcher > >;
+
 } // namespace q
 
 #endif // LIBQ_TYPES_HPP
