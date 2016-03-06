@@ -1,6 +1,5 @@
 
-#include "helpers.hpp"
-#include <q/pp.hpp>
+#include <q-test/q-test.hpp>
 
 Q_TEST_MAKE_SCOPE( Make );
 

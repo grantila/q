@@ -14,16 +14,21 @@
  * limitations under the License.
  */
 
-#ifndef LIBQ_TEST_PROMISE_HELPERS_HPP
-#define LIBQ_TEST_PROMISE_HELPERS_HPP
+#ifndef LIBQ_TEST_FIXTURE_HPP
+#define LIBQ_TEST_FIXTURE_HPP
+
+#include <q-test/gtest.hpp>
+#include <q-test/spy.hpp>
 
 #include <q/promise.hpp>
 #include <q/execution_context.hpp>
 #include <q/threadpool.hpp>
 #include <q/scope.hpp>
 
-#include "../q-test.hpp"
+#define Q_TEST_MAKE_SCOPE( name ) \
+	class name : public ::q::test::PromiseSetup { }
 
+namespace q { namespace test {
 
 class PromiseSetup
 : public ::testing::Test
@@ -78,13 +83,12 @@ protected:
 	q::queue_ptr queue;
 	q::queue_ptr tp_queue;
 
-	qtest::spy spy;
+	q::test::spy spy;
 
 private:
 	q::scope scope_;
 };
 
-#define Q_TEST_MAKE_SCOPE( name ) \
-	class name : public PromiseSetup { }
+} } // namespace test, namespace q
 
-#endif // LIBQ_TEST_PROMISE_HELPERS_HPP
+#endif // LIBQ_TEST_FIXTURE_HPP

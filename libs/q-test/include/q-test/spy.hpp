@@ -14,22 +14,15 @@
  * limitations under the License.
  */
 
-#ifndef LIBQ_TEST_QTEST_HPP
-#define LIBQ_TEST_QTEST_HPP
+#ifndef LIBQ_TEST_SPY_HPP
+#define LIBQ_TEST_SPY_HPP
 
-#include <q/pp.hpp>
+#include <q/type_traits.hpp>
+#include <q/functional.hpp>
 
-#ifdef LIBQ_ON_GCC
-#	pragma GCC diagnostic push
-#	pragma GCC diagnostic ignored "-Wsign-compare"
-#endif // LIBQ_ON_GCC
-
-#include <gtest/gtest.h>
-
-#ifdef LIBQ_ON_GCC
-#	pragma GCC diagnostic pop
-#endif // LIBQ_ON_GCC
-
+#include <vector>
+#include <atomic>
+#include <memory>
 
 #define EXPECT_CALL( spy, ... ) \
 	spy.expect_call( __FILE__, __LINE__, 1 ).template create< __VA_ARGS__ >
@@ -50,7 +43,7 @@
 	spy.expect_call( __FILE__, __LINE__, n ).wrap
 
 
-namespace qtest {
+namespace q { namespace test {
 
 class call_spy_counter
 {
@@ -255,6 +248,6 @@ private:
 	std::vector< std::shared_ptr< call_spy_counter > > spies_;
 };
 
-} // namespace qtest
+} } // namespace test, namespace q
 
-#endif // LIBQ_TEST_QTEST_HPP
+#endif // LIBQ_TEST_SPY_HPP
