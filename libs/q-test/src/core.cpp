@@ -1,4 +1,6 @@
 
+#include <q-test/q-test.hpp>
+
 #include <q/lib.hpp>
 #include <q/static_atomic.hpp>
 
