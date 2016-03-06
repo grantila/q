@@ -72,12 +72,8 @@ protected:
 		bd->dispatcher( )->start( );
 	}
 
-	std::shared_ptr<
-		q::specific_execution_context< q::blocking_dispatcher >
-	> bd;
-	std::shared_ptr<
-		q::specific_execution_context< q::threadpool >
-	> tp;
+	q::specific_execution_context_ptr< q::blocking_dispatcher > bd;
+	q::specific_execution_context_ptr< q::threadpool > tp;
 
 	q::queue_ptr queue;
 	q::queue_ptr tp_queue;
