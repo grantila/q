@@ -21,52 +21,7 @@
 #include <q/promise.hpp>
 #include <q/channel.hpp>
 
-namespace q { namespace rx {
-
-template< typename T >
-class observable
-{
-public:
-	observable( q::readable_ptr< T >&& readable )
-	: readable_( std::move( readable ) )
-	{ }
-
-	/**
-	 * ( In ) -> promise< Out >
-	 */
-	template< typename Fn >
-	typename std::enable_if<
-		q::is_promise< Q_RESULT_OF( Fn ) >::value,
-		observable<
-			typename std::conditional<
-				std::tuple_size<
-					::q::result_of< Fn >::tuple_type
-				>::value == 0,
-				void,
-				typename std::conditional<
-					std::tuple_size<
-						::q::result_of< Fn >::tuple_type
-					>::value == 1,
-					typename std::tuple_element<
-						0,
-						::q::result_of< Fn >::tuple_type
-					>::type,
-					::q::result_of< Fn >::tuple_type
-				>::type
-			>::type
-		>
-	>::type
-	map( Fn&& fn );
-
-	// TODO: Implemement properly, e.g. with promises
-	T onNext( );
-	std::exception_ptr onError( );
-	void onComplete( );
-
-private:
-	q::readable_ptr< T > readable_;
-};
-
-} // namespace rx, namespace q
+#include <q-rx/observable/observable.hpp>
+#include <q-rx/observable/observable_impl.hpp>
 
 #endif // LIBQ_RX_OBSERVABLE_HPP

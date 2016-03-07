@@ -1,7 +1,8 @@
 
+#include <q-rx/functional.hpp>
 #include <q-rx/observable.hpp>
-#include <q/promise.hpp>
 
+#include <q/promise.hpp>
 #include <q/blocking_dispatcher.hpp>
 #include <q/threadpool.hpp>
 #include <q/scheduler.hpp>
@@ -26,6 +27,22 @@ struct my_exception : q::exception { };
 
 int main( int argc, char** argv )
 {
+/*
+	q::rx::observable< int > obs;
+	obs // o< o< int > >
+		.map( q::rx::f::accumulate )
+		.map( q::rx::f::div( std::size_t( 3 ) ) )
+		.op( q::rx::f::adjacent_difference )
+		.zip( obs2, inner_product )
+*/
+
+	auto dividor = q::rx::f::div( 5 );
+
+	auto three = dividor( 15 );
+
+	std::cout << "3 = " << three << std::endl;
+	return 0;
+
 	auto q_scope = initialize( );
 
 	auto bd = q::make_shared< q::blocking_dispatcher >( "main" );
@@ -37,6 +54,7 @@ int main( int argc, char** argv )
 	auto error_stuff  = q::with( queue ).share( );
 	auto thread_stuff = q::with( queue );
 
+/*
 	auto observable_bytes = q::rx::from( ch_incoming_byte_blocks );
 
 	const auto dur_window = std::chrono::milliseconds( 100 );
@@ -74,7 +92,7 @@ int main( int argc, char** argv )
 				last.begin( ), last.end( ), 0 ) / mul_smooth;
 		} );
 		// -> observable< std::size_t > for bytes per second, every 100ms
-
+*/
 	bd->start( );
 
 	return 0;

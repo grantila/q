@@ -14,10 +14,21 @@
  * limitations under the License.
  */
 
-#ifndef LIBQ_RX_FUNCTIONAL_HPP
-#define LIBQ_RX_FUNCTIONAL_HPP
+#ifndef LIBQ_RX_OBSERVABLE_OBSERVABLE_IMPL_HPP
+#define LIBQ_RX_OBSERVABLE_OBSERVABLE_IMPL_HPP
 
-#include <q-rx/functional/math.hpp>
-#include <q-rx/functional/sequence.hpp>
+namespace q { namespace rx {
 
-#endif // LIBQ_RX_FUNCTIONAL_HPP
+template< typename T >
+struct is_observable
+: std::false_type
+{ };
+
+template< typename T >
+struct is_observable< observable< T > >
+: std::true_type
+{ };
+
+} } // namespace rx, namespace q
+
+#endif // LIBQ_RX_OBSERVABLE_OBSERVABLE_IMPL_HPP

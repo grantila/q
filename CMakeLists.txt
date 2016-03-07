@@ -40,6 +40,8 @@ set( LIBEVENT_LIB "${Q_ROOT}/3rdparty/dist/lib/libevent.${STATIC_LIB_SUFFIX}" )
 
 add_subdirectory( "libs/q" )
 add_subdirectory( "libs/p" )
+
+include_directories( "libs/q-rx/include" )
 add_subdirectory( "libs/q-rx" )
 
 add_subdirectory( "progs/playground" )
@@ -51,4 +53,5 @@ include_directories( "3rdparty/gmock-1.7.0/include/" )
 add_subdirectory( "3rdparty/gmock-1.7.0" )
 
 add_subdirectory( "tests/q" )
+add_subdirectory( "tests/q-rx" )
 
