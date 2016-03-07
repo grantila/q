@@ -77,9 +77,26 @@ fast_pi_order< T, 8 > = std::conditional<
 	std::integral_constant< std::make_unsigned_t< T >, 0xff80000000000000 >
 >::type::value;
 
-} // namespace detail
+template<
+	typename T,
+	bool Enabled = q::bool_type<
+		( sizeof( T ) == 2 or sizeof( T ) == 4 or sizeof( T ) == 8 )
+		and
+		std::is_integral< typename std::decay< T >::type >::value
+	>::value
+>
+struct enabled_fast_pi_type;
 
 template< typename T >
+struct enabled_fast_pi_type< T, true >
+{ typedef int type; };
+
+} // namespace detail
+
+template<
+	typename T,
+	typename detail::enabled_fast_pi_type< T >::type = 0
+>
 auto fast_mul_pi( T&& t )
 {
 	typedef typename std::decay< T >::type type;
@@ -93,14 +110,17 @@ auto fast_mul_pi( T&& t )
 		: ( t / fast_pi.den ) * fast_pi.num;
 }
 
-template< typename T >
+template<
+	typename T,
+	typename detail::enabled_fast_pi_type< T >::type = 0
+>
 auto fast_div_pi( T&& t )
 {
 	typedef typename std::decay< T >::type type;
 
 	auto is_too_large =
 		static_cast< std::make_unsigned_t< type > >( t ) ^
-		( detail::fast_pi_order< type > << 1 );
+		( detail::fast_pi_order< type > << 2 );
 
 	return is_too_large
 		? ( t * fast_pi.den ) / fast_pi.num

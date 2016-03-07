@@ -1,7 +1,7 @@
 
-#include "q-test.hpp"
-
 #include <q-rx/functional.hpp>
+
+#include "q-rx-test.hpp"
 
 static double pi = 3.14159265358979323846264338327950288;
 
