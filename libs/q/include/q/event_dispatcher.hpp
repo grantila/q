@@ -29,11 +29,11 @@ namespace q {
 class basic_event_dispatcher;
 typedef std::shared_ptr< basic_event_dispatcher > event_dispatcher_ptr;
 
+typedef std::function< task( void ) noexcept > task_fetcher_task;
+
 class basic_event_dispatcher
 {
 public:
-	typedef std::function< task( void ) noexcept > task_fetcher_task;
-
 	/**
 	 * Trigger the event dispatcher to fetch another task
 	 */

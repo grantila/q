@@ -22,6 +22,7 @@
 #include <q/promise.hpp>
 #include <q/types.hpp>
 
+#include <list>
 #include <queue>
 #include <atomic>
 
@@ -36,6 +37,10 @@ public:
 	typedef std::tuple< T... > tuple_type;
 
 	virtual promise< tuple_type > receive( ) = 0;
+
+	virtual bool is_closed( ) = 0;
+
+	virtual void close( ) = 0;
 };
 
 template< typename... T >
@@ -70,6 +75,10 @@ public:
 	virtual bool should_send( ) = 0;
 
 	virtual void set_resume_notification( task fn ) = 0;
+
+	virtual bool is_closed( ) = 0;
+
+	virtual void close( ) = 0;
 };
 
 template< typename... T >
@@ -101,11 +110,29 @@ public:
 	, resume_count_( resume_count )
 	{ }
 
-	void close( )
+	bool is_closed( ) override
 	{
-		Q_AUTO_UNIQUE_LOCK( mutex_ );
+		return closed_;
+	}
 
-		closed_.store( true, std::memory_order_seq_cst );
+	void close( ) override
+	{
+		task notification;
+
+		{
+			Q_AUTO_UNIQUE_LOCK( mutex_ );
+
+			closed_.store( true, std::memory_order_seq_cst );
+
+			for ( auto& waiter : waiters_ )
+				waiter->set_exception(
+					channel_closed_exception( ) );
+
+			notification = resume_notification_;
+		}
+
+		if ( notification )
+			notification( );
 	}
 
 	using writable< T... >::send;
@@ -127,7 +154,7 @@ public:
 		else
 		{
 			auto waiter = std::move( waiters_.front( ) );
-			waiters_.pop( );
+			waiters_.pop_front( );
 
 			waiter->set_value( std::move( t ) );
 		}
@@ -147,7 +174,7 @@ public:
 			auto defer = ::q::make_shared< defer_type >(
 				default_queue_ );
 
-			waiters_.push( defer );
+			waiters_.push_back( defer );
 			resume( );
 
 			return defer->get_promise( );
@@ -158,7 +185,13 @@ public:
 			queue_.pop( );
 
 			if ( queue_.size( ) < resume_count_ )
-				resume( );
+			{
+				auto self = this->shared_from_this( );
+				default_queue_->push( [ self ]( )
+				{
+					self->resume( );
+				} );
+			}
 
 			auto defer = ::q::make_shared< defer_type >(
 				default_queue_ );
@@ -171,7 +204,14 @@ public:
 
 	inline bool should_send( ) override
 	{
-		return !paused_;
+		return !paused_ && !closed_;
+	}
+
+	void set_resume_notification( task fn ) override
+	{
+		Q_AUTO_UNIQUE_LOCK( mutex_ );
+
+		resume_notification_ = fn;
 	}
 
 private:
@@ -185,17 +225,10 @@ private:
 		}
 	}
 
-	void set_resume_notification( task fn ) override
-	{
-		Q_AUTO_UNIQUE_LOCK( mutex_ );
-
-		resume_notification_ = fn;
-	}
-
 	queue_ptr default_queue_;
 	// TODO: Make this lock-free and consider other list types
 	mutex mutex_;
-	std::queue< std::shared_ptr< defer_type > > waiters_;
+	std::list< std::shared_ptr< defer_type > > waiters_;
 	std::queue< tuple_type > queue_;
 	std::atomic< bool > closed_;
 	std::atomic< bool > paused_;
