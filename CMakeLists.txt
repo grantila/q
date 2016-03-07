@@ -47,7 +47,13 @@ add_subdirectory( "libs/q-test" )
 
 add_subdirectory( "libs/p" )
 
+include_directories( "3rdparty/dist/include/" )
+
+include_directories( "libs/qio/include" )
+add_subdirectory( "libs/qio" )
+
 add_subdirectory( "progs/playground" )
+add_subdirectory( "progs/playground-io" )
 add_subdirectory( "progs/benchmark" )
 
 add_subdirectory( "3rdparty/gmock-1.7.0" )
