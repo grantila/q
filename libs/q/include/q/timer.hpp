@@ -17,6 +17,8 @@
 #ifndef LIBQ_TIMER_HPP
 #define LIBQ_TIMER_HPP
 
+#include <q/promise/async_task.hpp>
+
 #include <chrono>
 
 namespace q {
@@ -66,6 +68,18 @@ public:
 private:
 	function_type fn_;
 	timer timer_;
+};
+
+/**
+ * The `timer_dispatcher` base class is strictly virtual in q, meaning that it
+ * needs to be implemented by other libraries or user code.
+ *
+ * There is an implementation in q-io, called `q::io::dispatcher`.
+ */
+class timer_dispatcher
+{
+public:
+	virtual async_task delay( timer::duration_type dur ) = 0;
 };
 
 } // namespace q
