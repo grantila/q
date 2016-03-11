@@ -41,7 +41,9 @@ int main( int argc, char** argv )
 	auto three = dividor( 15 );
 
 	std::cout << "3 = " << three << std::endl;
-	return 0;
+
+
+
 
 	auto q_scope = initialize( );
 
@@ -51,8 +53,32 @@ int main( int argc, char** argv )
 	auto sched = q::make_shared< q::direct_scheduler >( bd );
 	sched->add_queue( queue );
 
-	auto error_stuff  = q::with( queue ).share( );
-	auto thread_stuff = q::with( queue );
+
+
+	auto o_empty = q::rx::observable< int >::empty( queue );
+
+	auto o_never = q::rx::observable< int >::never( queue );
+
+	std::vector< int > vec_int{ 1, 2, 3 };
+
+	auto o_from_vector = q::rx::observable< int >::from( vec_int, queue );
+
+	auto consumer = [ ]( int i )
+	{
+		std::cout << "GOT i = " << i << std::endl;
+	};
+
+	auto consumtion_complete = [ ]( ){ };
+	auto consumtion_failed = [ ]( std::exception_ptr e ){ };
+
+	o_from_vector
+		.consume( consumer )
+		.then( consumtion_complete )
+		.fail( consumtion_failed );
+
+	bd->start( );
+
+	return 0;
 
 /*
 	auto observable_bytes = q::rx::from( ch_incoming_byte_blocks );
@@ -93,7 +119,4 @@ int main( int argc, char** argv )
 		} );
 		// -> observable< std::size_t > for bytes per second, every 100ms
 */
-	bd->start( );
-
-	return 0;
 }
