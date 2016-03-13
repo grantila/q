@@ -26,47 +26,27 @@
 #include <q/scope.hpp>
 
 #define Q_TEST_MAKE_SCOPE( name ) \
-	class name : public ::q::test::PromiseSetup { }
+	class name : public ::q::test::fixture { }
 
 namespace q { namespace test {
 
-class PromiseSetup
+class fixture
 : public ::testing::Test
 {
 public:
-	PromiseSetup( )
-	: scope_( nullptr )
-	{ }
+	fixture( );
+	virtual ~fixture( );
 
 	class Error
 	: public ::q::exception
 	{ };
 
 protected:
-	virtual void SetUp( )
-	{
-		bd = q::make_execution_context<
-			q::blocking_dispatcher, q::direct_scheduler
-		>( "all" );
-		queue = bd->queue( );
-
-		tp = q::make_execution_context<
-			q::threadpool, q::direct_scheduler
-		>( "test pool", queue );
-		tp_queue = tp->queue( );
-	}
-
-	virtual void TearDown( )
-	{
-		scope_ = std::move( q::make_scope( nullptr ) );
-		tp->dispatcher( )->terminate( q::termination::linger );
-		tp->dispatcher( )->await_termination( );
-		bd->dispatcher( )->await_termination( );
-		bd.reset( );
-	}
+	virtual void SetUp( );
+	virtual void TearDown( );
 
 	template< typename Promise >
-	void run( Promise&& promise )
+	void _run( Promise&& promise )
 	{
 		promise
 		.finally( [ this ]( )
@@ -75,6 +55,33 @@ protected:
 		} );
 
 		bd->dispatcher( )->start( );
+	}
+
+	// We only allow to run promises by r-value reference (i.e. we take
+	// ownership).
+	template< typename Promise >
+	typename std::enable_if<
+		q::is_promise< typename std::decay< Promise >::type >::value
+		and
+		!Promise::shared_type::value
+		and
+		!std::is_lvalue_reference< Promise >::value
+	>::type
+	run( Promise&& promise )
+	{
+		_run( std::move( promise ) );
+	}
+
+	// Shared promises, we can take as r-value references or copies.
+	template< typename Promise >
+	typename std::enable_if<
+		q::is_promise< typename std::decay< Promise >::type >::value
+		and
+		Promise::shared_type::value
+	>::type
+	run( Promise&& promise )
+	{
+		_run( std::forward< Promise >( promise ) );
 	}
 
 	q::specific_execution_context_ptr< q::blocking_dispatcher > bd;
