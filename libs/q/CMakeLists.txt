@@ -7,4 +7,3 @@ add_library( q ${LIBQ_HEADERS} ${LIBQ_INTERNAL_HEADERS} ${LIBQ_SOURCES} )
 
 target_link_libraries( q ${CXXLIB} ${GENERIC_LIB_DEPS} )
 
-include_directories( "include" )
