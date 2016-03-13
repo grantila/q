@@ -16,12 +16,37 @@
 
 #include <q/lib.hpp>
 
-#include <q/queue.hpp>
+#include <vector>
+
+namespace {
+
+std::vector< std::function< void( void ) > >* get_initializers( )
+{
+	static std::vector< std::function< void( void ) > > initializers;
+	return &initializers;
+}
+
+} // anomymous namespace
 
 namespace q {
 
+namespace detail {
+
+void register_internal_initializer( std::function< void( void ) >&& func )
+{
+	get_initializers( )->push_back( std::move( func ) );
+}
+
+} // namespace detail
+
 void initialize( settings settings )
-{ }
+{
+	auto initializers = *get_initializers( );
+
+	for ( auto& func : initializers )
+		func( );
+	initializers.clear( );
+}
 
 void uninitialize( )
 { }

@@ -29,6 +29,8 @@ namespace q {
 
 namespace detail {
 
+void register_internal_initializer( std::function< void( void ) >&& func );
+
 } // namespace detail
 
 class settings
