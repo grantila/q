@@ -30,6 +30,25 @@ namespace q {
 Q_MAKE_SIMPLE_EXCEPTION( channel_closed_exception );
 
 template< typename... T >
+class readable;
+
+template< typename... T >
+using readable_ptr = std::shared_ptr< readable< T... > >;
+
+template< typename... T >
+class writable;
+
+template< typename... T >
+using writable_ptr = std::shared_ptr< writable< T... > >;
+
+template< typename... T >
+class channel;
+
+template< typename... T >
+using channel_ptr = std::shared_ptr< channel< T... > >;
+
+
+template< typename... T >
 class readable
 {
 public:
