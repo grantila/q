@@ -16,7 +16,7 @@ TEST_F( Make, ByExpressionWithValue )
 		EXPECT_EQ( value, 17 );
 	} ) );
 
-	run( promise );
+	run( std::move( promise ) );
 }
 
 TEST_F( Make, ByExpressionWithException )
@@ -31,7 +31,7 @@ TEST_F( Make, ByExpressionWithException )
 	.fail( EXPECT_CALL( spy, void, Error& )( ) )
 	.fail( EXPECT_NO_CALL( spy, void, std::exception_ptr )( ) );
 
-	run( promise );
+	run( std::move( promise ) );
 }
 
 TEST_F( Make, AsyncWithValue )
@@ -49,7 +49,7 @@ TEST_F( Make, AsyncWithValue )
 		EXPECT_EQ( b, 2 );
 	} ) );
 
-	run( promise );
+	run( std::move( promise ) );
 }
 
 
@@ -66,7 +66,7 @@ TEST_F( Make, AsyncWithException )
 	.fail( EXPECT_CALL( spy, void, Error& )( ) )
 	.fail( EXPECT_NO_CALL( spy, void, std::exception_ptr )( ) );
 
-	run( promise );
+	run( std::move( promise ) );
 }
 
 #ifdef LIBQ_WITH_CPP14
@@ -94,7 +94,7 @@ TEST_F( Make, ByLambdaAuto )
 		EXPECT_EQ( b, 4712 );
 	} );
 
-	run( promise3 );
+	run( std::move( promise3 ) );
 }
 
 #endif
