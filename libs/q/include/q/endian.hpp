@@ -19,6 +19,9 @@
 
 #include <q/pp.hpp>
 
+#include <cstddef>
+#include <cstdint>
+
 #ifdef LIBQ_ON_LINUX
 #	include <byteswap.h>
 #	define LIBQ_SWAP_16 bswap_16
@@ -69,14 +72,14 @@ template< > struct endian_size_type< 4 > { typedef std::uint32_t type; };
 template< > struct endian_size_type< 8 > { typedef std::uint64_t type; };
 
 template< std::size_t Size >
-inline typename endian_size_type< Size >::type
-endian_swap( typename endian_size_type< Size >::type value )
+inline constexpr typename endian_size_type< Size >::type
+endian_swap( typename endian_size_type< Size >::type value ) noexcept
 {
 	return LIBQ_SWAP_ANY( value, Size );
 }
 
 template< int Size, bool Swap = true >
-inline void endian_swap( void* to, const void* from )
+inline void endian_swap( void* to, const void* from ) noexcept
 {
 	typedef typename endian_size_type< Size >::type size_type;
 
@@ -87,7 +90,7 @@ inline void endian_swap( void* to, const void* from )
 }
 
 template< bool Big, std::size_t Size >
-inline void ensure_endian( void* to, const void* from )
+inline void ensure_endian( void* to, const void* from ) noexcept
 {
 #ifdef LIBQ_LITTLE_ENDIAN
 	endian_swap< Size, Big >( to, from );
@@ -102,27 +105,27 @@ template< bool Big, typename T >
 class endian
 {
 public:
-	endian( )
+	endian( ) noexcept
 	: endian( T( ) )
 	{ }
 
-	endian( T t )
+	endian( T t ) noexcept
 	{
 		detail::ensure_endian< Big, sizeof( T ) >(
 			reinterpret_cast< void* >( t_ ),
 			reinterpret_cast< const void* >( &t ) );
 	}
 
-	operator T( ) const
+	operator T( ) const noexcept
 	{
 		T t;
 		detail::ensure_endian< Big, sizeof( T ) >(
 			reinterpret_cast< void* >( &t ),
 			reinterpret_cast< const void* >( t_ ) );
-		return std::move( t );
+		return t;
 	}
 
-	void store( T t )
+	void store( T t ) noexcept
 	{
 		detail::ensure_endian< Big, sizeof( T ) >(
 			reinterpret_cast< void* >( t_ ),
