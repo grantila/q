@@ -109,12 +109,14 @@ public:
 	 */
 	template< typename Fn, typename Queue = queue_ptr >
 	typename std::enable_if<
+		Q_IS_FUNCTION( Fn )::value
+		and
 		this_type::template is_valid_arguments<
 			Q_ARGUMENTS_OF( Fn )
 		>::value
-		&&
+		and
 		!is_promise< Q_RESULT_OF( Fn ) >::value
-		&&
+		and
 		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
 		promise< Q_RESULT_OF_AS_TUPLE_TYPE( Fn ) >
 	>::type
@@ -125,14 +127,16 @@ public:
 	 */
 	template< typename Fn, typename Queue = queue_ptr >
 	typename std::enable_if<
+		Q_IS_FUNCTION( Fn )::value
+		and
 		Q_FIRST_ARGUMENT_IS_TUPLE( Fn )
-		&&
+		and
 		::q::is_argument_same_or_convertible<
 			arguments< tuple_type >, Q_ARGUMENTS_OF( Fn )
 		>::value
-		&&
+		and
 		!is_promise< Q_RESULT_OF( Fn ) >::value
-		&&
+		and
 		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
 		promise< Q_RESULT_OF_AS_ARGUMENT_TYPE( Fn )::tuple_type >
 	>::type
@@ -143,12 +147,14 @@ public:
 	 */
 	template< typename Fn, typename Queue = queue_ptr >
 	typename std::enable_if<
+		Q_IS_FUNCTION( Fn )::value
+		and
 		this_type::template is_valid_arguments<
 			Q_ARGUMENTS_OF( Fn )
 		>::value
-		&&
+		and
 		is_promise< Q_RESULT_OF( Fn ) >::value
-		&&
+		and
 		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
 		Q_RESULT_OF( Fn )::unique_this_type
 	>::type
@@ -159,14 +165,16 @@ public:
 	 */
 	template< typename Fn, typename Queue = queue_ptr >
 	typename std::enable_if<
+		Q_IS_FUNCTION( Fn )::value
+		and
 		Q_FIRST_ARGUMENT_IS_TUPLE( Fn )
-		&&
+		and
 		::q::is_argument_same_or_convertible<
 			arguments< tuple_type >, Q_ARGUMENTS_OF( Fn )
 		>::value
-		&&
+		and
 		is_promise< Q_RESULT_OF( Fn ) >::value
-		&&
+		and
 		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
 		Q_RESULT_OF( Fn )::unique_this_type
 	>::type
@@ -175,7 +183,7 @@ public:
 	template< typename Logger, typename Queue = queue_ptr >
 	typename std::enable_if<
 		is_same_type< Logger, log_chain_generator >::value
-		&&
+		and
 		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
 		this_type
 	>::type
@@ -220,16 +228,18 @@ public:
 	 */
 	template< typename Fn, typename Queue = queue_ptr >
 	typename std::enable_if<
+		Q_IS_FUNCTION( Fn )::value
+		and
 		Q_ARITY_OF( Fn ) == 1
-		&&
+		and
 		is_same_type<
 			Q_FIRST_ARGUMENT_OF( Fn ),
 			std::exception_ptr
 		>::value
-		&&
+		and
 		detail::tuple_arguments< Q_RESULT_OF( Fn ) >
 			::template is_convertible_to< argument_types >::value
-		&&
+		and
 		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
 		this_type
 	>::type
@@ -240,16 +250,18 @@ public:
 	 */
 	template< typename Fn, typename Queue = queue_ptr >
 	typename std::enable_if<
+		Q_IS_FUNCTION( Fn )::value
+		and
 		is_same_type<
 			Q_FIRST_ARGUMENT_OF( Fn ),
 			std::exception_ptr
 		>::value
-		&&
+		and
 		is_promise< Q_RESULT_OF( Fn ) >::value
-		&&
+		and
 		Q_FUNCTIONTRAITS( Fn )::result_type::argument_types
 			::template is_convertible_to< argument_types >::value
-		&&
+		and
 		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
 		this_type
 	>::type
@@ -260,13 +272,15 @@ public:
 	 */
 	template< typename Fn, typename Queue = queue_ptr >
 	typename std::enable_if<
+		Q_IS_FUNCTION( Fn )::value
+		and
 		Q_ARITY_OF( Fn ) == 1
-		&&
+		and
 		!Q_ARGUMENTS_ARE( Fn, std::exception_ptr )::value
-		&&
+		and
 		detail::tuple_arguments< Q_RESULT_OF( Fn ) >
 			::template is_convertible_to< argument_types >::value
-		&&
+		and
 		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
 		this_type
 	>::type
@@ -277,15 +291,17 @@ public:
 	 */
 	template< typename Fn, typename Queue = queue_ptr >
 	typename std::enable_if<
+		Q_IS_FUNCTION( Fn )::value
+		and
 		Q_ARITY_OF( Fn ) == 1
-		&&
+		and
 		!Q_ARGUMENTS_ARE( Fn, std::exception_ptr )::value
-		&&
+		and
 		is_promise< Q_RESULT_OF( Fn ) >::value
-		&&
+		and
 		Q_FUNCTIONTRAITS( Fn )::result_type::argument_types
 			::template is_convertible_to< argument_types >::value
-		&&
+		and
 		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
 		this_type
 	>::type
@@ -303,6 +319,8 @@ public:
 	 */
 	template< typename Fn, typename Queue = queue_ptr >
 	typename std::enable_if<
+		Q_IS_FUNCTION( Fn )::value
+		and
 		std::is_void< Q_RESULT_OF( Fn ) >::value
 		and
 		Q_ARITY_OF( Fn ) == 0
@@ -317,6 +335,8 @@ public:
 	 */
 	template< typename Fn, typename Queue = queue_ptr >
 	typename std::enable_if<
+		Q_IS_FUNCTION( Fn )::value
+		and
 		::q::is_promise< Q_RESULT_OF( Fn ) >::value
 		and
 		Q_FUNCTIONTRAITS( Fn )
@@ -440,7 +460,7 @@ public:
 
 	template< typename T_ = T >
 	typename std::enable_if<
-		shareable::value && std::is_same< T_, T >::value,
+		shareable::value and std::is_same< T_, T >::value,
 		shared_promise< T >
 	>::type
 	share( )
