@@ -69,16 +69,19 @@ std::ostream& operator<<( std::ostream& os, const exception& e )
 
 	if ( infos.empty( ) )
 	{
-		os << "[ q::exception ]";
+		os << "[ " << e.name( ) << " ]";
 	}
 	else
 	{
-		os << "=== [ q::exception ]: ================================";
+		os
+			<< "=== [ "
+			<< e.name( )
+			<< " ]: ================================"
+			<< std::endl;
 		for ( const auto& info : infos )
 		{
 			os << info->string( ) << std::endl;
 		}
-		if ( infos.empty( ) )
 		os << "======================================================";
 	}
 
