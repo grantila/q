@@ -20,6 +20,7 @@
 #include <q/exception.hpp>
 #include <q/mutex.hpp>
 #include <q/promise.hpp>
+#include <q/scope.hpp>
 
 #include <list>
 #include <queue>
@@ -232,6 +233,17 @@ public:
 		resume_notification_ = fn;
 	}
 
+	/**
+	 * Adds a scope to this channel. This will cause the channel to "own"
+	 * the scope, and thereby destruct it when the channel is destructed.
+	 */
+	void add_scope( scope&& scope )
+	{
+		Q_AUTO_UNIQUE_LOCK( mutex_ );
+
+		scopes_.emplace_back( std::move( scope ) );
+	}
+
 private:
 	inline void resume( )
 	{
@@ -253,6 +265,7 @@ private:
 	const std::size_t buffer_count_;
 	const std::size_t resume_count_;
 	task resume_notification_;
+	std::vector< scope > scopes_;
 };
 
 } // namespace q

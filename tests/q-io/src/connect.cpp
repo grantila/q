@@ -29,53 +29,32 @@ TEST_F( connect, client_server2 )
 {
 	auto server_socket = io_dispatcher->listen( 1030 );
 
-	auto promise_client = server_socket->clients( )->receive( )
+	auto promise_server = server_socket->clients( )->receive( )
 	.then( [ ]( q::io::socket_ptr client )
 	{
 		std::cout << "GOT client" << std::endl;
+
+		client->in( )->receive( )
+		.then( [ ]( q::byte_block&& block )
+		{
+			std::cout
+				<< "GOT client GOT " << block.size( )
+				<< " bytes: " << block.to_string( )
+				<< std::endl;
+		} );
 	} );
 
-	auto promise_server = io_dispatcher->connect_to( q::io::ip_addresses( "127.0.0.1" ), 1030 )
+	auto promise_client = q::with( io_queue )
+	.then( io_dispatcher->delay( std::chrono::milliseconds( 10 ) ) )
+	.then( [ this ]
+	{
+		auto dest_ip = q::io::ip_addresses( "127.0.0.1" );
+		return io_dispatcher->connect_to( dest_ip, 1030 );
+	} )
 	.then( [ ]( q::io::socket_ptr socket )
 	{
-	/*
-		q::byte_block b( "GET / HTTP/1.1\r\nHost: www.bbc.com\r\n\r\n" );
-
-		std::cout << "SENDING" << std::endl;
-
-		socket->out( )->send( b );
-
-		auto TEMP_COUNTER = std::make_shared< std::atomic< int > >( 0 );
-
-		auto try_get_more = std::make_shared< std::unique_ptr< q::task > >( nullptr );
-
-		*try_get_more = q::make_unique< q::task >( [ TEMP_COUNTER, try_get_more, socket ]( ) mutable
-		{
-			socket->in( )->receive( )
-			.then( [ try_get_more, TEMP_COUNTER ]( q::byte_block&& block )
-			{
-				std::size_t size = block.size( );
-
-				( *( *try_get_more ) )( );
-
-				TEMP_COUNTER->fetch_add( size );
-
-				std::cout << "GOT " << size << " / " << *TEMP_COUNTER << " b DATA BACK: " << block.to_string( ) << std::endl;
-			} )
-			.fail( [ try_get_more, TEMP_COUNTER ]( const q::channel_closed_exception& ) mutable
-			{
-				std::cout << "READING CHANNEL CLOSED: " << *TEMP_COUNTER << std::endl;
-				try_get_more.reset( );
-			} )
-			.fail( [ try_get_more ]( std::exception_ptr e ) mutable
-			{
-				std::cout << "READING CHANNEL GOT ERROR" << q::stream_exception( e ) << std::endl;
-				try_get_more.reset( );
-			} );
-		} );
-
-		( *( *try_get_more ) )( );
-	*/
+		socket->out( )->send( q::byte_block( "hello world" ) );
+		// Socket will go out-of-scope here, i.e. be deleted... WAT?
 	} )
 	.fail( [ ]( const q::errno_connrefused_exception& e )
 	{

@@ -84,7 +84,7 @@ void blocking_dispatcher::start( )
 			_task( );
 		}
 
-		if ( !_task && pimpl_->should_wait_ )
+		if ( !_task ) //&& pimpl_->should_wait_ )
 		{
 			pimpl_->cond_.wait( lock );
 			pimpl_->should_wait_ = true;

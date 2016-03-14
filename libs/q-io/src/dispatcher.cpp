@@ -670,7 +670,7 @@ server_socket_ptr dispatcher::listen( std::uint16_t port )
 	auto dest = ip_addresses( "127.0.0.1" );
 
 	struct sockaddr_in addr;
-	dest.ipv4[ 0 ].populate( addr, 0 );
+	dest.ipv4[ 0 ].populate( addr, port );
 
 	auto fd = create_socket( PF_INET );
 

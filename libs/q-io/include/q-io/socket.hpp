@@ -46,6 +46,27 @@ public:
 	 */
 	q::writable_ptr< q::byte_block > out( );
 
+	/**
+	 * Makes this socket become owned by its channels. The user can thereby
+	 * delete its last reference to this socket, and rely on the channels
+	 * to ensure the socket isn't deleted prematurely.
+	 *
+	 * When both channels are closed, and all outoing data on the writable
+	 * channel is written to the socket, the channels will remove their
+	 * references to the socket and it will be destructed/deleted if they
+	 * held the last references.
+	 *
+	 * By default, the socket is owning the channels, and if the user
+	 * removes all its references to the socket, it will be deleted, and
+	 * both channels will be closed and deleted too (unless the user has
+	 * further references to them).
+	 *
+	 * TODO: Implement, by providing a q::channel onClosed( ) which this
+	 * function registers with a self-shared_ptr-captured lambda, so that
+	 * the socket exists until all data is sent, and then is deleted.
+	 */
+	void detach( );
+
 protected:
 	static socket_ptr construct( const native_socket& );
 
@@ -65,8 +86,6 @@ private:
 	void try_write( );
 
 	void close_socket( );
-	void close_reader( );
-	void close_writer( );
 
 	struct pimpl;
 	std::unique_ptr< pimpl > pimpl_;

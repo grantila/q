@@ -84,8 +84,7 @@ void server_socket::sub_attach( const dispatcher_ptr& dispatcher ) noexcept
 	pimpl_->channel_->set_resume_notification( [ self ]( )
 	{
 		std::cout << "WILL RETRY" << std::endl;
-		// TODO: TRIGGER this through libevent2
-		self->on_event_read( );
+		::event_active( self->pimpl_->ev_, EV_READ, 0 );
 	} );
 
 	auto fn_read = [ ]( evutil_socket_t fd, short events, void* arg )
@@ -107,6 +106,8 @@ void server_socket::sub_attach( const dispatcher_ptr& dispatcher ) noexcept
 		event_base, pimpl_->socket_.fd, EV_READ, fn_read, this );
 
 	::event_add( pimpl_->ev_, nullptr );
+
+	::event_active( self->pimpl_->ev_, EV_READ, 0 );
 }
 
 void server_socket::on_event_read( ) noexcept
@@ -133,7 +134,7 @@ void server_socket::on_event_read( ) noexcept
 		else
 		{
 			auto errno_ = errno;
-			if ( errno_ == EINPROGRESS )
+			if ( errno_ == EAGAIN )
 				// Await socket readability
 				done = true;
 			else

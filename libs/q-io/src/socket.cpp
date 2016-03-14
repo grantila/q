@@ -50,10 +50,6 @@ struct socket::pimpl
 	std::atomic< bool > can_write_;
 	q::byte_block out_buffer_;
 
-	// For keep-alive during potential callbacks from libevent
-	socket_ptr self_reader_ptr_;
-	socket_ptr self_writer_ptr_;
-
 	std::atomic< bool > closed_;
 };
 
@@ -104,50 +100,54 @@ void socket::sub_attach( const dispatcher_ptr& dispatcher ) noexcept
 	pimpl_->channel_in_->set_resume_notification( [ self ]( )
 	{
 		std::cout << "WILL RETRY" << std::endl;
-		// TODO: TRIGGER this through libevent2
-		self->on_event_read( );
+		::event_active( self->pimpl_->ev_read_, EV_READ, 0 );
 	} );
 
 	std::cout << "client_socket::sub_attach invoked" << std::endl;
 
-	pimpl_->self_reader_ptr_ = self;
-	pimpl_->self_writer_ptr_ = self;
+	auto reader_ptr = new weak_socket_ptr{ self };
+	auto writer_ptr = new weak_socket_ptr{ self };
 
 	auto fn_read = [ ]( evutil_socket_t fd, short events, void* arg )
 	-> void
 	{
 		std::cout << "running socket event callback [read]" << std::endl;
-		auto self = reinterpret_cast< socket* >( arg );
+
+		auto socket = reinterpret_cast< weak_socket_ptr* >( arg );
+		auto self = socket->lock( );
 
 		if ( events & LIBQ_EV_CLOSE )
-		{
-			self->close_reader( );
 			return;
-		}
 
-		self->on_event_read( );
+		if ( !!self )
+			self->on_event_read( );
 	};
 
 	auto fn_write = [ ]( evutil_socket_t fd, short events, void* arg )
 	-> void
 	{
 		std::cout << "running socket event callback [write]" << std::endl;
-		auto self = reinterpret_cast< socket* >( arg );
+
+		auto socket = reinterpret_cast< weak_socket_ptr* >( arg );
+		auto self = socket->lock( );
 
 		if ( events & LIBQ_EV_CLOSE )
-		{
-			self->close_writer( );
 			return;
-		}
 
-		self->on_event_write( );
+		if ( !!self )
+			self->on_event_write( );
 	};
 
 	auto event_base = dispatcher_pimpl.event_base;
 	pimpl_->ev_read_ = ::event_new(
-		event_base, pimpl_->socket_.fd, EV_READ, fn_read, this );
+		event_base, pimpl_->socket_.fd, EV_READ, fn_read, reader_ptr );
 	pimpl_->ev_write_ = ::event_new(
-		event_base, pimpl_->socket_.fd, EV_WRITE, fn_write, this );
+		event_base, pimpl_->socket_.fd, EV_WRITE, fn_write, writer_ptr );
+
+	if ( pimpl_->ev_write_ )
+		delete writer_ptr;
+	if ( pimpl_->ev_read_ )
+		delete reader_ptr;
 
 	::event_add( pimpl_->ev_read_, nullptr );
 
@@ -330,20 +330,9 @@ void socket::close_socket( )
 	::event_active( pimpl_->ev_read_, LIBQ_EV_CLOSE, 0 );
 	::event_active( pimpl_->ev_write_, LIBQ_EV_CLOSE, 0 );
 
+	pimpl_->channel_in_->set_resume_notification( nullptr );
 	pimpl_->channel_in_->close( );
 	pimpl_->channel_out_->close( );
-}
-
-void socket::close_reader( )
-{
-	pimpl_->channel_in_->set_resume_notification( nullptr );
-
-	pimpl_->self_reader_ptr_.reset( );
-}
-
-void socket::close_writer( )
-{
-	pimpl_->self_writer_ptr_.reset( );
 }
 
 } } // namespace io, namespace q
