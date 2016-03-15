@@ -70,13 +70,30 @@ private:
 
 template< typename T >
 typename std::enable_if<
-	!std::is_lvalue_reference< T >::value &&
+	!std::is_lvalue_reference< T >::value
+	and
 	!std::is_const< T >::value,
 	scope
 >::type
 make_scope( T&& t )
 {
 	auto deleter = q::make_unique< detail::deleter< T > >( std::move( t ) );
+
+	return scope( std::move( deleter ) );
+}
+
+template< typename T >
+typename std::enable_if<
+	std::is_lvalue_reference< T >::value
+	and
+	is_shared_pointer< typename std::decay< T >::type >::value,
+	scope
+>::type
+make_scope( T&& t )
+{
+	auto copy = typename std::decay< T >::type( t );
+	auto deleter = q::make_unique< detail::deleter< T > >(
+		std::move( copy ) );
 
 	return scope( std::move( deleter ) );
 }

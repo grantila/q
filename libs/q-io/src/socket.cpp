@@ -150,10 +150,14 @@ void socket::sub_attach( const dispatcher_ptr& dispatcher ) noexcept
 	pimpl_->weak_channel_out_ = pimpl_->channel_out_;
 
 	auto self = shared_from_this( );
+	auto weak_self = weak_socket_ptr{ self };
 
-	pimpl_->channel_in_->set_resume_notification( [ self ]( )
+	pimpl_->channel_in_->set_resume_notification( [ weak_self ]( )
 	{
 		std::cout << "WILL RETRY" << std::endl;
+		auto self = weak_self.lock( );
+		if ( !self )
+			return; // TODO: Analyze when this can happen
 		::event_active( self->pimpl_->ev_read_, EV_READ, 0 );
 	} );
 

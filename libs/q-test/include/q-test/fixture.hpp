@@ -42,8 +42,13 @@ public:
 	{ };
 
 protected:
-	virtual void SetUp( );
-	virtual void TearDown( );
+	virtual void SetUp( ) override;
+	virtual void TearDown( ) override;
+
+	void keep_alive( q::scope&& scope )
+	{
+		test_scopes_.emplace_back( std::move( scope ) );
+	}
 
 	template< typename Promise >
 	void _run( Promise&& promise )
@@ -101,6 +106,7 @@ protected:
 
 private:
 	q::scope scope_;
+	std::vector< q::scope > test_scopes_;
 };
 
 } } // namespace test, namespace q

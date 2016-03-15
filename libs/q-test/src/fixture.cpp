@@ -46,6 +46,7 @@ void fixture::TearDown( )
 	tp->dispatcher( )->await_termination( );
 	bd->dispatcher( )->await_termination( );
 	bd.reset( );
+	test_scopes_.clear( );
 }
 
 } } // namespace test, namespace q
