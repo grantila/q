@@ -48,6 +48,8 @@ class channel;
 template< typename... T >
 using channel_ptr = std::shared_ptr< channel< T... > >;
 
+template< typename... T >
+using weak_channel_ptr = std::weak_ptr< channel< T... > >;
 
 template< typename... T >
 class readable
@@ -147,6 +149,8 @@ public:
 				waiter->set_exception(
 					channel_closed_exception( ) );
 
+			scopes_.clear( );
+
 			notification = resume_notification_;
 		}
 
@@ -237,9 +241,13 @@ public:
 	 * Adds a scope to this channel. This will cause the channel to "own"
 	 * the scope, and thereby destruct it when the channel is destructed.
 	 */
-	void add_scope( scope&& scope )
+	void add_scope_until_closed( scope&& scope )
 	{
 		Q_AUTO_UNIQUE_LOCK( mutex_ );
+
+		if ( closed_ )
+			// Already closed - don't keep scope
+			return;
 
 		scopes_.emplace_back( std::move( scope ) );
 	}

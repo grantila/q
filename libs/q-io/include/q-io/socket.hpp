@@ -60,10 +60,6 @@ public:
 	 * removes all its references to the socket, it will be deleted, and
 	 * both channels will be closed and deleted too (unless the user has
 	 * further references to them).
-	 *
-	 * TODO: Implement, by providing a q::channel onClosed( ) which this
-	 * function registers with a self-shared_ptr-captured lambda, so that
-	 * the socket exists until all data is sent, and then is deleted.
 	 */
 	void detach( );
 
@@ -77,6 +73,9 @@ private:
 	friend class server_socket;
 
 	template< typename T > friend class q::shared_constructor;
+
+	q::channel_ptr< q::byte_block > _in( );
+	q::channel_ptr< q::byte_block > _out( );
 
 	void sub_attach( const dispatcher_ptr& dispatcher ) noexcept override;
 
