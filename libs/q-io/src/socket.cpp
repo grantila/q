@@ -313,9 +313,16 @@ void socket::try_write( )
 {
 	auto self = shared_from_this( );
 
-	auto try_write_block = [ self, this ]( q::byte_block&& block )
+	weak_socket_ptr weak_ptr{ self };
+
+	auto try_write_block = [ weak_ptr, this ]( q::byte_block&& block )
 	-> bool // True means we still have things to write - save buffer
 	{
+		auto self = weak_ptr.lock( );
+		if ( !self )
+			// The socket was destructed before the channel
+			return false;
+
 		if ( block.size( ) == 0 )
 			// Empty block? Let's try the next block.
 			try_write( );
@@ -375,8 +382,14 @@ void socket::try_write( )
 	}
 
 	out->receive( )
-	.then( [ self, this, try_write_block ]( q::byte_block&& block )
+	.then( [ weak_ptr, this, try_write_block ]( q::byte_block&& block )
 	{
+		auto self = weak_ptr.lock( );
+
+		if ( !self )
+			// Socket was destructed before the channel
+			return;
+
 		std::cout
 			<< "RECEIVE GOT "
 			<< block.size( )

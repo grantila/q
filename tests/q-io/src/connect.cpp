@@ -70,17 +70,16 @@ TEST_F( connect, client_server_close_client_on_destruction )
 	keep_alive( q::make_scope( socket_server ) );
 
 	auto promise_server = socket_server->clients( )->receive( )
-	.then( [ ]( q::io::socket_ptr client )
+	.then( [ this ]( q::io::socket_ptr client )
 	{
 		return client->in( )->receive( )
 		.then( [ ]( q::byte_block&& block )
 		{
-			std::cout << "GOT DATA WHEN SHOULDN'T GET DATA" << std::endl;
+			EXPECT_TRUE( false );
 		} )
-		.fail( [ ]( std::exception_ptr e )
-		{
-			std::cout << "DISCONNECTED" << std::endl;
-		} );
+		.fail( EXPECT_CALL_WRAPPER( spy )(
+			[ ]( std::exception_ptr e ) { }
+		) );
 	} );
 
 	auto promise_client = q::with( io_queue )
