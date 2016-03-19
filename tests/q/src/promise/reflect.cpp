@@ -1,9 +1,9 @@
 
 #include <q-test/q-test.hpp>
 
-Q_TEST_MAKE_SCOPE( Reflect );
+Q_TEST_MAKE_SCOPE( reflect );
 
-TEST_F( Reflect, ReflectTupleWithZeroElements )
+TEST_F( reflect, reflect_tuple_with_zero_elements )
 {
 	run(
 		q::with( queue )
@@ -20,7 +20,7 @@ TEST_F( Reflect, ReflectTupleWithZeroElements )
 	);
 }
 
-TEST_F( Reflect, ReflectTupleWithOneElement )
+TEST_F( reflect, reflect_tuple_with_one_element )
 {
 	run(
 		q::with( queue, 17 )
@@ -38,7 +38,7 @@ TEST_F( Reflect, ReflectTupleWithOneElement )
 	);
 }
 
-TEST_F( Reflect, ReflectTupleWithTwoElements )
+TEST_F( reflect, reflect_tuple_with_two_elements )
 {
 	run(
 		q::with( queue, 17, 3.14f )
@@ -58,7 +58,7 @@ TEST_F( Reflect, ReflectTupleWithTwoElements )
 
 }
 
-TEST_F( Reflect, ReflectTupleWithZeroElementsWithException )
+TEST_F( reflect, reflect_tuple_with_zero_elements_with_exception )
 {
 	run(
 		q::with( queue )
@@ -80,7 +80,7 @@ TEST_F( Reflect, ReflectTupleWithZeroElementsWithException )
 	);
 }
 
-TEST_F( Reflect, ReflectTupleWithOneElementWithException )
+TEST_F( reflect, reflect_tuple_with_one_element_with_exception )
 {
 	run(
 		q::with( queue, 17 )
@@ -104,7 +104,7 @@ TEST_F( Reflect, ReflectTupleWithOneElementWithException )
 	);
 }
 
-TEST_F( Reflect, ReflectTupleWithTwoElementsWithException )
+TEST_F( reflect, reflect_tuple_with_two_elements_with_exception )
 {
 	run(
 		q::with( queue, 17, 3.14f )
@@ -130,7 +130,7 @@ TEST_F( Reflect, ReflectTupleWithTwoElementsWithException )
 
 }
 
-TEST_F( Reflect, ReflectWithZeroElements )
+TEST_F( reflect, reflect_with_zero_elements )
 {
 	run(
 		q::with( queue )
@@ -147,7 +147,7 @@ TEST_F( Reflect, ReflectWithZeroElements )
 	);
 }
 
-TEST_F( Reflect, ReflectWithOneElement )
+TEST_F( reflect, reflect_with_one_element )
 {
 	run(
 		q::with( queue, 17 )
@@ -165,7 +165,7 @@ TEST_F( Reflect, ReflectWithOneElement )
 	);
 }
 
-TEST_F( Reflect, ReflectWithTwoElements )
+TEST_F( reflect, reflect_with_two_elements )
 {
 	run(
 		q::with( queue, 17, 3.14f )
@@ -185,7 +185,7 @@ TEST_F( Reflect, ReflectWithTwoElements )
 
 }
 
-TEST_F( Reflect, ReflectWithZeroElementsWithException )
+TEST_F( reflect, reflect_with_zero_elements_with_exception )
 {
 	run(
 		q::with( queue )
@@ -207,7 +207,7 @@ TEST_F( Reflect, ReflectWithZeroElementsWithException )
 	);
 }
 
-TEST_F( Reflect, ReflectWithOneElementWithException )
+TEST_F( reflect, reflect_with_one_element_with_exception )
 {
 	run(
 		q::with( queue, 17 )
@@ -231,7 +231,7 @@ TEST_F( Reflect, ReflectWithOneElementWithException )
 	);
 }
 
-TEST_F( Reflect, ReflectWithTwoElementsWithException )
+TEST_F( reflect, reflect_with_two_elements_with_exception )
 {
 	run(
 		q::with( queue, 17, 3.14f )

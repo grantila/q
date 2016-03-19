@@ -1,9 +1,9 @@
 
 #include <q-test/q-test.hpp>
 
-Q_TEST_MAKE_SCOPE( Finally );
+Q_TEST_MAKE_SCOPE( finally );
 
-TEST_F( Finally, SynchronousWithValue )
+TEST_F( finally, synchronous_with_value )
 {
 	run(
 		q::with( queue )
@@ -25,7 +25,7 @@ TEST_F( Finally, SynchronousWithValue )
 	);
 }
 
-TEST_F( Finally, SynchronousWithException )
+TEST_F( finally, synchronous_with_exception )
 {
 	run(
 		q::with( queue )
@@ -47,7 +47,7 @@ TEST_F( Finally, SynchronousWithException )
 	);
 }
 
-TEST_F( Finally, SynchronousWithValueFailedFinally )
+TEST_F( finally, synchronous_with_value_failed_finally )
 {
 	run(
 		q::with( queue )
@@ -72,7 +72,7 @@ TEST_F( Finally, SynchronousWithValueFailedFinally )
 	);
 }
 
-TEST_F( Finally, AsynchronousWithValue )
+TEST_F( finally, asynchronous_with_value )
 {
 	auto queue = this->queue;
 
@@ -96,7 +96,7 @@ TEST_F( Finally, AsynchronousWithValue )
 	);
 }
 
-TEST_F( Finally, AsynchronousWithException )
+TEST_F( finally, asynchronous_with_exception )
 {
 	auto queue = this->queue;
 
@@ -123,7 +123,7 @@ TEST_F( Finally, AsynchronousWithException )
 	);
 }
 
-TEST_F( Finally, AsynchronousWithValueSynchronousFailedFinally )
+TEST_F( finally, asynchronous_with_value_synchronous_failed_finally )
 {
 	auto queue = this->queue;
 
@@ -151,7 +151,7 @@ TEST_F( Finally, AsynchronousWithValueSynchronousFailedFinally )
 	);
 }
 
-TEST_F( Finally, AsynchronousWithValueAsynchronousFailedFinally )
+TEST_F( finally, asynchronous_with_value_asynchronous_failed_finally )
 {
 	auto queue = this->queue;
 

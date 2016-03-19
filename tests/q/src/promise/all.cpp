@@ -1,9 +1,9 @@
 
 #include <q-test/q-test.hpp>
 
-Q_TEST_MAKE_SCOPE( PromiseAllTest );
+Q_TEST_MAKE_SCOPE( promise_all_test );
 
-TEST_F( PromiseAllTest, AllDifferentVoids )
+TEST_F( promise_all_test, all_different_voids )
 {
 	std::atomic< int > incremented( 0 );
 
@@ -39,7 +39,7 @@ TEST_F( PromiseAllTest, AllDifferentVoids )
 	EXPECT_EQ( 8, incremented.load( ) );
 }
 
-TEST_F( PromiseAllTest, AllSameVoids )
+TEST_F( promise_all_test, all_same_voids )
 {
 	std::atomic< int > incremented( 0 );
 

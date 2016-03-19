@@ -8,7 +8,7 @@
 
 #include <queue>
 
-TEST( ThreadPool, PerformTasks )
+TEST( thread_pool, perform_tasks )
 {
 	q::test::spy spy;
 

@@ -6,7 +6,7 @@
 
 #include <gtest/gtest.h>
 
-TEST( ExecutionContext, BlockDispatcher )
+TEST( execution_context, block_dispatcher )
 {
 	auto bd = q::make_shared< q::blocking_dispatcher >( "test dispatcher" );
 	auto s = q::make_shared< q::direct_scheduler >( bd );
@@ -29,7 +29,7 @@ TEST( ExecutionContext, BlockDispatcher )
 	bd->start( );
 }
 
-TEST( ExecutionContext, ThreadPoolDispatcher )
+TEST( execution_context, thread_pool_dispatcher )
 {
 	auto bd = q::make_shared< q::blocking_dispatcher >( "test dispatcher" );
 	auto s = q::make_shared< q::direct_scheduler >( bd );
