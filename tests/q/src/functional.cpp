@@ -122,8 +122,12 @@ TEST( Functional, LambdaFunctionVoidArgumentType )
 
 	typedef q::function_traits< decltype( lambda ) > lambda_traits;
 	typedef lambda_traits::argument_types::tuple_type tuple_type;
+	typedef Q_ARGUMENTS_OF( decltype( lambda ) ) arguments_type;
 	typedef Q_RESULT_OF_AS_ARGUMENT_TYPE( decltype( lambda ) ) return_type;
 
+	EXPECT_TRUE(
+		q::arguments< >::is_convertible_to< arguments_type >::value
+	);
 	EXPECT_EQ( 0, return_type::size::value );
 	EXPECT_EQ( 0, std::tuple_size< tuple_type >::value );
 	EXPECT_EQ( 0, lambda_traits::arity::value );
@@ -140,6 +144,9 @@ TEST( Functional, FunctionArgumentTypes )
 	typedef Q_FIRST_ARGUMENT_OF( fn_type ) type_1;
 	typedef arguments_type::rest_arguments::first_type type_2;
 
+	EXPECT_FALSE(
+		q::arguments< char >::is_convertible_to< arguments_type >::value
+	);
 	EXPECT_TRUE( ( std::is_same< type_1, char >::value ) );
 	EXPECT_TRUE( ( std::is_same< type_2, std::string >::value ) );
 	EXPECT_TRUE( ( std::is_same< return_type, int >::value ) );
