@@ -418,6 +418,11 @@ public:
 		return writable_;
 	}
 
+	void add_scope_until_closed( scope&& scope )
+	{
+		shared_channel_->add_scope_until_closed( std::move( scope ) );
+	}
+
 private:
 	std::shared_ptr< detail::shared_channel< T... > > shared_channel_;
 	readable< T... > readable_;
