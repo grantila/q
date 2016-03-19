@@ -70,15 +70,30 @@ private:
 
 template< typename T >
 typename std::enable_if<
-	!std::is_lvalue_reference< T >::value &&
+	!std::is_lvalue_reference< T >::value
+	and
 	!std::is_const< T >::value,
 	scope
 >::type
 make_scope( T&& t )
 {
-	auto deleter = q::make_unique< detail::deleter< T > >( std::move( t ) );
+	typedef typename std::decay< T >::type type;
 
-	return scope( std::move( deleter ) );
+	return scope( make_unique< detail::deleter< type > >( std::move( t ) ) );
+}
+
+template< typename T >
+typename std::enable_if<
+	std::is_lvalue_reference< T >::value
+	and
+	is_shared_pointer< typename std::decay< T >::type >::value,
+	scope
+>::type
+make_scope( T&& t )
+{
+	typedef typename std::decay< T >::type type;
+
+	return scope( make_unique< detail::deleter< type > >( type( t ) ) );
 }
 
 class scoped_function
