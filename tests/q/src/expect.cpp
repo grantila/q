@@ -34,14 +34,14 @@ std::exception_ptr make_null_exception( )
 	return std::exception_ptr( );
 }
 
-TEST( Expect, VoidExpectWithNullException )
+TEST( expect, void_expect_with_null_exception )
 {
 	EXPECT_THROW(
 		q::refuse< void >( make_null_exception( ) ),
 		q::invalid_exception_exception );
 }
 
-TEST( Expect, VoidExpectWithException )
+TEST( expect, void_expect_With_exception )
 {
 	auto expect = q::refuse< void >( make_exception( ) );
 	EXPECT_TRUE( expect.has_exception( ) );
@@ -50,14 +50,14 @@ TEST( Expect, VoidExpectWithException )
 	EXPECT_THROW( expect.consume( ), test_exception );
 }
 
-TEST( Expect, CopyableExpectWithNullException )
+TEST( expect, copyable_expect_with_null_exception )
 {
 	EXPECT_THROW(
 		q::refuse< Copyable >( make_null_exception( ) ),
 		q::invalid_exception_exception );
 }
 
-TEST( Expect, CopyableExpectWithException )
+TEST( expect, copyable_expect_with_exception )
 {
 	auto expect = q::refuse< Copyable >( make_exception( ) );
 	EXPECT_TRUE( expect.has_exception( ) );
@@ -66,14 +66,14 @@ TEST( Expect, CopyableExpectWithException )
 	EXPECT_THROW( expect.consume( ), test_exception );
 }
 
-TEST( Expect, MovableExpectWithNullException )
+TEST( expect, movable_expect_with_null_exception )
 {
 	EXPECT_THROW(
 		q::refuse< Movable >( make_null_exception( ) ),
 		q::invalid_exception_exception );
 }
 
-TEST( Expect, MovableExpectWithException )
+TEST( expect, movable_expect_with_exception )
 {
 	auto expect = q::refuse< Movable >( make_exception( ) );
 	EXPECT_TRUE( expect.has_exception( ) );
@@ -82,7 +82,7 @@ TEST( Expect, MovableExpectWithException )
 	EXPECT_THROW( expect.consume( ), test_exception );
 }
 
-TEST( Expect, VoidExpectWithValue )
+TEST( expect, void_expect_with_value )
 {
 	auto expect = q::fulfill< void >( );
 	EXPECT_FALSE( expect.has_exception( ) );
@@ -91,7 +91,7 @@ TEST( Expect, VoidExpectWithValue )
 	EXPECT_NO_THROW( expect.consume( ) );
 }
 
-TEST( Expect, CopyableExpectWithValue )
+TEST( expect, copyable_expect_with_value )
 {
 	auto expect = q::fulfill< Copyable >( Copyable( ) );
 	EXPECT_FALSE( expect.has_exception( ) );
@@ -100,7 +100,7 @@ TEST( Expect, CopyableExpectWithValue )
 	EXPECT_NO_THROW( expect.consume( ) );
 }
 
-TEST( Expect, MovableExpectWithValue )
+TEST( expect, movable_expect_with_value )
 {
 	auto expect = q::fulfill< Movable >( Movable( ) );
 	EXPECT_FALSE( expect.has_exception( ) );
@@ -109,7 +109,7 @@ TEST( Expect, MovableExpectWithValue )
 	EXPECT_NO_THROW( expect.consume( ) );
 }
 
-TEST( Expect, AnyExpectWithValue )
+TEST( expect, any_expect_with_value )
 {
 	auto expect = q::fulfill< std::string >( std::string( ) );
 	EXPECT_FALSE( expect.has_exception( ) );
@@ -118,7 +118,7 @@ TEST( Expect, AnyExpectWithValue )
 	EXPECT_NO_THROW( expect.consume( ) );
 }
 
-TEST( Expect, ExceptionExpectWithValue )
+TEST( expect, exception_expect_with_value )
 {
 	auto expect = q::fulfill< std::exception_ptr >( make_exception( ) );
 	EXPECT_FALSE( expect.has_exception( ) );
@@ -127,7 +127,7 @@ TEST( Expect, ExceptionExpectWithValue )
 	EXPECT_NO_THROW( expect.consume( ) );
 }
 
-TEST( Expect, ExceptionExpectWithNullValue )
+TEST( expect, exception_expect_with_null_value )
 {
 	auto expect = q::fulfill< std::exception_ptr >( make_null_exception( ) );
 	EXPECT_FALSE( expect.has_exception( ) );
@@ -136,7 +136,7 @@ TEST( Expect, ExceptionExpectWithNullValue )
 	EXPECT_NO_THROW( expect.consume( ) );
 }
 
-TEST( Expect, ExceptionExpectWithException )
+TEST( expect, exception_expect_with_exception )
 {
 	auto expect = q::refuse< std::exception_ptr >( make_exception( ) );
 	EXPECT_TRUE( expect.has_exception( ) );
@@ -145,7 +145,7 @@ TEST( Expect, ExceptionExpectWithException )
 	EXPECT_THROW( expect.consume( ), test_exception );
 }
 
-TEST( Expect, ExceptionExpectWithNullException )
+TEST( expect, exception_expect_with_null_exception )
 {
 	EXPECT_THROW(
 		q::refuse< std::exception_ptr >( make_null_exception( ) ),

@@ -1,7 +1,7 @@
 
 #include <q-test/q-test.hpp>
 
-Q_TEST_MAKE_SCOPE( Fail );
+Q_TEST_MAKE_SCOPE( fail );
 /*
 	 *   * exception_ptr -> tuple< T... >
 	 *   * exception_ptr -> P< tuple< T... > >
@@ -9,7 +9,7 @@ Q_TEST_MAKE_SCOPE( Fail );
 	 *   * E             -> P< tuple< T... > >
 */
 
-TEST_F( Fail, ExceptionPtrToValue )
+TEST_F( fail, exception_ptr_to_value )
 {
 	run(
 		q::with( queue )
@@ -32,7 +32,7 @@ TEST_F( Fail, ExceptionPtrToValue )
 	);
 }
 
-TEST_F( Fail, ExceptionPtrToPromise )
+TEST_F( fail, exception_ptr_to_promise )
 {
 	auto queue = this->queue;
 
@@ -57,7 +57,7 @@ TEST_F( Fail, ExceptionPtrToPromise )
 	);
 }
 
-TEST_F( Fail, ErrorClassToValue )
+TEST_F( fail, error_class_to_value )
 {
 	run(
 		q::with( queue )
@@ -85,7 +85,7 @@ TEST_F( Fail, ErrorClassToValue )
 	);
 }
 
-TEST_F( Fail, ErrorClassToPromise )
+TEST_F( fail, error_class_to_promise )
 {
 	auto queue = this->queue;
 

@@ -4,7 +4,7 @@
 #include <gtest/gtest.h>
 
 
-TEST( Functional, IsArgumentSame )
+TEST( functional, is_argument_same )
 {
 	typedef q::is_argument_same<
 		q::arguments< char, int >,
@@ -55,7 +55,7 @@ TEST( Functional, IsArgumentSame )
 	EXPECT_TRUE( is_not_same_4 );
 }
 
-TEST( Functional, LambdaFunctionArgumentTypes )
+TEST( functional, lambda_function_argument_types )
 {
 	auto lambda = [ ]( int&, int, std::string, char ) { };
 
@@ -116,7 +116,7 @@ TEST( Functional, LambdaFunctionArgumentTypes )
 	EXPECT_EQ( 4, lambda_traits::arity::value );
 }
 
-TEST( Functional, LambdaFunctionVoidArgumentType )
+TEST( functional, lambda_function_void_argument_type )
 {
 	auto lambda = [ ]( ) { };
 
@@ -135,7 +135,7 @@ TEST( Functional, LambdaFunctionVoidArgumentType )
 
 int fn( char, std::string );
 
-TEST( Functional, FunctionArgumentTypes )
+TEST( functional, function_argument_types )
 {
 	typedef decltype( fn ) fn_type;
 	typedef Q_ARGUMENTS_OF( fn_type ) arguments_type;
@@ -159,7 +159,7 @@ struct C
 	float fn( long ) { return (float)3.14; }
 };
 
-TEST( Functional, ClassFunctionArgumentTypes )
+TEST( functional, class_function_argument_types )
 {
 	typedef decltype( &C::fn ) fn_type;
 	typedef Q_RESULT_OF( fn_type ) return_type;
@@ -186,7 +186,7 @@ int move_into( std::string&& s )
 	return s.length( );
 }
 
-TEST( Functional, CallWithArgs )
+TEST( functional, call_with_args )
 {
 	typedef Q_RESULT_OF_AS_ARGUMENT( decltype( move_into ) )::size num_args;
 
@@ -200,7 +200,7 @@ TEST( Functional, CallWithArgs )
 	EXPECT_EQ( 11, ret2 );
 }
 
-TEST( Functional, result_of )
+TEST( functional, result_of )
 {
 	auto fn = [ ]( int, long ) { return true; };
 	typedef q::result_of< decltype( fn ) > test;
@@ -208,7 +208,7 @@ TEST( Functional, result_of )
 	EXPECT_TRUE( expectation );
 }
 
-TEST( Functional, result_of_as_argument )
+TEST( functional, result_of_as_argument )
 {
 	auto fn = [ ]( int, long ) { return true; };
 	typedef q::result_of_as_argument< decltype( fn ) > test;
@@ -217,7 +217,7 @@ TEST( Functional, result_of_as_argument )
 	EXPECT_TRUE( expectation );
 }
 
-TEST( Functional, result_of_as_tuple )
+TEST( functional, result_of_as_tuple )
 {
 	auto fn = [ ]( int, long ) { return true; };
 	typedef q::result_of_as_tuple< decltype( fn ) > test;
@@ -225,7 +225,7 @@ TEST( Functional, result_of_as_tuple )
 	EXPECT_TRUE( expectation );
 }
 
-TEST( Functional, arguments_of )
+TEST( functional, arguments_of )
 {
 	auto fn = [ ]( int, long ) { return true; };
 	typedef q::arguments_of< decltype( fn ) > test;
@@ -234,7 +234,7 @@ TEST( Functional, arguments_of )
 	EXPECT_TRUE( expectation );
 }
 
-TEST( Functional, first_argument_of )
+TEST( functional, first_argument_of )
 {
 	auto fn = [ ]( int, long ) { return true; };
 	typedef q::first_argument_of< decltype( fn ) > test;
@@ -242,7 +242,7 @@ TEST( Functional, first_argument_of )
 	EXPECT_TRUE( expectation );
 }
 
-TEST( Functional, memberclass_of )
+TEST( functional, memberclass_of )
 {
 	struct C
 	{
@@ -256,7 +256,7 @@ TEST( Functional, memberclass_of )
 
 #ifdef LIBQ_WITH_CPP14
 
-TEST( Functional, is_memberfunction )
+TEST( functional, is_memberfunction )
 {
 	struct C
 	{
@@ -273,7 +273,7 @@ TEST( Functional, is_memberfunction )
 	EXPECT_FALSE( q::is_memberfunction< C > );
 }
 
-TEST( Functional, is_function )
+TEST( functional, is_function )
 {
 	struct C
 	{
@@ -283,7 +283,7 @@ TEST( Functional, is_function )
 	EXPECT_FALSE( q::is_function< C > );
 }
 
-TEST( Functional, arity_of )
+TEST( functional, arity_of )
 {
 	struct C
 	{
@@ -294,7 +294,7 @@ TEST( Functional, arity_of )
 	EXPECT_EQ( 2, q::arity_of< decltype( &C::fn2 ) > );
 }
 
-TEST( Functional, is_const_of )
+TEST( functional, is_const_of )
 {
 	struct C
 	{
@@ -311,7 +311,7 @@ TEST( Functional, is_const_of )
 	EXPECT_FALSE( q::is_const_of< decltype( fn_mutable_lambda ) > );
 }
 
-TEST( Functional, first_argument_is_tuple )
+TEST( functional, first_argument_is_tuple )
 {
 	struct C
 	{
@@ -322,7 +322,7 @@ TEST( Functional, first_argument_is_tuple )
 	EXPECT_FALSE( q::first_argument_is_tuple< decltype( &C::fn_l ) > );
 }
 
-TEST( Functional, arguments_of_are )
+TEST( functional, arguments_of_are )
 {
 	struct C
 	{
@@ -336,7 +336,7 @@ TEST( Functional, arguments_of_are )
 	) );
 }
 
-TEST( Functional, arguments_of_are_convertible_from )
+TEST( functional, arguments_of_are_convertible_from )
 {
 	struct C
 	{
