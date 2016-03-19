@@ -34,109 +34,46 @@ template< typename... T >
 class readable;
 
 template< typename... T >
-using readable_ptr = std::shared_ptr< readable< T... > >;
-
-template< typename... T >
 class writable;
-
-template< typename... T >
-using writable_ptr = std::shared_ptr< writable< T... > >;
 
 template< typename... T >
 class channel;
 
-template< typename... T >
-using channel_ptr = std::shared_ptr< channel< T... > >;
+namespace detail {
 
-template< typename... T >
-using weak_channel_ptr = std::weak_ptr< channel< T... > >;
-
-template< typename... T >
-class readable
+static constexpr std::size_t default_resume_count( std::size_t count )
 {
-public:
-	typedef std::tuple< T... > tuple_type;
-
-	virtual promise< tuple_type > receive( ) = 0;
-
-	virtual bool is_closed( ) = 0;
-
-	virtual void close( ) = 0;
-};
+	return count < 3 ? count : ( ( count * 3 ) / 4 );
+}
 
 template< typename... T >
-class writable
-{
-public:
-	typedef std::tuple< T... > tuple_type;
-
-	template< typename... Args >
-	typename std::enable_if<
-		(
-			sizeof...( Args ) != 1 ||
-			!arguments<
-				typename arguments< Args... >::first_type
-			>::template is_convertible_to<
-				arguments< tuple_type >
-			>::value
-		) &&
-		arguments<
-			Args...
-		>::template is_convertible_to<
-			typename tuple_arguments< tuple_type >::this_type
-		>::value
-	>::type
-	send( Args&&... args )
-	{
-		this->send( std::forward_as_tuple( args... ) );
-	}
-
-	virtual void send( tuple_type&& t ) = 0;
-
-	virtual bool should_send( ) = 0;
-
-	virtual void set_resume_notification( task fn ) = 0;
-
-	virtual bool is_closed( ) = 0;
-
-	virtual void close( ) = 0;
-};
-
-template< typename... T >
-class channel
-: public std::enable_shared_from_this< channel< T... > >
-, public readable< T... >
-, public writable< T... >
+class shared_channel
+: public std::enable_shared_from_this< shared_channel< T... > >
 {
 public:
 	typedef std::tuple< T... >    tuple_type;
 	typedef detail::defer< T... > defer_type;
 	typedef arguments< T... >     arguments_type;
 
-	static constexpr std::size_t default_resume_count( std::size_t count )
-	{
-		return count < 3 ? count : ( ( count * 3 ) / 4 );
-	}
-
-	channel( const queue_ptr& queue, std::size_t buffer_count )
-	: channel( queue, buffer_count, default_resume_count( buffer_count ) )
-	{ }
-
-	channel( const queue_ptr& queue, std::size_t buffer_count, std::size_t resume_count /* q::location, name */ )
+	shared_channel(
+		const queue_ptr& queue,
+		std::size_t buffer_count,
+		std::size_t resume_count
+	)
 	: default_queue_( queue )
 	, mutex_( Q_HERE, "channel" )
 	, closed_( false )
 	, paused_( false )
 	, buffer_count_( buffer_count )
-	, resume_count_( resume_count )
+	, resume_count_( std::min( resume_count, buffer_count ) )
 	{ }
 
-	bool is_closed( ) override
+	bool is_closed( )
 	{
 		return closed_;
 	}
 
-	void close( ) override
+	void close( )
 	{
 		task notification;
 
@@ -149,6 +86,8 @@ public:
 				waiter->set_exception(
 					channel_closed_exception( ) );
 
+			waiters_.clear( );
+
 			scopes_.clear( );
 
 			notification = resume_notification_;
@@ -158,9 +97,7 @@ public:
 			notification( );
 	}
 
-	using writable< T... >::send;
-
-	void send( tuple_type&& t ) override
+	void send( tuple_type&& t )
 	{
 		Q_AUTO_UNIQUE_LOCK( mutex_ );
 
@@ -183,7 +120,7 @@ public:
 		}
 	}
 
-	promise< tuple_type > receive( ) override
+	promise< tuple_type > receive( )
 	{
 		Q_AUTO_UNIQUE_LOCK( mutex_ );
 
@@ -225,12 +162,12 @@ public:
 		}
 	}
 
-	inline bool should_send( ) override
+	inline bool should_send( )
 	{
 		return !paused_ && !closed_;
 	}
 
-	void set_resume_notification( task fn ) override
+	void set_resume_notification( task fn )
 	{
 		Q_AUTO_UNIQUE_LOCK( mutex_ );
 
@@ -274,6 +211,217 @@ private:
 	const std::size_t resume_count_;
 	task resume_notification_;
 	std::vector< scope > scopes_;
+};
+
+template< typename... T >
+class shared_channel_owner
+{
+public:
+	shared_channel_owner( ) = delete;
+	shared_channel_owner( const shared_channel_owner& ) = default;
+	shared_channel_owner( shared_channel_owner&& ) = default;
+
+	shared_channel_owner& operator=( const shared_channel_owner& ) = default;
+	shared_channel_owner& operator=( shared_channel_owner&& ) = default;
+
+	shared_channel_owner(
+		std::shared_ptr< detail::shared_channel< T... > > ch )
+	: shared_channel_( std::move( ch ) )
+	{ }
+
+	~shared_channel_owner( )
+	{
+		shared_channel_->close( );
+	}
+
+protected:
+	std::shared_ptr< detail::shared_channel< T... > > shared_channel_;
+};
+
+} // namespace detail
+
+template< typename... T >
+class readable
+{
+public:
+	typedef std::tuple< T... > tuple_type;
+
+	readable( ) = delete;
+	readable( const readable& ) = default;
+	readable( readable&& ) = default;
+
+	readable& operator=( const readable& ) = default;
+	readable& operator=( readable&& ) = default;
+
+	promise< tuple_type > receive( )
+	{
+		return shared_channel_->receive( );
+	}
+
+	bool is_closed( )
+	{
+		return shared_channel_->is_closed( );
+	}
+
+	void close( )
+	{
+		shared_channel_->close( );
+	}
+
+	void add_scope_until_closed( scope&& scope )
+	{
+		shared_channel_->add_scope_until_closed( std::move( scope ) );
+	}
+
+private:
+	readable( std::shared_ptr< detail::shared_channel< T... > > ch )
+	: shared_channel_( ch )
+	, shared_owner_(
+		std::make_shared< detail::shared_channel_owner< T... > >( ch ) )
+	{ }
+
+	friend class channel< T... >;
+
+	std::shared_ptr< detail::shared_channel< T... > > shared_channel_;
+	std::shared_ptr< detail::shared_channel_owner< T... > > shared_owner_;
+};
+
+template< typename... T >
+class writable
+{
+public:
+	typedef std::tuple< T... > tuple_type;
+
+	writable( ) = delete;
+	writable( const writable& ) = default;
+	writable( writable&& ) = default;
+
+	writable& operator=( const writable& ) = default;
+	writable& operator=( writable&& ) = default;
+
+	template< typename... Args >
+	typename std::enable_if<
+		(
+			sizeof...( Args ) != 1
+			or
+			!arguments<
+				typename arguments< Args... >::first_type
+			>::template is_convertible_to<
+				arguments< tuple_type >
+			>::value
+		)
+		and
+		( sizeof...( Args ) > 0 )
+		and
+		arguments<
+			Args...
+		>::template is_convertible_to<
+			typename tuple_arguments< tuple_type >::this_type
+		>::value
+	>::type
+	send( Args&&... args )
+	{
+		this->send( std::forward_as_tuple( args... ) );
+	}
+
+	template< typename T_ = tuple_type >
+	typename std::enable_if<
+		q::tuple_arguments< T_ >::size::value == 0
+	>::type
+	send( )
+	{
+		this->send( std::make_tuple( ) );
+	}
+
+	template< typename Tuple >
+	typename std::enable_if<
+		q::tuple_arguments<
+			typename std::decay< Tuple >::type
+		>::this_type::template is_convertible_to<
+			typename q::tuple_arguments< tuple_type >::this_type
+		>::value
+	>::type
+	send( Tuple&& t )
+	{
+		shared_channel_->send( std::forward< Tuple >( t ) );
+	}
+
+	bool should_send( )
+	{
+		return shared_channel_->should_send( );
+	}
+
+	void set_resume_notification( task fn )
+	{
+		shared_channel_->set_resume_notification( std::move( fn ) );
+	}
+
+	bool is_closed( )
+	{
+		return shared_channel_->is_closed( );
+	}
+
+	void close( )
+	{
+		shared_channel_->close( );
+	}
+
+	void add_scope_until_closed( scope&& scope )
+	{
+		shared_channel_->add_scope_until_closed( std::move( scope ) );
+	}
+
+private:
+	writable( std::shared_ptr< detail::shared_channel< T... > > ch )
+	: shared_channel_( ch )
+	, shared_owner_(
+		std::make_shared< detail::shared_channel_owner< T... > >( ch ) )
+	{ }
+
+	friend class channel< T... >;
+
+	std::shared_ptr< detail::shared_channel< T... > > shared_channel_;
+	std::shared_ptr< detail::shared_channel_owner< T... > > shared_owner_;
+};
+
+template< typename... T >
+class channel
+{
+public:
+	channel( const queue_ptr& queue, std::size_t buffer_count )
+	: channel(
+		queue,
+		buffer_count,
+		detail::default_resume_count( buffer_count )
+	)
+	{ }
+
+	channel(
+		const queue_ptr& queue,
+		std::size_t buffer_count,
+		std::size_t resume_count
+	)
+	: shared_channel_(
+		q::make_shared< detail::shared_channel< T... > >(
+			queue, buffer_count, resume_count ) )
+	, readable_( shared_channel_ )
+	, writable_( shared_channel_ )
+	{ }
+
+	readable< T... > get_readable( )
+	{
+		return readable_;
+	}
+
+	writable< T... > get_writable( )
+	{
+		return writable_;
+	}
+
+private:
+	std::shared_ptr< detail::shared_channel< T... > > shared_channel_;
+	readable< T... > readable_;
+	writable< T... > writable_;
 };
 
 } // namespace q

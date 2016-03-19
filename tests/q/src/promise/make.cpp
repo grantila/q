@@ -1,9 +1,9 @@
 
 #include <q-test/q-test.hpp>
 
-Q_TEST_MAKE_SCOPE( Make );
+Q_TEST_MAKE_SCOPE( make );
 
-TEST_F( Make, ByExpressionWithValue )
+TEST_F( make, by_expression_with_value )
 {
 	auto promise = q::make_promise( queue,
 		[ ]( )
@@ -19,7 +19,7 @@ TEST_F( Make, ByExpressionWithValue )
 	run( std::move( promise ) );
 }
 
-TEST_F( Make, ByExpressionWithException )
+TEST_F( make, by_expression_with_exception )
 {
 	auto promise = q::make_promise( queue,
 		[ ]( ) -> int
@@ -34,7 +34,7 @@ TEST_F( Make, ByExpressionWithException )
 	run( std::move( promise ) );
 }
 
-TEST_F( Make, AsyncWithValue )
+TEST_F( make, async_with_value )
 {
 	auto promise = q::make_promise( queue,
 		[ ]( q::resolver< int, int > resolve,
@@ -53,7 +53,7 @@ TEST_F( Make, AsyncWithValue )
 }
 
 
-TEST_F( Make, AsyncWithException )
+TEST_F( make, async_with_exception )
 {
 	auto promise = q::make_promise( queue,
 		[ ]( q::resolver< int, int > resolve,
@@ -71,7 +71,7 @@ TEST_F( Make, AsyncWithException )
 
 #ifdef LIBQ_WITH_CPP14
 
-TEST_F( Make, ByLambdaAuto )
+TEST_F( make, by_lambda_auto )
 {
 	auto promise1 = q::make_promise( queue,
 		[ ]( q::resolver< int > resolve, q::rejecter< int > reject )

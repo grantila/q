@@ -36,7 +36,7 @@
 		{ \
 			return #Name ; \
 		} \
-		using exception::exception; \
+		using ::q::exception::exception; \
 	}
 
 /**

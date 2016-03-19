@@ -1,9 +1,9 @@
 
 #include <q-test/q-test.hpp>
 
-Q_TEST_MAKE_SCOPE( Then );
+Q_TEST_MAKE_SCOPE( then );
 
-TEST_F( Then, ValuesToValue )
+TEST_F( then, values_to_value )
 {
 	int i = 17;
 	std::string s = "hello";
@@ -23,7 +23,7 @@ TEST_F( Then, ValuesToValue )
 	);
 }
 
-TEST_F( Then, TupleToValue )
+TEST_F( then, tuple_to_value )
 {
 	int i = 17;
 	std::string s = "hello";
@@ -46,7 +46,7 @@ TEST_F( Then, TupleToValue )
 	);
 }
 
-TEST_F( Then, ValuesToPromise )
+TEST_F( then, values_to_promise )
 {
 	int i = 17;
 	std::string s = "hello";
@@ -68,7 +68,7 @@ TEST_F( Then, ValuesToPromise )
 	);
 }
 
-TEST_F( Then, TupleToPromise )
+TEST_F( then, tuple_to_promise )
 {
 	int i = 17;
 	std::string s = "hello";

@@ -1,9 +1,9 @@
 
 #include <q-test/q-test.hpp>
 
-Q_TEST_MAKE_SCOPE( SetDefault );
+Q_TEST_MAKE_SCOPE( set_default );
 
-TEST_F( SetDefault, NoDefault )
+TEST_F( set_default, no_default )
 {
 	auto promise1 = q::with( queue ).share( );
 
@@ -33,7 +33,7 @@ TEST_F( SetDefault, NoDefault )
 	);
 }
 
-TEST_F( SetDefault, SetDefault )
+TEST_F( set_default, set_default )
 {
 	auto promise1 = q::with( queue ).share( );
 
