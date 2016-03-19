@@ -15,7 +15,6 @@ struct blocking_dispatcher::pimpl
 	pimpl( const std::string& name )
 	: name_( name )
 	, mutex_( Q_HERE, "[" + name + "] mutex" )
-	, should_wait_( true )
 	, started_( false )
 	, running_( false )
 	, stop_asap_( false )
@@ -25,7 +24,6 @@ struct blocking_dispatcher::pimpl
 	mutex running_mutex_;
 	mutex mutex_;
 	std::condition_variable cond_;
-	bool should_wait_;
 	bool started_;
 	bool running_;
 	bool stop_asap_;
@@ -45,10 +43,6 @@ blocking_dispatcher::~blocking_dispatcher( )
 
 void blocking_dispatcher::notify( )
 {
-	{
-		Q_AUTO_UNIQUE_LOCK( pimpl_->mutex_ );
-		pimpl_->should_wait_ = false;
-	}
 	pimpl_->cond_.notify_one( );
 }
 
@@ -84,10 +78,9 @@ void blocking_dispatcher::start( )
 			_task( );
 		}
 
-		if ( !_task && pimpl_->should_wait_ )
+		if ( !_task )
 		{
 			pimpl_->cond_.wait( lock );
-			pimpl_->should_wait_ = true;
 		}
 	}
 	while ( true );
