@@ -22,8 +22,8 @@
 
 namespace q { namespace io {
 
-event::event( )
-: pimpl_( new pimpl{ nullptr } )
+event::event( socket_t sock )
+: pimpl_( new pimpl{ nullptr, sock } )
 {
 	;
 }

@@ -31,7 +31,7 @@ public:
 	~event( );
 
 protected:
-	event( );
+	event( socket_t sock = invalid_socket::value );
 
 	virtual void on_event_read( ) noexcept { }
 	virtual void on_event_write( ) noexcept { }

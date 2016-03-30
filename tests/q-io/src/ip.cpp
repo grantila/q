@@ -37,9 +37,11 @@ TEST( ip, ipv6 )
 {
 	q::io::ipv6_address ipv6_lo( "::1" );
 	q::io::ipv6_address ipv6_goo( "2001:4860:4860::8888" );
+	q::io::ipv6_address ipv6_zero( "::" );
 
 	EXPECT_EQ( ipv6_lo.string( ), "::1" );
 	EXPECT_EQ( ipv6_goo.string( ), "2001:4860:4860::8888" );
+	EXPECT_EQ( ipv6_zero.string( ), "::" );
 }
 
 TEST( ip, ipv6_invalid )

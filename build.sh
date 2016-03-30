@@ -15,7 +15,7 @@ BASEDIR=`pwd`
 THIRD_DIR=${BASEDIR}/3rdparty/dist
 if [ ! -d ${THIRD_DIR}/lib ] ; then
 	cd 3rdparty
-	./build-deps.sh
+	./build-deps.sh $BUILDTYPE $CORES
 	cd ..
 fi
 

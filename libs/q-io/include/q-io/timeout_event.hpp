@@ -25,30 +25,65 @@
 namespace q { namespace io {
 
 /**
- * A timeout_event is a task which will be invoked when a certain duration has
- * expired.
+ * A timeout_event is an event which can be used multiple times to trigger
+ * timeouts.
  *
- * The task attached to the timeout_event *must* be noexcept, i.e. guarantee
- * not to throw.
+ * The class is abstract, and requires a sub-class to override the
+ * `on_event_timeout( )` function.
+ *
+ * The overridden `on_event_timeout` *must* be noexcept, i.e. guarantee not to
+ * throw.
  */
 class timeout_event
 : public event
 , public std::enable_shared_from_this< timeout_event >
 {
 public:
-	static std::shared_ptr< timeout_event >
-	construct( q::task task, clock::duration duration );
+	virtual ~timeout_event( );
+
+	void set_timeout_now( );
+	void set_timeout( clock::duration duration );
+	void remove_timeout( );
 
 protected:
-	timeout_event( q::task task, clock::duration duration );
+	timeout_event( );
+
+	virtual void on_event_timeout( ) noexcept override = 0;
+	virtual void on_initialized( ) noexcept { }
 
 private:
 	void sub_attach( const dispatcher_ptr& dispatcher ) noexcept override;
 
-	void on_event_timeout( ) noexcept override;
-
 	struct pimpl;
 	std::unique_ptr< pimpl > pimpl_;
+};
+
+/**
+ * A timeout_task is a task which will be invoked when a certain duration has
+ * expired. It is a one-time class which must not be re-used.
+ *
+ * The task attached to the timeout_event *must* be noexcept, i.e. guarantee
+ * not to throw.
+ */
+class timeout_task
+: public timeout_event
+{
+public:
+	static std::shared_ptr< timeout_task >
+	construct( q::task task, clock::duration duration );
+
+	~timeout_task( );
+
+protected:
+	timeout_task( q::task task, clock::duration duration );
+
+private:
+	void on_event_timeout( ) noexcept override;
+	void on_initialized( ) noexcept override;
+
+	q::task task_;
+	clock::duration duration_;
+	std::shared_ptr< timeout_task > self_ptr_;
 };
 
 } } // namespace io, namespace q

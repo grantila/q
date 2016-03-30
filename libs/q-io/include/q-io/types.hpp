@@ -27,12 +27,23 @@ typedef std::shared_ptr< dispatcher > dispatcher_ptr;
 class event;
 typedef std::shared_ptr< event > event_ptr;
 
+class socket_event;
+typedef std::shared_ptr< socket_event > socket_event_ptr;
+typedef std::weak_ptr< socket_event > weak_socket_event_ptr;
+
 class socket;
 typedef std::shared_ptr< socket > socket_ptr;
 typedef std::weak_ptr< socket > weak_socket_ptr;
 
 class server_socket;
 typedef std::shared_ptr< server_socket > server_socket_ptr;
+
+#ifdef _WIN32
+	typedef intptr_t socket_t;
+#else
+	typedef int socket_t;
+#endif
+typedef std::integral_constant< socket_t, -1 > invalid_socket;
 
 struct native_socket;
 

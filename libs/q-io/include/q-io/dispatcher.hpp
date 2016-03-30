@@ -118,6 +118,12 @@ public:
 	void start( ) override;
 
 	/**
+	 * Attach an event to this dispatcher. The event should not have been
+	 * created by this dispatcher, as they are automatically attached.
+	 */
+	void attach_event( const event_ptr& event );
+
+	/**
 	 * Creates a timeout-based forwarding_async_task which can be used to
 	 * delay execution in q promise chains.
 	 */
@@ -180,8 +186,6 @@ protected:
 	void do_terminate( dispatcher_termination termination ) override;
 
 private:
-	void attach_event( event_ptr&& event );
-
 	/**
 	 * Trigger the event dispatcher to fetch another task
 	 */

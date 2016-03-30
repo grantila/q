@@ -3,6 +3,7 @@
 TODO
 obj
 3rdparty/libevent-*
+3rdparty/curl-*
 dist
 
 CMakeCache.txt

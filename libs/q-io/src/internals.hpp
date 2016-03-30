@@ -36,6 +36,7 @@ struct native_socket
 struct event::pimpl
 {
 	struct ::event* ev;
+	socket_t fd;
 
 	std::weak_ptr< dispatcher > dispatcher;
 };

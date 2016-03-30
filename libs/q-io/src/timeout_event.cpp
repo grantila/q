@@ -18,55 +18,106 @@
 
 #include "internals.hpp"
 
-#include <event2/event.h>
-
 namespace q { namespace io {
 
 struct timeout_event::pimpl
 {
-	q::task task_;
-	clock::duration duration_;
+	::event* event_;
 };
 
-timeout_event::timeout_event( q::task task, clock::duration duration )
-: pimpl_( new pimpl{ task, duration } )
-{ }
-
-std::shared_ptr< timeout_event >
-timeout_event::construct( q::task task, clock::duration duration )
+timeout_event::timeout_event( )
+: pimpl_( ::q::make_unique< pimpl >( ) )
 {
-	return q::make_shared_using_constructor<
-		timeout_event
-	>( std::move( task ), std::move( duration ) );
+	pimpl_->event_ = nullptr;
+}
+
+timeout_event::~timeout_event( )
+{
+	if ( pimpl_->event_ )
+	{
+		::event_del( pimpl_->event_ );
+		::event_active( pimpl_->event_, LIBQ_EV_CLOSE, 0 );
+
+		::event_free( pimpl_->event_ );
+	}
+}
+
+void timeout_event::set_timeout_now( )
+{
+	remove_timeout( );
+	::event_active( pimpl_->event_, EV_TIMEOUT, 0 );
+}
+
+void timeout_event::set_timeout( clock::duration duration )
+{
+	struct timeval timeout = clock::to_timeval( duration );
+	std::cout << timeout.tv_sec << " " << timeout.tv_usec << std::endl;
+
+	::event_add( pimpl_->event_, &timeout );
+	std::cout << "C" << std::endl;
+}
+
+void timeout_event::remove_timeout( )
+{
+	::event_del( pimpl_->event_ );
 }
 
 void timeout_event::sub_attach( const dispatcher_ptr& dispatcher ) noexcept
 {
 	std::cout << "timeout_event::sub_attach invoked" << std::endl;
-	auto self = new std::shared_ptr< timeout_event >( shared_from_this( ) );
+	auto self = new std::weak_ptr< timeout_event >( shared_from_this( ) );
 
 	auto fn = [ ]( evutil_socket_t fd, short events, void* arg ) -> void
 	{
 		std::cout << "running event callback" << std::endl;
-		auto self = reinterpret_cast< std::shared_ptr< timeout_event >* >( arg );
-		(*self)->on_event_timeout( );
-		delete self;
+		auto weak_self =
+			reinterpret_cast< std::weak_ptr< timeout_event >* >(
+				arg );
+
+		auto self = weak_self->lock( );
+
+		if ( ( events & EV_TIMEOUT ) && !!self )
+			self->on_event_timeout( );
+
+		if ( events & LIBQ_EV_CLOSE )
+			delete weak_self;
 	};
 
 	auto event_base = get_dispatcher_pimpl( ).event_base;
-	::event* ev = ::event_new( event_base, -1, EV_TIMEOUT, fn, self );
+	pimpl_->event_ = ::event_new( event_base, -1, EV_TIMEOUT, fn, self );
 
-	struct timeval timeout = clock::to_timeval( pimpl_->duration_ );
-	std::cout << timeout.tv_sec << " " << timeout.tv_usec << std::endl;
-	std::cout << event_initialized( ev ) << std::endl;
-	::event_add( ev, &timeout );
-	std::cout << "C" << std::endl;
-
+	on_initialized( );
 }
 
-void timeout_event::on_event_timeout( ) noexcept
+
+std::shared_ptr< timeout_task >
+timeout_task::construct( q::task task, clock::duration duration )
 {
-	Q_ENSURE_NOEXCEPT( pimpl_->task_ );
+	return ::q::make_shared_using_constructor< timeout_task >(
+		std::move( task ), std::move( duration ) );
+}
+
+timeout_task::timeout_task( q::task task, clock::duration duration )
+: task_( std::move( task ) )
+, duration_( std::move( duration ) )
+{ }
+
+timeout_task::~timeout_task( )
+{ }
+
+void timeout_task::on_event_timeout( ) noexcept
+{
+	auto task = std::move( task_ );
+	self_ptr_.reset( );
+	Q_ENSURE_NOEXCEPT( task );
+}
+
+void timeout_task::on_initialized( ) noexcept
+{
+	self_ptr_ = std::static_pointer_cast< timeout_task >(
+		shared_from_this( ) );
+
+	set_timeout( duration_ );
 }
 
 } } // namespace io, namespace q

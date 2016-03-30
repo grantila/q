@@ -355,9 +355,7 @@ void dispatcher::start_blocking( )
 	_make_dummy_event( );
 
 	int flags = EVLOOP_NO_EXIT_ON_EMPTY;
-	std::cout << "== starting event loop" << std::endl;
 	int ret = event_base_loop( pimpl_->event_base, flags );
-	std::cout << "== exited event loop: " << ret << std::endl;
 
 	bool got_exit = event_base_got_exit( pimpl_->event_base );
 	bool got_break = event_base_got_break( pimpl_->event_base );
@@ -382,11 +380,8 @@ void dispatcher::start_blocking( )
 void dispatcher::start( )
 {
 	auto self = shared_from_this( );
-	auto runner = [ self ]( ) -> void
-	{
-		std::cerr << self->pimpl_->name + " thread running" << std::endl;
-		self->start_blocking( );
-	};
+
+	auto runner = std::bind( &dispatcher::start_blocking, self );
 
 	pimpl_->thread = q::run( pimpl_->name, pimpl_->user_queue, runner );
 }
@@ -452,7 +447,7 @@ dispatcher::delay( q::timer::duration_type dur )
 			fn( q::fulfill< void >( ) );
 		};
 
-		self->attach_event( timeout_event::construct( task, dur_ ) );
+		self->attach_event( timeout_task::construct( task, dur_ ) );
 	};
 
 	return q::async_task( runner );
@@ -701,7 +696,7 @@ server_socket_ptr dispatcher::listen( std::uint16_t port )
 	return server_socket;
 }
 
-void dispatcher::attach_event( event_ptr&& event )
+void dispatcher::attach_event( const event_ptr& event )
 {
 	event->attach( shared_from_this( ) );
 }
