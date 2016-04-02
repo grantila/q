@@ -44,6 +44,7 @@ TEST_F( finally, synchronous_with_exception )
 		{
 			return 0;
 		} ) )
+		.then( [ ]( long ) { } )
 	);
 }
 
