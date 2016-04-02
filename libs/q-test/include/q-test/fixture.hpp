@@ -54,6 +54,16 @@ protected:
 	void _run( Promise&& promise )
 	{
 		promise
+		.fail( [ ]( std::exception_ptr e )
+		{
+			// If a test throws an asynchronous exception, the test
+			// fails.
+			ADD_FAILURE( )
+				<< "Test threw asychronous exception:"
+				<< std::endl
+				<< q::stream_exception( e )
+				<< std::endl;
+		} )
 		.finally( [ this ]( )
 		{
 			bd->dispatcher( )->terminate( q::termination::linger );
