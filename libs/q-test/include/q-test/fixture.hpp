@@ -61,8 +61,11 @@ protected:
 		{
 			// If a test throws an asynchronous exception, the test
 			// fails.
-			EXPECT_NO_THROW( std::rethrow_exception( e ) );
-			std::cerr << q::stream_exception( e ) << std::endl;
+			ADD_FAILURE( )
+				<< "Test threw asychronous exception:"
+				<< std::endl
+				<< q::stream_exception( e )
+				<< std::endl;
 		} )
 		.finally( [ this ]( )
 		{
