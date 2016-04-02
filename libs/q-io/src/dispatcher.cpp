@@ -33,6 +33,8 @@
 #include <event2/event.h>
 #include <event2/thread.h>
 
+#include <condition_variable>
+
 #include <unistd.h>
 
 namespace q { namespace io {
@@ -89,32 +91,55 @@ void qio_event2_fatal( int err )
 	LIBQ_ABORT_WITH_MSG_AND_DATA( "fatal libevent2 error: ", int( err ) );
 }
 
+struct ev_lock
+{
+	bool recursive;
+
+	typedef std::unique_lock< std::mutex > lock_type;
+	std::unique_ptr< lock_type > lock_;
+	std::unique_ptr< q::mutex > mutex_;
+
+	typedef std::unique_lock< std::recursive_mutex > recursive_lock_type;
+	std::unique_ptr< recursive_lock_type > recursive_lock_;
+	std::unique_ptr< q::recursive_mutex > recursive_mutex_;
+};
+
 void* lock_alloc( unsigned locktype )
 {
-	q::basic_mutex* ret = nullptr;
+	auto lock = new ev_lock;
+
+	lock->recursive = false;
 
 	switch ( locktype )
 	{
 		case 0:
-			ret = static_cast< q::basic_mutex* >( new q::mutex( Q_HERE, "libevent2" ) );
+			lock->mutex_ = q::make_unique< q::mutex >(
+				Q_HERE, "libevent2" );
 			break;
 		case EVTHREAD_LOCKTYPE_RECURSIVE:
-			ret = static_cast< q::basic_mutex* >( new q::recursive_mutex( Q_HERE, "libevent2" ) );
+			lock->recursive_mutex_ =
+				q::make_unique< q::recursive_mutex >(
+					Q_HERE, "libevent2" );
+			lock->recursive = true;
 			break;
 		default:
 			// TODO: Add warning logging
+			delete lock;
 			return nullptr;
 	}
-	return ret;
+
+	return lock;
 }
 
-void lock_free( void* lock, unsigned locktype )
+void lock_free( void* _lock, unsigned locktype )
 {
+	auto lock = reinterpret_cast< ev_lock* >( _lock );
+
 	switch ( locktype )
 	{
 		case 0:
 		case EVTHREAD_LOCKTYPE_RECURSIVE:
-			delete reinterpret_cast< q::basic_mutex* >( lock );
+			delete lock;
 			break;
 		default:
 			// TODO: Add warning logging, this is fatal
@@ -122,26 +147,114 @@ void lock_free( void* lock, unsigned locktype )
 	}
 }
 
-int lock_lock( unsigned mode, void* lock )
+int lock_lock( unsigned mode, void* _lock )
 {
-	q::basic_mutex* mut = reinterpret_cast< q::basic_mutex* >( lock );
+	auto lock = reinterpret_cast< ev_lock* >( _lock );
 
-	if ( mode == EVTHREAD_TRY )
-		return mut->try_lock( ) ? 0 : 1;
+	if ( lock->recursive )
+	{
+		typedef ev_lock::recursive_lock_type lock_type;
+
+		if ( mode == EVTHREAD_TRY )
+		{
+			lock->recursive_lock_ = q::make_unique< lock_type >(
+				*lock->recursive_mutex_, std::try_to_lock_t( ) );
+
+			return lock->recursive_lock_->owns_lock( ) ? 0 : 1;
+		}
+		else
+		{
+			lock->recursive_lock_ = q::make_unique< lock_type >(
+				*lock->recursive_mutex_ );
+
+			return 0;
+		}
+	}
 	else
 	{
-		mut->lock( );
-		return 0;
+		typedef ev_lock::lock_type lock_type;
+
+		if ( mode == EVTHREAD_TRY )
+		{
+			lock->lock_ = q::make_unique< lock_type >(
+				*lock->mutex_, std::try_to_lock_t( ) );
+
+			return lock->lock_->owns_lock( ) ? 0 : 1;
+		}
+		else
+		{
+			lock->lock_ = q::make_unique< lock_type >(
+				*lock->mutex_ );
+
+			return 0;
+		}
 	}
 }
 
-int lock_unlock( unsigned mode, void* lock )
+int lock_unlock( unsigned mode, void* _lock )
 {
-	q::basic_mutex* mut = reinterpret_cast< q::basic_mutex* >( lock );
-	
-	mut->unlock( );
-	
+	auto lock = reinterpret_cast< ev_lock* >( _lock );
+
+	if ( lock->recursive )
+	{
+		lock->recursive_lock_.reset( );
+	}
+	else
+	{
+		lock->lock_.reset( );
+	}
+
 	return 0;
+}
+
+void* condition_alloc( unsigned condtype )
+{
+	auto cond = new std::condition_variable( );
+
+	return reinterpret_cast< void* >( cond );
+}
+
+void condition_free( void* ptr )
+{
+	auto cond = reinterpret_cast< std::condition_variable* >( ptr );
+
+	delete cond;
+}
+
+int condition_signal( void* _cond, int broadcast )
+{
+	auto cond = reinterpret_cast< std::condition_variable* >( _cond );
+
+	if ( broadcast == 1 )
+		cond->notify_all( );
+	else
+		cond->notify_one( );
+
+	return 0;
+}
+
+int condition_wait( void* _cond, void* _lock, const struct timeval* timeout )
+{
+	auto cond = reinterpret_cast< std::condition_variable* >( _cond );
+	auto lock = reinterpret_cast< ev_lock* >( _lock );
+
+	if ( lock->recursive )
+		// Can't conditionally wait on a recursive mutex
+		return -1;
+
+	if ( timeout )
+	{
+		auto time_point = clock::from_timeval( *timeout );
+
+		return cond->wait_until( *lock->lock_, time_point )
+			== std::cv_status::timeout
+			? 1 : 0;
+	}
+	else
+	{
+		cond->wait( *lock->lock_ );
+		return 0;
+	}
 }
 
 } // anonymous namespace
@@ -183,23 +296,15 @@ dispatcher::dispatcher( q::queue_ptr user_queue, std::string name )
 
 	::evthread_set_lock_callbacks( &lock_callbacks );
 
-	// TODO: Implement:
-	// void evthread_set_id_callback(unsigned long (*id_fn)(void));
-
-	// TODO: Implement:
-	/*
-	struct evthread_condition_callbacks {
-		int condition_api_version;
-		void *(*alloc_condition)(unsigned condtype);
-		void (*free_condition)(void *cond);
-		int (*signal_condition)(void *cond, int broadcast);
-		int (*wait_condition)(void *cond, void *lock,
-				      const struct timeval *timeout);
+	evthread_condition_callbacks condition_callbacks = {
+		EVTHREAD_CONDITION_API_VERSION,
+		condition_alloc,
+		condition_free,
+		condition_signal,
+		condition_wait
 	};
 
-	int evthread_set_condition_callbacks(
-		const struct evthread_condition_callbacks *);
-	*/
+	::evthread_set_condition_callbacks( &condition_callbacks );
 
 	event_config* cfg = ::event_config_new( );
 	auto config_scope = q::make_scoped_function( [ cfg ]( )
@@ -302,11 +407,11 @@ std::string dispatcher::dump_events( ) const
 
 void dispatcher::_make_dummy_event( )
 {
-	// This is incredibly retarded, but libevent seems not to be able to
+	// This is incredibly stupid, but libevent seems not to be able to
 	// function without an event being added to the event_base before it is
 	// started with event_base_loop(). Also, this dummy event seems to
 	// require a callback function, and must have some timeout.
-	// TODO: Figure out why the h*ll this is needed and get rid of it!
+	// TODO: Figure out why this is needed and get rid of it (if possible)!
 
 	auto fn = [ ]( evutil_socket_t fd, short events, void* arg ) { };
 
@@ -337,21 +442,6 @@ void dispatcher::_cleanup_dummy_event( )
 
 void dispatcher::start_blocking( )
 {
-/*
-	auto fn = [ ]( evutil_socket_t fd, short events, void* arg ) -> void
-	{
-		std::cout << "before init fun" << std::endl;
-	};
-	::event* ev = ::event_new( pimpl_->event_base, -1, 0, fn, nullptr);
-	struct timeval timeout;
-	timeout.tv_sec = 1;
-	timeout.tv_usec = 500000;
-	::event_add( ev, &timeout );
-/* */
-
-/* */
-	//::event_add( dummy_event, nullptr );
-/* */
 	_make_dummy_event( );
 
 	int flags = EVLOOP_NO_EXIT_ON_EMPTY;
@@ -443,7 +533,6 @@ dispatcher::delay( q::timer::duration_type dur )
 	{
 		auto task = [ fn ]( ) mutable
 		{
-			std::cout << "running timer_task" << std::endl;
 			fn( q::fulfill< void >( ) );
 		};
 
@@ -593,10 +682,8 @@ q::promise< std::tuple< socket_ptr > > dispatcher::connect_to(
 
 			if ( !ret && !err )
 			{
-				std::cout << "CONNECTION SUCCESS fd=" << socket << std::endl;
 				// Connection success
-				auto sock = ::q::io::socket::construct(
-					native_socket{ socket } );
+				auto sock = ::q::io::socket::construct( socket );
 
 				sock->attach( dispatcher );
 
@@ -687,9 +774,7 @@ server_socket_ptr dispatcher::listen( std::uint16_t port )
 		throw_by_errno( errno_ );
 	}
 
-	native_socket sock{ fd };
-
-	auto server_socket = server_socket::construct( sock );
+	auto server_socket = server_socket::construct( fd );
 
 	server_socket->attach( shared_from_this( ) );
 

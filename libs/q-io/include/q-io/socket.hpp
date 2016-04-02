@@ -18,7 +18,7 @@
 #define LIBQIO_SOCKET_HPP
 
 #include <q-io/types.hpp>
-#include <q-io/event.hpp>
+#include <q-io/socket_event.hpp>
 #include <q-io/ip.hpp>
 
 #include <q/channel.hpp>
@@ -30,8 +30,8 @@ namespace q { namespace io {
  * A socket is a socket connection to a remote peer.
  */
 class socket
-: public event
-, public std::enable_shared_from_this< socket >
+: public std::enable_shared_from_this< socket >
+, public socket_event
 {
 public:
 	~socket( );
@@ -64,10 +64,10 @@ public:
 	void detach( );
 
 protected:
-	static socket_ptr construct( const native_socket& );
+	static socket_ptr construct( socket_t );
 
 private:
-	socket( const native_socket& );
+	socket( socket_t );
 
 	friend class dispatcher;
 	friend class server_socket;
@@ -77,7 +77,10 @@ private:
 	std::shared_ptr< q::channel< q::byte_block > > _in( );
 	std::shared_ptr< q::channel< q::byte_block > > _out( );
 */
-	void sub_attach( const dispatcher_ptr& dispatcher ) noexcept override;
+
+	socket_event_ptr socket_event_shared_from_this( ) override;
+
+	void on_attached( const dispatcher_ptr& dispatcher ) noexcept override;
 
 	void on_event_read( ) noexcept override;
 	void on_event_write( ) noexcept override;

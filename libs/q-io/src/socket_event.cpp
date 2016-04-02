@@ -33,6 +33,7 @@ struct socket_event::pimpl
 	: fd_( sock )
 	, ev_read_( nullptr )
 	, ev_write_( nullptr )
+	, closed_( false )
 	{ }
 };
 
@@ -61,7 +62,17 @@ void socket_event::detect_writability( )
 	::event_add( pimpl_->ev_write_, nullptr );
 }
 
-socket_t socket_event::socket( ) const
+void socket_event::trigger_read( )
+{
+	::event_active( pimpl_->ev_read_, EV_READ, 0 );
+}
+
+void socket_event::trigger_write( )
+{
+	::event_active( pimpl_->ev_write_, EV_WRITE, 0 );
+}
+
+socket_t socket_event::get_socket( ) const
 {
 	return pimpl_->fd_;
 }
@@ -71,16 +82,12 @@ void socket_event::sub_attach( const dispatcher_ptr& dispatcher ) noexcept
 	auto& dispatcher_pimpl = get_dispatcher_pimpl( );
 	auto self = socket_event_shared_from_this( );
 
-	std::cout << "socket_event::sub_attach invoked" << std::endl;
-
 	auto reader_ptr = new weak_socket_event_ptr{ self };
 	auto writer_ptr = new weak_socket_event_ptr{ self };
 
 	auto fn_read = [ ]( evutil_socket_t fd, short events, void* arg )
 	-> void
 	{
-		std::cout << "running socket event callback [read]" << std::endl;
-
 		auto socket = reinterpret_cast< weak_socket_event_ptr* >( arg );
 		auto self = socket->lock( );
 
@@ -97,8 +104,6 @@ void socket_event::sub_attach( const dispatcher_ptr& dispatcher ) noexcept
 	auto fn_write = [ ]( evutil_socket_t fd, short events, void* arg )
 	-> void
 	{
-		std::cout << "running socket event callback [write]" << std::endl;
-
 		auto socket = reinterpret_cast< weak_socket_event_ptr* >( arg );
 		auto self = socket->lock( );
 
@@ -122,13 +127,8 @@ void socket_event::sub_attach( const dispatcher_ptr& dispatcher ) noexcept
 		delete writer_ptr;
 	if ( !pimpl_->ev_read_ )
 		delete reader_ptr;
-/*
-	DO THIS IN Q-IO SOCKETS:
 
-	::event_add( pimpl_->ev_read_, nullptr );
-
-	try_write( );
-*/
+	on_attached( dispatcher );
 }
 
 void socket_event::close_socket( )

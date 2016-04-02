@@ -26,9 +26,11 @@ namespace q { namespace io {
 struct server_socket::pimpl
 {
 	std::shared_ptr< q::channel< socket_ptr > > channel_;
-	native_socket socket_;
+	socket_t socket_;
 
 	dispatcher_ptr dispatcher_;
+
+	std::size_t backlog_;
 
 	::event* ev_;
 
@@ -39,12 +41,13 @@ struct server_socket::pimpl
 	std::atomic< bool > closed_;
 };
 
-server_socket::server_socket( const native_socket& sock )
+server_socket::server_socket( socket_t sock )
 : pimpl_( q::make_unique< pimpl >( ) )
 {
 	pimpl_->channel_ = nullptr;
 	pimpl_->socket_ = sock;
 	pimpl_->dispatcher_ = nullptr;
+	pimpl_->backlog_ = 128; // TODO: Reconsider backlog
 	pimpl_->ev_ = nullptr;
 	pimpl_->can_read_ = true;
 	pimpl_->self_ = nullptr;
@@ -56,10 +59,10 @@ server_socket::~server_socket( )
 	if ( pimpl_->ev_ )
 		::event_free( pimpl_->ev_ );
 
-	::evutil_closesocket( pimpl_->socket_.fd );
+	::evutil_closesocket( pimpl_->socket_ );
 }
 
-server_socket_ptr server_socket::construct( const native_socket& sock )
+server_socket_ptr server_socket::construct( socket_t sock )
 {
 	return q::make_shared< server_socket >( sock );
 }
@@ -76,23 +79,21 @@ void server_socket::sub_attach( const dispatcher_ptr& dispatcher ) noexcept
 
 	pimpl_->dispatcher_ = dispatcher;
 
-	std::size_t socket_backlog = 128; // TODO: Reconsider backlog
-
 	pimpl_->channel_ = std::make_shared< q::channel< socket_ptr > >(
-		dispatcher_pimpl.user_queue, socket_backlog );
+		dispatcher_pimpl.user_queue, pimpl_->backlog_ );
 
 	auto self = shared_from_this( );
 
 	pimpl_->channel_->get_writable( ).set_resume_notification( [ self ]( )
 	{
-		std::cout << "WILL RETRY" << std::endl;
+		if ( self->pimpl_->closed_ )
+			return;
 		::event_active( self->pimpl_->ev_, EV_READ, 0 );
 	} );
 
 	auto fn_read = [ ]( evutil_socket_t fd, short events, void* arg )
 	-> void
 	{
-		std::cout << "running socket event callback [read]" << std::endl;
 		auto self = reinterpret_cast< server_socket* >( arg );
 
 		if ( events & LIBQ_EV_CLOSE )
@@ -105,7 +106,7 @@ void server_socket::sub_attach( const dispatcher_ptr& dispatcher ) noexcept
 	};
 
 	pimpl_->ev_ = ::event_new(
-		event_base, pimpl_->socket_.fd, EV_READ, fn_read, this );
+		event_base, pimpl_->socket_, EV_READ, fn_read, this );
 
 	::event_add( pimpl_->ev_, nullptr );
 
@@ -124,7 +125,7 @@ void server_socket::on_event_read( ) noexcept
 		socklen_t peer_addr_len = sizeof peer_addr;
 
 		auto ret = ::accept(
-			pimpl_->socket_.fd,
+			pimpl_->socket_,
 			reinterpret_cast< sockaddr* >( &peer_addr ),
 			&peer_addr_len );
 
@@ -132,7 +133,7 @@ void server_socket::on_event_read( ) noexcept
 		{
 			// Got connection
 			prepare_socket( ret );
-			auto socket_ptr = socket::construct( native_socket{ ret } );
+			auto socket_ptr = socket::construct( ret );
 
 			socket_ptr->attach( get_dispatcher( ) );
 
@@ -172,7 +173,9 @@ void server_socket::close_socket( )
 	if ( was_closed )
 		return;
 
-	EVUTIL_CLOSESOCKET( pimpl_->socket_.fd );
+	pimpl_->channel_->get_writable( ).set_resume_notification( nullptr );
+
+	EVUTIL_CLOSESOCKET( pimpl_->socket_ );
 
 	::event_del( pimpl_->ev_ );
 
@@ -183,8 +186,6 @@ void server_socket::close_socket( )
 
 void server_socket::close_channel( )
 {
-	pimpl_->channel_->get_writable( ).set_resume_notification( nullptr );
-
 	pimpl_->self_.reset( );
 }
 

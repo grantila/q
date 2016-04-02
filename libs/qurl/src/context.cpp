@@ -53,8 +53,10 @@ context::~context( )
 
 	::curl_multi_cleanup( pimpl_->multi_handle_ );
 
-	delete pimpl_->weak_context_socket_;
-	delete pimpl_->weak_context_timeout_;
+	if ( pimpl_->weak_context_socket_ )
+		delete pimpl_->weak_context_socket_;
+	if ( pimpl_->weak_context_timeout_ )
+		delete pimpl_->weak_context_timeout_;
 }
 
 context_ptr context::construct( ::q::io::dispatcher_ptr dispatcher )
@@ -84,7 +86,7 @@ void context::_init( )
 	typedef int ( *socket_callback_func )(
 		CURL*, curl_socket_t, int, void*, void* );
 
-	auto socket_callback = [ ](
+	socket_callback_func socket_callback = [ ](
 		CURL* easy,
 		curl_socket_t sock,
 		int what,
@@ -144,12 +146,10 @@ void context::_init( )
 		return 0;
 	};
 
-	socket_callback_func socket_cb = socket_callback;
-
 	CURLMcode ret_socket_function = curl_multi_setopt(
 		pimpl_->multi_handle_,
 		CURLMOPT_SOCKETFUNCTION,
-		socket_cb );
+		socket_callback );
 
 	if ( ret_socket_function != CURLM_OK )
 	{
@@ -168,7 +168,9 @@ void context::_init( )
 
 	typedef int( *timer_callback_func )( CURLM*, long, void* );
 
-	auto timer_callback = [ ]( CURLM* multi, long timeout_ms, void* userp )
+	timer_callback_func timer_callback = [ ](
+		CURLM* multi, long timeout_ms, void* userp
+	)
 	-> int
 	{
 		auto ctx_ptr = reinterpret_cast< context_weak_ptr* >( userp );
@@ -192,10 +194,8 @@ void context::_init( )
 		return 0;
 	};
 
-	timer_callback_func timer_cb = timer_callback;
-
 	CURLMcode ret_timer_function = curl_multi_setopt(
-		pimpl_->multi_handle_, CURLMOPT_TIMERFUNCTION, timer_cb );
+		pimpl_->multi_handle_, CURLMOPT_TIMERFUNCTION, timer_callback );
 
 	if ( ret_timer_function != CURLM_OK )
 	{

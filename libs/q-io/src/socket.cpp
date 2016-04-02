@@ -45,49 +45,33 @@ struct socket::pimpl
 	std::shared_ptr< q::writable< q::byte_block > > writable_in_; // Int
 	std::shared_ptr< q::readable< q::byte_block > > readable_out_; // Int
 	std::shared_ptr< q::writable< q::byte_block > > writable_out_; // Ext
-	native_socket socket_;
-
-	::event* ev_read_;
-	::event* ev_write_;
 
 	std::atomic< bool > can_read_;
 	std::atomic< bool > can_write_;
 	q::byte_block out_buffer_;
-
-	std::atomic< bool > closed_;
 };
 
-socket::socket( const native_socket& s )
-: pimpl_( new pimpl {
+socket::socket( socket_t s )
+: socket_event( s )
+, pimpl_( new pimpl {
 	nullptr,
 	nullptr,
-	nullptr,
-	nullptr,
-	s,
 	nullptr,
 	nullptr
 } )
 {
 	pimpl_->can_read_ = false;
 	pimpl_->can_write_ = true;
-	pimpl_->closed_ = false;
 }
 
 socket::~socket( )
 {
 	close_socket( );
-
-	if ( pimpl_->ev_read_ )
-		::event_free( pimpl_->ev_read_ );
-	if ( pimpl_->ev_write_ )
-		::event_free( pimpl_->ev_write_ );
 }
 
-socket_ptr socket::construct( const native_socket& s )
+socket_ptr socket::construct( socket_t s )
 {
-	auto sock = q::make_shared< socket >( s );
-
-	return sock;
+	return q::make_shared_using_constructor< socket >( s );
 }
 
 
@@ -127,7 +111,12 @@ void socket::detach( )
 	std::atomic_store( &pimpl_->writable_out_, out );
 }
 
-void socket::sub_attach( const dispatcher_ptr& dispatcher ) noexcept
+socket_event_ptr socket::socket_event_shared_from_this( )
+{
+	return shared_from_this( );
+}
+
+void socket::on_attached( const dispatcher_ptr& dispatcher ) noexcept
 {
 	auto& dispatcher_pimpl = get_dispatcher_pimpl( );
 
@@ -157,81 +146,24 @@ void socket::sub_attach( const dispatcher_ptr& dispatcher ) noexcept
 
 	auto resume = [ weak_self ]( )
 	{
-		std::cout << "WILL RETRY" << std::endl;
 		auto self = weak_self.lock( );
 		if ( !self )
 			return; // TODO: Analyze when this can happen
-		::event_active( self->pimpl_->ev_read_, EV_READ, 0 );
+		self->trigger_read( );
 	};
 
 	pimpl_->writable_in_->set_resume_notification( resume );
 
-	std::cout << "client_socket::sub_attach invoked" << std::endl;
-
-	auto reader_ptr = new weak_socket_ptr{ self };
-	auto writer_ptr = new weak_socket_ptr{ self };
-
-	auto fn_read = [ ]( evutil_socket_t fd, short events, void* arg )
-	-> void
-	{
-		std::cout << "running socket event callback [read]" << std::endl;
-
-		auto socket = reinterpret_cast< weak_socket_ptr* >( arg );
-		auto self = socket->lock( );
-
-		if ( events & LIBQ_EV_CLOSE )
-		{
-			delete socket;
-			return;
-		}
-
-		if ( !!self )
-			self->on_event_read( );
-	};
-
-	auto fn_write = [ ]( evutil_socket_t fd, short events, void* arg )
-	-> void
-	{
-		std::cout << "running socket event callback [write]" << std::endl;
-
-		auto socket = reinterpret_cast< weak_socket_ptr* >( arg );
-		auto self = socket->lock( );
-
-		if ( events & LIBQ_EV_CLOSE )
-		{
-			delete socket;
-			return;
-		}
-
-		if ( !!self )
-			self->on_event_write( );
-	};
-
-	auto event_base = dispatcher_pimpl.event_base;
-	pimpl_->ev_read_ = ::event_new(
-		event_base, pimpl_->socket_.fd, EV_READ, fn_read, reader_ptr );
-	pimpl_->ev_write_ = ::event_new(
-		event_base, pimpl_->socket_.fd, EV_WRITE, fn_write, writer_ptr );
-
-	if ( !pimpl_->ev_write_ )
-		delete writer_ptr;
-	if ( !pimpl_->ev_read_ )
-		delete reader_ptr;
-
-	::event_add( pimpl_->ev_read_, nullptr );
-
+	detect_readability( );
 	try_write( );
 }
 
 // TODO: Analyse exceptions
 void socket::on_event_read( ) noexcept
 {
-	std::cout << "ON_EVENT_READ" << std::endl;
-
 	// Due to potential edge-triggered IO, we'll read everything we
 	// can now, and if necessary mark this socket as still readable
 	// until we get an EAGAIN.
-	std::cout << "CAN READ" << std::endl;
 
 	bool done = false;
 
@@ -239,6 +171,8 @@ void socket::on_event_read( ) noexcept
 
 	if ( !writable_in )
 		return;
+
+	auto fd = get_socket( );
 
 	while ( writable_in->should_send( ) )
 	{
@@ -248,17 +182,12 @@ void socket::on_event_read( ) noexcept
 		int nbytes;
 #endif
 		std::size_t block_size = 8 * 1024;
-		if ( !::ioctl( pimpl_->socket_.fd, FIONREAD, &nbytes ) )
+		if ( !::ioctl( fd, FIONREAD, &nbytes ) )
 			block_size = std::max( nbytes, 1 );
-
-		std::cout << "CAN READ " << block_size << " BYTES" << std::endl;
 
 		q::byte_block block( block_size );
 
-		auto read_bytes = ::read(
-			pimpl_->socket_.fd,
-			block.data( ),
-			block.size( ) );
+		auto read_bytes = ::read( fd, block.data( ), block.size( ) );
 
 		if ( read_bytes > 0 )
 		{
@@ -307,7 +236,7 @@ void socket::on_event_read( ) noexcept
 	{
 		// Finished reading, we need to ensure we listen to
 		// more reads, by adding the event to the loop.
-		::event_add( pimpl_->ev_read_, nullptr );
+		detect_readability( );
 		pimpl_->can_read_ = false;
 	}
 	else
@@ -319,11 +248,7 @@ void socket::on_event_read( ) noexcept
 // TODO: Analyse exceptions
 void socket::on_event_write( ) noexcept
 {
-	std::cout << "ON_EVENT_WRITE" << std::endl;
-
 	// Write as much as possible.
-	std::cout << "CAN WRITE" << std::endl;
-
 	try_write( );
 }
 
@@ -333,7 +258,9 @@ void socket::try_write( )
 
 	weak_socket_ptr weak_ptr{ self };
 
-	auto try_write_block = [ weak_ptr, this ]( q::byte_block&& block )
+	auto fd = get_socket( );
+
+	auto try_write_block = [ weak_ptr, this, fd ]( q::byte_block&& block )
 	-> bool // True means we still have things to write - save buffer
 	{
 		auto self = weak_ptr.lock( );
@@ -346,16 +273,12 @@ void socket::try_write( )
 			try_write( );
 
 		auto written_bytes = ::write(
-			pimpl_->socket_.fd,
-			block.data( ),
-			block.size( ) );
-
-		std::cout << "WROTE " << written_bytes << " BYTES. fd=" << pimpl_->socket_.fd << std::endl;
+			fd, block.data( ), block.size( ) );
 
 		if ( written_bytes < 0 )
 		{
 			if ( errno == EAGAIN )
-				::event_add( pimpl_->ev_write_, nullptr );
+				detect_writability( );
 			else
 				// TODO: Handle error
 				std::cout << "ERROR " << strerror( errno ) << std::endl;
@@ -377,7 +300,7 @@ void socket::try_write( )
 
 			pimpl_->out_buffer_ = std::move( block );
 
-			::event_add( pimpl_->ev_write_, nullptr );
+			detect_writability( );
 
 			return true;
 		}
@@ -408,12 +331,6 @@ void socket::try_write( )
 			// Socket was destructed before the channel
 			return;
 
-		std::cout
-			<< "RECEIVE GOT "
-			<< block.size( )
-			<< " BYTES:"
-			<< block.to_string( )
-			<< std::endl;
 		try_write_block( std::move( block ) );
 	} )
 	.fail( [ weak_ptr ]( const q::channel_closed_exception& )
@@ -433,21 +350,10 @@ void socket::try_write( )
 
 void socket::close_socket( )
 {
-	auto was_closed = pimpl_->closed_.exchange( true );
-
-	if ( was_closed )
-		return;
-
 	auto writable_in = std::atomic_load( &pimpl_->writable_in_ );
 	auto readable_out = std::atomic_load( &pimpl_->readable_out_ );
 
-	EVUTIL_CLOSESOCKET( pimpl_->socket_.fd );
-
-	::event_del( pimpl_->ev_read_ );
-	::event_del( pimpl_->ev_write_ );
-
-	::event_active( pimpl_->ev_read_, LIBQ_EV_CLOSE, 0 );
-	::event_active( pimpl_->ev_write_, LIBQ_EV_CLOSE, 0 );
+	::q::io::socket_event::close_socket( );
 
 	if ( !!writable_in )
 	{

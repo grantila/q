@@ -32,14 +32,14 @@ void curl_socket::on_event_read( ) noexcept
 {
 	auto ctx = weak_context_.lock( );
 	if ( ctx )
-		ctx->on_readable( this->socket( ) );
+		ctx->on_readable( get_socket( ) );
 }
 
 void curl_socket::on_event_write( ) noexcept
 {
 	auto ctx = weak_context_.lock( );
 	if ( ctx )
-		ctx->on_writable( this->socket( ) );
+		ctx->on_writable( get_socket( ) );
 }
 
 } // namespace qurl

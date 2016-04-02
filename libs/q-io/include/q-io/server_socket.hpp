@@ -40,10 +40,10 @@ public:
 	q::readable< socket_ptr > clients( );
 
 protected:
-	static server_socket_ptr construct( const native_socket& );
+	static server_socket_ptr construct( socket_t );
 
 private:
-	server_socket( const native_socket& );
+	server_socket( socket_t );
 
 	friend class dispatcher;
 

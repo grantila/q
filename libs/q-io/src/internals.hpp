@@ -28,11 +28,6 @@
 
 namespace q { namespace io {
 
-struct native_socket
-{
-	evutil_socket_t fd;
-};
-
 struct event::pimpl
 {
 	struct ::event* ev;

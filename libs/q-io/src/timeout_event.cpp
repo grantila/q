@@ -51,10 +51,8 @@ void timeout_event::set_timeout_now( )
 void timeout_event::set_timeout( clock::duration duration )
 {
 	struct timeval timeout = clock::to_timeval( duration );
-	std::cout << timeout.tv_sec << " " << timeout.tv_usec << std::endl;
 
 	::event_add( pimpl_->event_, &timeout );
-	std::cout << "C" << std::endl;
 }
 
 void timeout_event::remove_timeout( )
@@ -64,12 +62,10 @@ void timeout_event::remove_timeout( )
 
 void timeout_event::sub_attach( const dispatcher_ptr& dispatcher ) noexcept
 {
-	std::cout << "timeout_event::sub_attach invoked" << std::endl;
 	auto self = new std::weak_ptr< timeout_event >( shared_from_this( ) );
 
 	auto fn = [ ]( evutil_socket_t fd, short events, void* arg ) -> void
 	{
-		std::cout << "running event callback" << std::endl;
 		auto weak_self =
 			reinterpret_cast< std::weak_ptr< timeout_event >* >(
 				arg );

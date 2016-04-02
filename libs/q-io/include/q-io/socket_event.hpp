@@ -38,20 +38,26 @@ protected:
 	void detect_readability( );
 	void detect_writability( );
 
+	void trigger_read( );
+	void trigger_write( );
+
 	virtual socket_event_ptr socket_event_shared_from_this( ) = 0;
+
+	virtual void on_attached( const dispatcher_ptr& dispatcher ) noexcept
+	{ }
 
 	virtual void on_event_read( ) noexcept override = 0;
 	virtual void on_event_write( ) noexcept override = 0;
 
-	socket_t socket( ) const;
+	socket_t get_socket( ) const;
+
+	void close_socket( );
 
 private:
 	friend class dispatcher;
 	friend class server_socket;
 
 	void sub_attach( const dispatcher_ptr& dispatcher ) noexcept override;
-
-	void close_socket( );
 
 	struct pimpl;
 	std::unique_ptr< pimpl > pimpl_;

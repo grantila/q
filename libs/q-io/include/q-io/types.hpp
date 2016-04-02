@@ -45,8 +45,6 @@ typedef std::shared_ptr< server_socket > server_socket_ptr;
 #endif
 typedef std::integral_constant< socket_t, -1 > invalid_socket;
 
-struct native_socket;
-
 class resolver;
 
 } } // namespace io, namespace q
