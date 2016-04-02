@@ -256,12 +256,8 @@ then( AsyncTask&& task )
 	auto state = state_;
 	auto tmp_task = Q_TEMPORARILY_COPYABLE( task );
 
-	std::cout << "Scheduling async_task::run" << std::endl;
-
 	auto perform = [ tmp_task, deferred, state ]( ) mutable
 	{
-		std::cout << "Running async_task::run" << std::endl;
-
 		auto value = state->consume( );
 
 		if ( value.has_exception( ) )

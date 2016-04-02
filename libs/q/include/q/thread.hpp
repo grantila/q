@@ -76,7 +76,6 @@ public:
 
 	virtual ~thread( ) noexcept
 	{
-		std::cerr << "destructing thread" << std::endl;
 		if ( !try_join( ) )
 			// We end up here if and only if the thread function
 			// itself holds the last reference to 'this'.
