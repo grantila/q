@@ -18,10 +18,9 @@ public:
 	fixture( )
 	{ }
 
-	virtual void SetUp( ) override
+private:
+	void on_setup( ) override
 	{
-		this->::q::test::fixture::SetUp( );
-
 		ioc = q::make_execution_context< q::io::dispatcher >( queue );
 		io_dispatcher = ioc->dispatcher( );
 		io_queue = tp->queue( );
@@ -29,15 +28,13 @@ public:
 		io_dispatcher->start( );
 	}
 
-	virtual void TearDown( ) override
+	void on_teardown( ) override
 	{
 		io_queue.reset( );
 		io_dispatcher->terminate( dispatcher_termination::graceful );
 		io_dispatcher->await_termination( );
 		io_dispatcher.reset( );
 		ioc.reset( );
-
-		this->::q::test::fixture::TearDown( );
 	}
 
 protected:

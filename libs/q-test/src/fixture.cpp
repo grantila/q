@@ -37,10 +37,14 @@ void fixture::SetUp( )
 		q::threadpool, q::direct_scheduler
 	>( "test pool", queue );
 	tp_queue = tp->queue( );
+
+	on_setup( );
 }
 
 void fixture::TearDown( )
 {
+	on_teardown( );
+
 	scope_ = std::move( q::make_scope( nullptr ) );
 	tp->dispatcher( )->terminate( q::termination::linger );
 	tp->dispatcher( )->await_termination( );

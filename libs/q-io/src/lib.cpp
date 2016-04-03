@@ -16,6 +16,8 @@
 
 #include <q/lib.hpp>
 
+#include "detail/init_libevent.hpp"
+
 #include <event2/event.h>
 
 namespace {
@@ -27,6 +29,8 @@ public:
 	{
 		auto init = [ ]( ) -> void*
 		{
+			q::io::detail::global_init_libevent( );
+
 			return nullptr;
 		};
 

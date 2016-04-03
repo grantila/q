@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Gustaf Räntilä
+ * Copyright 2014 Gustaf Räntilä
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,16 +14,13 @@
  * limitations under the License.
  */
 
-#include <q-test/q-test.hpp>
+#ifndef LIBQIO_INTERNAL_DETAIL_INIT_LIBEVENT_HPP
+#define LIBQIO_INTERNAL_DETAIL_INIT_LIBEVENT_HPP
 
-#include <q/lib.hpp>
+namespace q { namespace io { namespace detail {
 
-int main( int argc, char** argv )
-{
-	q::settings settings;
-	settings.set_long_stack_support( true );
-	auto scope = std::move( q::scoped_initialize( settings ) );
+void global_init_libevent( );
 
-	::testing::InitGoogleTest( &argc, argv );
-	return RUN_ALL_TESTS( );
-}
+} } } // namespace detail, namespace io, namespace q
+
+#endif // LIBQIO_INTERNAL_DETAIL_INIT_LIBEVENT_HPP

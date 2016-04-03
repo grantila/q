@@ -17,9 +17,9 @@
 #ifndef LIBQIO_EVENT_HPP
 #define LIBQIO_EVENT_HPP
 
-#include <q-io/types.hpp>
 #include <q-io/clock.hpp>
 #include <q-io/dispatcher.hpp>
+#include <q-io/types.hpp>
 
 #include <memory>
 

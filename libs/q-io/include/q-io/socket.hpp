@@ -17,9 +17,9 @@
 #ifndef LIBQIO_SOCKET_HPP
 #define LIBQIO_SOCKET_HPP
 
-#include <q-io/types.hpp>
 #include <q-io/socket_event.hpp>
 #include <q-io/ip.hpp>
+#include <q-io/types.hpp>
 
 #include <q/channel.hpp>
 #include <q/block.hpp>
@@ -73,10 +73,6 @@ private:
 	friend class server_socket;
 
 	template< typename T > friend class q::shared_constructor;
-/*
-	std::shared_ptr< q::channel< q::byte_block > > _in( );
-	std::shared_ptr< q::channel< q::byte_block > > _out( );
-*/
 
 	socket_event_ptr socket_event_shared_from_this( ) override;
 

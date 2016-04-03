@@ -14,16 +14,19 @@
  * limitations under the License.
  */
 
-#include <event2/event.h>
-#include <event2/dns.h>
+#ifndef LIBQIO_INTERNAL_SOCKET_HELPERS_HPP
+#define LIBQIO_INTERNAL_SOCKET_HELPERS_HPP
 
 #include <q-io/dispatcher.hpp>
+
+#include <event2/event.h>
+#include <event2/dns.h>
 
 namespace q { namespace io {
 
 static inline void prepare_socket( evutil_socket_t socket )
 {
-	evutil_make_socket_nonblocking( socket );
+	::evutil_make_socket_nonblocking( socket );
 }
 
 static inline evutil_socket_t create_socket( int family )
@@ -63,3 +66,5 @@ connect( evutil_socket_t socket, const Sockaddr& addr )
 }
 
 } } // namespace io, namespace q
+
+#endif // LIBQIO_INTERNAL_SOCKET_HELPERS_HPP

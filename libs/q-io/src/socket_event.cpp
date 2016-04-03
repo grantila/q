@@ -82,14 +82,16 @@ void socket_event::sub_attach( const dispatcher_ptr& dispatcher ) noexcept
 	auto& dispatcher_pimpl = get_dispatcher_pimpl( );
 	auto self = socket_event_shared_from_this( );
 
-	auto reader_ptr = new weak_socket_event_ptr{ self };
-	auto writer_ptr = new weak_socket_event_ptr{ self };
+	auto reader_ptr = new socket_arg_type( self );
+	auto writer_ptr = new socket_arg_type( self );
 
-	auto fn_read = [ ]( evutil_socket_t fd, short events, void* arg )
+	event_callback_fn fn_read = [ ](
+		evutil_socket_t fd, short events, void* arg
+	)
 	-> void
 	{
-		auto socket = reinterpret_cast< weak_socket_event_ptr* >( arg );
-		auto self = socket->lock( );
+		auto socket = reinterpret_cast< socket_arg_type* >( arg );
+		auto self = socket->socket_event_.lock( );
 
 		if ( events & LIBQ_EV_CLOSE )
 		{
@@ -101,11 +103,13 @@ void socket_event::sub_attach( const dispatcher_ptr& dispatcher ) noexcept
 			self->on_event_read( );
 	};
 
-	auto fn_write = [ ]( evutil_socket_t fd, short events, void* arg )
+	event_callback_fn fn_write = [ ](
+		evutil_socket_t fd, short events, void* arg
+	)
 	-> void
 	{
-		auto socket = reinterpret_cast< weak_socket_event_ptr* >( arg );
-		auto self = socket->lock( );
+		auto socket = reinterpret_cast< socket_arg_type* >( arg );
+		auto self = socket->socket_event_.lock( );
 
 		if ( events & LIBQ_EV_CLOSE )
 		{

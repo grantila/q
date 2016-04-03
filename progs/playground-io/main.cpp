@@ -15,9 +15,9 @@
 
 #include <q/execution_context.hpp>
 
-#include <qio/dispatcher.hpp>
-#include <qio/socket.hpp>
-#include <qio/dns.hpp>
+#include <q-io/dispatcher.hpp>
+#include <q-io/socket.hpp>
+#include <q-io/dns.hpp>
 
 #include <string>
 #include <iostream>
@@ -136,7 +136,7 @@ int main( int argc, char** argv )
 
 		std::cout << "SENDING" << std::endl;
 
-		socket->out( )->send( b );
+		socket->out( ).send( b );
 
 		auto TEMP_COUNTER = std::make_shared< std::atomic< int > >( 0 );
 
@@ -144,7 +144,7 @@ int main( int argc, char** argv )
 
 		*try_get_more = q::make_unique< q::task >( [ TEMP_COUNTER, try_get_more, socket ]( ) mutable
 		{
-			socket->in( )->receive( )
+			socket->in( ).receive( )
 			.then( [ try_get_more, TEMP_COUNTER ]( q::byte_block&& block )
 			{
 				std::size_t size = block.size( );
@@ -169,9 +169,9 @@ int main( int argc, char** argv )
 
 		( *( *try_get_more ) )( );
 	} )
-	.fail( [ ]( const q::io::connection_failed& e )
+	.fail( [ ]( const q::errno_connrefused_exception& e )
 	{
-		std::cout << "CONNECT ERROR [connection failed] " << std::endl;
+		std::cout << "CONNECT ERROR [connection refused] " << std::endl;
 	} )
 	.fail( [ ]( std::exception_ptr e )
 	{

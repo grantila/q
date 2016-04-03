@@ -17,14 +17,12 @@
 #ifndef LIBQIO_DNS_HPP
 #define LIBQIO_DNS_HPP
 
-#include <q/promise.hpp>
-#include <q/endian.hpp>
-
-#include <q-io/types.hpp>
 #include <q-io/ip.hpp>
+#include <q-io/types.hpp>
+
+#include <q/promise.hpp>
 
 #include <memory>
-#include <vector>
 
 namespace q { namespace io {
 

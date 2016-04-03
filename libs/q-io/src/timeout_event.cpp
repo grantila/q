@@ -62,15 +62,16 @@ void timeout_event::remove_timeout( )
 
 void timeout_event::sub_attach( const dispatcher_ptr& dispatcher ) noexcept
 {
-	auto self = new std::weak_ptr< timeout_event >( shared_from_this( ) );
+	auto self = new timer_arg_type( shared_from_this( ) );
 
-	auto fn = [ ]( evutil_socket_t fd, short events, void* arg ) -> void
+	event_callback_fn fn = [ ](
+		evutil_socket_t fd, short events, void* arg
+	)
+	-> void
 	{
-		auto weak_self =
-			reinterpret_cast< std::weak_ptr< timeout_event >* >(
-				arg );
+		auto weak_self = reinterpret_cast< timer_arg_type* >( arg );
 
-		auto self = weak_self->lock( );
+		auto self = weak_self->timer_event_.lock( );
 
 		if ( ( events & EV_TIMEOUT ) && !!self )
 			self->on_event_timeout( );

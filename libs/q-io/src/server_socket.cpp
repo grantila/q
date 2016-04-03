@@ -91,22 +91,32 @@ void server_socket::sub_attach( const dispatcher_ptr& dispatcher ) noexcept
 		::event_active( self->pimpl_->ev_, EV_READ, 0 );
 	} );
 
-	auto fn_read = [ ]( evutil_socket_t fd, short events, void* arg )
+	auto self_ptr = new server_socket_arg_type( self );
+
+	event_callback_fn fn_read = [ ](
+		evutil_socket_t fd, short events, void* arg
+	)
 	-> void
 	{
-		auto self = reinterpret_cast< server_socket* >( arg );
+		auto self_ptr = reinterpret_cast< server_socket_arg_type* >(
+			arg );
+
+		auto self = self_ptr->server_socket_.lock( );
 
 		if ( events & LIBQ_EV_CLOSE )
 		{
-			self->close_channel( );
+			delete self_ptr;
+			if ( !!self )
+				self->close_channel( );
 			return;
 		}
 
-		self->on_event_read( );
+		if ( !!self )
+			self->on_event_read( );
 	};
 
 	pimpl_->ev_ = ::event_new(
-		event_base, pimpl_->socket_, EV_READ, fn_read, this );
+		event_base, pimpl_->socket_, EV_READ, fn_read, self_ptr );
 
 	::event_add( pimpl_->ev_, nullptr );
 

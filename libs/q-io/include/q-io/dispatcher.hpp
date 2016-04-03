@@ -17,27 +17,15 @@
 #ifndef LIBQIO_DISPATCHER_HPP
 #define LIBQIO_DISPATCHER_HPP
 
-#include <q-io/types.hpp>
 #include <q-io/ip.hpp>
 #include <q-io/dns.hpp>
+#include <q-io/types.hpp>
 
 #include <q/event_dispatcher.hpp>
-
-// ----
-
-#include <q/exception.hpp>
-#include <q/mutex.hpp>
 #include <q/promise.hpp>
 #include <q/timer.hpp>
 
-#include <queue>
-#include <atomic>
-
 namespace q { namespace io {
-
-// TODO: Remove these in favor of errno_exceptions in q
-Q_MAKE_SIMPLE_EXCEPTION( connection_failed );  // Unknown connection failure
-Q_MAKE_SIMPLE_EXCEPTION( connection_refused ); // Connection refused
 
 enum class dispatcher_termination
 {

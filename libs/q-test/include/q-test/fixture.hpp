@@ -42,8 +42,11 @@ public:
 	{ };
 
 protected:
-	virtual void SetUp( ) override;
-	virtual void TearDown( ) override;
+	virtual void on_setup( ) { }
+	virtual void on_teardown( ) { }
+
+	void SetUp( ) override;
+	void TearDown( ) override;
 
 	void keep_alive( q::scope&& scope )
 	{

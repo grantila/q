@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+#ifndef LIBQIO_INTERNAL_INTERNALS_HPP
+#define LIBQIO_INTERNAL_INTERNALS_HPP
+
 #include <q-io/event.hpp>
 #include <q-io/dispatcher.hpp>
 #include <q-io/dns.hpp>
@@ -23,10 +26,55 @@
 #include <event2/event.h>
 #include <event2/dns.h>
 
+#include <queue>
+
 // This shouldn't conflict with other EV_-constants
 #define LIBQ_EV_CLOSE 0x1000
 
 namespace q { namespace io {
+
+struct callback_arg_type
+{
+	enum class event_type
+	{
+		timer,
+		socket_event,
+		server_socket
+	} type;
+};
+
+struct socket_arg_type
+: callback_arg_type
+{
+	socket_arg_type( std::shared_ptr< socket_event > socket_event )
+	: callback_arg_type{ callback_arg_type::event_type::socket_event }
+	, socket_event_( std::move( socket_event ) )
+	{ }
+
+	std::weak_ptr< socket_event > socket_event_;
+};
+
+struct server_socket_arg_type
+: callback_arg_type
+{
+	server_socket_arg_type( std::shared_ptr< server_socket > server_socket )
+	: callback_arg_type{ callback_arg_type::event_type::server_socket }
+	, server_socket_( std::move( server_socket ) )
+	{ }
+
+	std::weak_ptr< server_socket > server_socket_;
+};
+
+struct timer_arg_type
+: callback_arg_type
+{
+	timer_arg_type( std::shared_ptr< timeout_event > timer_event )
+	: callback_arg_type{ callback_arg_type::event_type::timer }
+	, timer_event_( std::move( timer_event ) )
+	{ }
+
+	std::weak_ptr< timeout_event > timer_event_;
+};
 
 struct event::pimpl
 {
@@ -67,3 +115,5 @@ struct resolver::pimpl
 };
 
 } } // namespace io, namespace q
+
+#endif // LIBQIO_INTERNAL_INTERNALS_HPP

@@ -17,10 +17,10 @@
 #ifndef LIBQIO_SERVER_SOCKET_HPP
 #define LIBQIO_SERVER_SOCKET_HPP
 
-#include <q-io/types.hpp>
 #include <q-io/event.hpp>
 #include <q-io/ip.hpp>
 #include <q-io/socket.hpp>
+#include <q-io/types.hpp>
 
 namespace q { namespace io {
 
