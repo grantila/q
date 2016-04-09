@@ -335,6 +335,8 @@ public:
 
 	template< typename Tuple >
 	typename std::enable_if<
+		q::is_tuple< typename std::decay< Tuple >::type >::value
+		and
 		q::tuple_arguments<
 			typename std::decay< Tuple >::type
 		>::this_type::template is_convertible_to<
