@@ -112,8 +112,8 @@ TEST( functional, lambda_function_argument_types )
 	EXPECT_EQ( typeid( std::string ).name( ), type_name_3 );
 	EXPECT_EQ( typeid( char ).name( ), type_name_4 );
 
-	EXPECT_EQ( 0, return_type::size::value );
-	EXPECT_EQ( 4, lambda_traits::arity::value );
+	EXPECT_EQ( std::size_t( 0 ), return_type::size::value );
+	EXPECT_EQ( std::size_t( 4 ), lambda_traits::arity::value );
 }
 
 TEST( functional, lambda_function_void_argument_type )
@@ -128,9 +128,9 @@ TEST( functional, lambda_function_void_argument_type )
 	EXPECT_TRUE(
 		q::arguments< >::is_convertible_to< arguments_type >::value
 	);
-	EXPECT_EQ( 0, return_type::size::value );
-	EXPECT_EQ( 0, std::tuple_size< tuple_type >::value );
-	EXPECT_EQ( 0, lambda_traits::arity::value );
+	EXPECT_EQ( std::size_t( 0 ), return_type::size::value );
+	EXPECT_EQ( std::size_t( 0 ), std::tuple_size< tuple_type >::value );
+	EXPECT_EQ( std::size_t( 0 ), lambda_traits::arity::value );
 }
 
 int fn( char, std::string );
@@ -150,7 +150,7 @@ TEST( functional, function_argument_types )
 	EXPECT_TRUE( ( std::is_same< type_1, char >::value ) );
 	EXPECT_TRUE( ( std::is_same< type_2, std::string >::value ) );
 	EXPECT_TRUE( ( std::is_same< return_type, int >::value ) );
-	EXPECT_EQ( 2, Q_ARITY_OF( fn_type ) );
+	EXPECT_EQ( std::size_t( 2 ), Q_ARITY_OF( fn_type ) );
 }
 
 struct C
@@ -178,7 +178,7 @@ TEST( functional, class_function_argument_types )
 	EXPECT_TRUE( ( std::is_same< class_type, C >::value ) );
 	EXPECT_TRUE( ( std::is_same< type_1, long >::value ) );
 	EXPECT_TRUE( ( std::is_same< return_type, float >::value ) );
-	EXPECT_EQ( 1, Q_ARITY_OF( fn_type ) );
+	EXPECT_EQ( std::size_t( 1 ), Q_ARITY_OF( fn_type ) );
 }
 
 int move_into( std::string&& s )
@@ -195,7 +195,7 @@ TEST( functional, call_with_args )
 	auto ret1 = q::call_with_args( move_into, std::move( arg ) );
 	auto ret2 = q::call_with_args_by_tuple( move_into, std::move( args ) );
 
-	EXPECT_EQ( 1, num_args::value );
+	EXPECT_EQ( std::size_t( 1 ), num_args::value );
 	EXPECT_EQ( 11, ret1 );
 	EXPECT_EQ( 11, ret2 );
 }
@@ -290,8 +290,8 @@ TEST( functional, arity_of )
 		bool fn0( );
 		bool fn2( int, long );
 	};
-	EXPECT_EQ( 0, q::arity_of< decltype( &C::fn0 ) > );
-	EXPECT_EQ( 2, q::arity_of< decltype( &C::fn2 ) > );
+	EXPECT_EQ( std::size_t( 0 ), q::arity_of< decltype( &C::fn0 ) > );
+	EXPECT_EQ( std::size_t( 2 ), q::arity_of< decltype( &C::fn2 ) > );
 }
 
 TEST( functional, is_const_of )
