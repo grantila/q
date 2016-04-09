@@ -21,6 +21,7 @@
 #include <sstream>
 
 #include <errno.h>
+#include <string.h>
 
 #if defined( ELAST ) && ELAST < 8192
 #	define Q__LAST_ERRNO ELAST
@@ -137,7 +138,15 @@ std::exception_ptr get_exception_by_errno( int errno_ )
 	char buf[ 256 ] = { 0 };
 	std::stringstream sstream;
 
-	::strerror_r( errno_, buf, 256 );
+#	if (_POSIX_C_SOURCE >= 200112L || _XOPEN_SOURCE >= 600) && !_GNU_SOURCE
+	// XSI-compliant strerror_r
+	if ( !::strerror_r( errno_, buf, 256 ) )
+		::strcpy( buf, "Unknown error" );
+#	else
+	// GNU-specific strerror_r
+	ignore_result( ::strerror_r( errno_, buf, 256 ) );
+#	endif
+
 	sstream << "errno " << errno_ << ": " << buf;
 
 	Q_THROW( ( errno_exception( ) ), std::move( sstream.str( ) ) );
