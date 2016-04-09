@@ -1,7 +1,7 @@
 
 #include <q/functional.hpp>
 
-#include <gtest/gtest.h>
+#include <q-test/q-test.hpp>
 
 
 TEST( functional, is_argument_same )
