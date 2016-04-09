@@ -21,7 +21,7 @@
 
 #ifdef LIBQ_ON_GCC
 #	pragma GCC diagnostic push
-#	pragma GCC diagnostic ignored "-Wsign-compare"
+//#	pragma GCC diagnostic ignored "-Wsign-compare"
 #endif // LIBQ_ON_GCC
 
 #include <gtest/gtest.h>

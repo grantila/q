@@ -41,7 +41,7 @@ TEST_F( promise_all_test, all_different_voids )
 
 TEST_F( promise_all_test, all_same_voids )
 {
-	std::atomic< int > incremented( 0 );
+	std::atomic< std::size_t > incremented( 0 );
 
 	auto qu = queue;
 
