@@ -339,7 +339,7 @@ int main( int argc, char** argv )
 	std::function< Movable( ) > movable_fn = [ ]( ) -> Movable
 	{
 		Movable m( 1234 );
-		return std::move( m );
+		return m;
 	};
 
 	std::tuple< Movable > t( movable_fn( ) );
@@ -354,7 +354,7 @@ int main( int argc, char** argv )
 		std::string word = "cow";
 		std::cout << "then called, returning: " << word << std::endl;
 		// return std::make_tuple( word );
-		return std::move( word );
+		return word;
 	} )
 	.then( string_to_void )
 	.then( [ ]( )
@@ -417,23 +417,27 @@ int main( int argc, char** argv )
 	;
 
 	auto chan = q::make_shared< q::channel< int, std::string > >( queue, 2 );
-	chan->send( 12, std::string( "years old whiskey" ) );
-	chan->send( 12, "years old whiskey" );
-	chan->send( 99, "luftballoons" );
+
+	auto _writable = chan->get_writable( );
+	auto _readable = chan->get_readable( );
+
+	_writable.send( 12, std::string( "years old whiskey" ) );
+	_writable.send( 12, "years old whiskey" );
+	_writable.send( 99, "luftballoons" );
 
 	auto chan_out = [ ]( int i, std::string s )
 	{
 		std::cout << i << " " << s << std::endl;
 	};
 
-	chan->receive( ).then( chan_out );
-	chan->receive( ).then( chan_out );
-	chan->receive( ).then( chan_out );
+	_readable.receive( ).then( chan_out );
+	_readable.receive( ).then( chan_out );
+	_readable.receive( ).then( chan_out );
 
 	shared_prom
-	.then( [ chan ]( double )
+	.then( [ &_writable ]( double )
 	{
-		chan->send( 1, "earth" );
+		_writable.send( 1, "earth" );
 	} );
 
 	std::cerr << "backlog b" << std::endl;
