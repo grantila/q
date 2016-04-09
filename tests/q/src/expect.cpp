@@ -1,7 +1,7 @@
 
 #include <q/expect.hpp>
 
-#include <gtest/gtest.h>
+#include <q-test/q-test.hpp>
 
 struct Copyable
 {

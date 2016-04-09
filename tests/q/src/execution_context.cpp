@@ -4,7 +4,7 @@
 #include <q/threadpool.hpp>
 #include <q/promise.hpp>
 
-#include <gtest/gtest.h>
+#include <q-test/q-test.hpp>
 
 TEST( execution_context, block_dispatcher )
 {
