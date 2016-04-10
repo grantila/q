@@ -29,6 +29,19 @@
 #	define Q__LAST_ERRNO 192
 #endif
 
+#ifdef LIBQ_ON_WINDOWS
+#	define strerror_r( errno, buf, len ) strerror_s( buf, len, errno )
+#	define strncpy strcpy_s
+#endif
+
+#if defined( LIBQ_ON_WINDOWS ) || \
+	( \
+		( _POSIX_C_SOURCE >= 200112L || _XOPEN_SOURCE >= 600 ) && \
+		!_GNU_SOURCE \
+	)
+#	define USE_XSI_STRERROR_R
+#endif
+
 namespace {
 
 struct errno_thrower
@@ -135,16 +148,17 @@ std::exception_ptr get_exception_by_errno( int errno_ )
 	if ( iter != get_errno_map( )->map.end( ) )
 		iter->second->thrower( );
 
-	char buf[ 256 ] = { 0 };
+#	define ERRMSG_MAXLEN 256
+	char buf[ ERRMSG_MAXLEN ] = { 0 };
 	std::stringstream sstream;
 
-#	if (_POSIX_C_SOURCE >= 200112L || _XOPEN_SOURCE >= 600) && !_GNU_SOURCE
+#	ifdef USE_XSI_STRERROR_R
 	// XSI-compliant strerror_r
-	if ( !::strerror_r( errno_, buf, 256 ) )
-		::strcpy( buf, "Unknown error" );
+	if ( ::strerror_r( errno_, buf, ERRMSG_MAXLEN ) )
+		::strncpy( buf, ERRMSG_MAXLEN, "Unknown error" );
 #	else
 	// GNU-specific strerror_r
-	ignore_result( ::strerror_r( errno_, buf, 256 ) );
+	ignore_result( ::strerror_r( errno_, buf, ERRMSG_MAXLEN ) );
 #	endif
 
 	sstream << "errno " << errno_ << ": " << buf;
