@@ -112,6 +112,16 @@ struct is_tuple< std::tuple< T... > >
 : std::true_type
 { };
 
+template< typename Tuple >
+struct is_empty_tuple
+: std::false_type
+{ };
+
+template< >
+struct is_empty_tuple< std::tuple< > >
+: std::true_type
+{ };
+
 template< typename T >
 struct is_copyable
 : bool_type<

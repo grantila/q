@@ -155,6 +155,17 @@ struct tuple_unpackable_to
 : public tuple_convertible_to_arguments< Tuple, arguments< Args... > >
 { };
 
+/**
+ * Determines if a tuple can be unpacked (and moved/copied) into a set of
+ * arguments defined by another tuple.
+ */
+template< typename TupleFrom, typename TupleTo >
+struct tuple_convertible_to_tuple
+: public detail::tuple_convertible_to_arguments<
+	TupleFrom,
+	typename tuple_arguments< TupleTo >::this_type
+>
+{ };
 
 template< std::size_t... Indices >
 struct index_tuple

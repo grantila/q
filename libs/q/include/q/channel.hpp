@@ -304,10 +304,10 @@ public:
 		(
 			sizeof...( Args ) != 1
 			or
-			!arguments<
+			arguments<
 				typename arguments< Args... >::first_type
 			>::template is_convertible_to<
-				arguments< tuple_type >
+				typename tuple_arguments< tuple_type >::this_type
 			>::value
 		)
 		and
@@ -326,7 +326,7 @@ public:
 
 	template< typename T_ = tuple_type >
 	typename std::enable_if<
-		q::tuple_arguments< T_ >::size::value == 0
+		is_empty_tuple< T_ >::value
 	>::type
 	send( )
 	{
@@ -337,10 +337,9 @@ public:
 	typename std::enable_if<
 		q::is_tuple< typename std::decay< Tuple >::type >::value
 		and
-		q::tuple_arguments<
-			typename std::decay< Tuple >::type
-		>::this_type::template is_convertible_to<
-			typename q::tuple_arguments< tuple_type >::this_type
+		q::tuple_convertible_to_tuple<
+			typename std::decay< Tuple >::type,
+			tuple_type
 		>::value
 	>::type
 	send( Tuple&& t )
