@@ -37,9 +37,7 @@ public:
 	fixture( );
 	virtual ~fixture( );
 
-	class Error
-	: public ::q::exception
-	{ };
+	Q_MAKE_SIMPLE_EXCEPTION( Error );
 
 protected:
 	virtual void on_setup( ) { }
