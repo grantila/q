@@ -36,7 +36,7 @@
 		{ \
 			return #Name ; \
 		} \
-		using ::q::exception::exception; \
+	public: Name( ) { } \
 	}
 
 /**
