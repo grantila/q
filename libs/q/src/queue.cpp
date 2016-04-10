@@ -102,7 +102,7 @@ task queue::pop( )
 
 	pimpl_->queue_.pop( );
 
-	return std::move( task );
+	return task;
 }
 
 } // namespace q

@@ -147,6 +147,9 @@ public:
 	exception( const exception& );
 	virtual ~exception( );
 
+	exception& operator=( const exception& ) = delete;
+	exception& operator=( exception&& ) = delete;
+
 	template< typename T >
 	const detail::exception_info< T >* get_info( ) const
 	{

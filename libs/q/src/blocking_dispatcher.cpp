@@ -65,7 +65,7 @@ void blocking_dispatcher::start( )
 			break;
 
 		task _task = pimpl_->task_fetcher_
-			? std::move( pimpl_->task_fetcher_( ) )
+			? pimpl_->task_fetcher_( )
 			: task( );
 
 		if ( !pimpl_->running_ && !_task )

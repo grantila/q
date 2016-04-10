@@ -221,9 +221,9 @@ void priority_scheduler::add_queue( queue_ptr queue )
 
 	auto _this = shared_from_this( );
 
-	auto fetcher = [ _this ]( ) mutable noexcept
+	auto fetcher = [ _this ]( ) mutable noexcept -> task
 	{
-		return std::move( _this->next_task( ) );
+		return _this->next_task( );
 	};
 
 	pimpl_->event_dispatcher_->set_task_fetcher( fetcher );
@@ -246,8 +246,7 @@ void priority_scheduler::poke( )
 
 task priority_scheduler::next_task( )
 {
-	task ret = pimpl_->queues_.pop_next( );
-	return std::move( ret );
+	return pimpl_->queues_.pop_next( );
 }
 
 
@@ -284,9 +283,9 @@ void direct_scheduler::add_queue( queue_ptr queue )
 
 	auto _this = shared_from_this( );
 
-	auto fetcher = [ _this ]( ) mutable noexcept
+	auto fetcher = [ _this ]( ) mutable noexcept -> task
 	{
-		return std::move( _this->next_task( ) );
+		return _this->next_task( );
 	};
 
 	pimpl_->event_dispatcher_->set_task_fetcher( fetcher );
@@ -299,8 +298,7 @@ void direct_scheduler::poke( )
 
 task direct_scheduler::next_task( )
 {
-	task ret = pimpl_->queue_->pop( );
-	return std::move( ret );
+	return pimpl_->queue_->pop( );
 }
 
 } // namespace q

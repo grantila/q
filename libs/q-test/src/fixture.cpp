@@ -45,7 +45,7 @@ void fixture::TearDown( )
 {
 	on_teardown( );
 
-	scope_ = std::move( q::make_scope( nullptr ) );
+	scope_ = q::make_scope( nullptr );
 	tp->dispatcher( )->terminate( q::termination::linger );
 	tp->dispatcher( )->await_termination( );
 	bd->dispatcher( )->await_termination( );
