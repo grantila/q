@@ -45,7 +45,7 @@ noexcept
 	{
 		std::stringstream ss;
 		ss << *this;
-		return std::move( ss.str( ) );
+		return ss.str( );
 	}
 	catch ( ... )
 	{

@@ -82,8 +82,8 @@ noexcept
 		
 		frame.extra.append( pos );
 	}
-	
-	return std::move( frame );
+
+	return frame;
 }
 
 }

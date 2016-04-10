@@ -163,7 +163,7 @@ std::exception_ptr get_exception_by_errno( int errno_ )
 
 	sstream << "errno " << errno_ << ": " << buf;
 
-	Q_THROW( ( errno_exception( ) ), std::move( sstream.str( ) ) );
+	Q_THROW( ( errno_exception( ) ), sstream.str( ) );
 }
 
 } // namespace q
