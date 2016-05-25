@@ -468,6 +468,12 @@ public:
 		return shared_promise< T >(
 			base_type::state_->acquire( ), this->get_queue( ) );
 	}
+
+	/**
+	 * Throws away the value this promise holds, and returns an empty
+	 * promise.
+	 */
+	::q::promise< std::tuple< > > strip( );
 };
 
 template< typename T >
@@ -506,6 +512,12 @@ public:
 			return value;
 		} );
 	}
+
+	/**
+	 * Throws away the value this shared_promise holds, and returns an
+	 * empty shared_promise.
+	 */
+	::q::shared_promise< std::tuple< > > strip( );
 };
 
 } // namespace q

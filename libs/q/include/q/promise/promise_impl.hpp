@@ -748,4 +748,24 @@ reflect( )
 
 } } // namespace detail, namespace q
 
+namespace q {
+
+template< typename T >
+::q::promise< std::tuple< > > promise< T >::
+strip( )
+{
+	return this->then( [ ]( const typename base_type::tuple_type& ){ } );
+}
+
+template< typename T >
+::q::shared_promise< std::tuple< > > shared_promise< T >::
+strip( )
+{
+	return this->then( [ ]( const typename base_type::tuple_type& ){ } )
+	.share( );
+}
+
+} // namespace q
+
+
 #endif // LIBQ_PROMISE_PROMISE_IMPL_HPP
