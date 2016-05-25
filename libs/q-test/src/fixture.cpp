@@ -20,7 +20,8 @@
 namespace q { namespace test {
 
 fixture::fixture( )
-: scope_( nullptr )
+: mutex_( "q test fixture" )
+, scope_( nullptr )
 { }
 
 fixture::~fixture( )
@@ -44,6 +45,15 @@ void fixture::SetUp( )
 void fixture::TearDown( )
 {
 	on_teardown( );
+
+	bool need_to_await_promises;
+	{
+		Q_AUTO_UNIQUE_LOCK( mutex_ );
+		need_to_await_promises = !awaiting_promises_.empty( );
+	}
+
+	if ( need_to_await_promises )
+		_run( q::with( queue ) );
 
 	scope_ = q::make_scope( nullptr );
 	tp->dispatcher( )->terminate( q::termination::linger );
