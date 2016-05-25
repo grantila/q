@@ -39,6 +39,13 @@ public:
 
 	Q_MAKE_SIMPLE_EXCEPTION( Error );
 
+	void await_promise( ::q::promise< std::tuple< > >&& promise )
+	{
+		Q_AUTO_UNIQUE_LOCK( mutex_ );
+
+		awaiting_promises_.emplace_back( std::move( promise ) );
+	}
+
 protected:
 	virtual void on_setup( ) { }
 	virtual void on_teardown( ) { }
@@ -48,6 +55,8 @@ protected:
 
 	void keep_alive( q::scope&& scope )
 	{
+		Q_AUTO_UNIQUE_LOCK( mutex_ );
+
 		test_scopes_.emplace_back( std::move( scope ) );
 	}
 
@@ -55,15 +64,20 @@ protected:
 	void _run( Promise&& promise )
 	{
 		promise
+		.then( [ this ]( )
+		{
+			// Await all other promises which have been added for
+			// awaiting.
+			return await_all( );
+		} )
 		.fail( [ ]( std::exception_ptr e )
 		{
 			// If a test throws an asynchronous exception, the test
 			// fails.
 			ADD_FAILURE( )
-				<< "Test threw asychronous exception:"
+				<< "Test threw unhandled asychronous exception:"
 				<< std::endl
-				<< q::stream_exception( e )
-				<< std::endl;
+				<< q::stream_exception( e );
 		} )
 		.finally( [ this ]( )
 		{
@@ -109,6 +123,29 @@ protected:
 	q::test::spy spy;
 
 private:
+	q::promise< std::tuple< > > await_all( )
+	{
+		std::vector< q::promise< std::tuple< > > > promises_;
+		{
+			Q_AUTO_UNIQUE_LOCK( mutex_ );
+			std::swap( promises_, awaiting_promises_ );
+		}
+
+		if ( promises_.empty( ) )
+			return q::with( queue );
+
+		return q::all( promises_, queue )
+		.then( [ this ]( )
+		{
+			// Recurse and try to await more promises which might
+			// have been added since last time.
+			return await_all( );
+		} );
+	}
+
+	q::mutex mutex_;
+	std::vector< q::promise< std::tuple< > > > awaiting_promises_;
+
 	q::scope scope_;
 	std::vector< q::scope > test_scopes_;
 };
