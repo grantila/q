@@ -24,10 +24,10 @@ TEST( thread_pool, perform_tasks )
 		return tasks->pop( );
 	} );
 
-	auto task = EXPECT_CALL_WRAPPER( spy )(
+	auto task = EXPECT_CALL_WRAPPER_SPY( spy, (
 		[ tasks, tp, &spy ]( )
 		{
-			auto task = EXPECT_CALL_WRAPPER( spy )(
+			auto task = EXPECT_CALL_WRAPPER_SPY( spy,
 				[ tp ]( )
 				{
 					;
@@ -38,7 +38,7 @@ TEST( thread_pool, perform_tasks )
 			tasks->push( task );
 			tp->notify( );
 		}
-	);
+	) );
 
 	tp->start( );
 

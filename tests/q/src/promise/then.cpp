@@ -10,12 +10,12 @@ TEST_F( then, values_to_value )
 
 	run(
 		q::with( queue, i, s )
-		.then( EXPECT_CALL_WRAPPER( spy )(
+		.then( EXPECT_CALL_WRAPPER(
 		[ ]( int i, std::string s ) -> long
 		{
 			return ( s[ 0 ] - s[ 1 ] ) * i;
 		} ) )
-		.then( EXPECT_CALL_WRAPPER( spy )(
+		.then( EXPECT_CALL_WRAPPER(
 		[ ]( long value )
 		{
 			EXPECT_EQ( 3 * 17, value );
@@ -30,7 +30,7 @@ TEST_F( then, tuple_to_value )
 
 	run(
 		q::with( queue, i, s )
-		.then( EXPECT_CALL_WRAPPER( spy )(
+		.then( EXPECT_CALL_WRAPPER(
 		[ ]( std::tuple< int, std::string >&& values ) -> long
 		{
 			int& i = std::get< 0 >( values );
@@ -38,7 +38,7 @@ TEST_F( then, tuple_to_value )
 
 			return ( s[ 0 ] - s[ 1 ] ) * i;
 		} ) )
-		.then( EXPECT_CALL_WRAPPER( spy )(
+		.then( EXPECT_CALL_WRAPPER(
 		[ ]( long value )
 		{
 			EXPECT_EQ( 3 * 17, value );
@@ -55,12 +55,12 @@ TEST_F( then, values_to_promise )
 
 	run(
 		q::with( queue, i, s )
-		.then( EXPECT_CALL_WRAPPER( spy )(
+		.then( EXPECT_CALL_WRAPPER(
 		[ queue ]( int i, std::string s )
 		{
 			return q::with( queue, ( s[ 0 ] - s[ 1 ] ) * i );
 		} ) )
-		.then( EXPECT_CALL_WRAPPER( spy )(
+		.then( EXPECT_CALL_WRAPPER(
 		[ ]( long value )
 		{
 			EXPECT_EQ( 3 * 17, value );
@@ -77,7 +77,7 @@ TEST_F( then, tuple_to_promise )
 
 	run(
 		q::with( queue, i, s )
-		.then( EXPECT_CALL_WRAPPER( spy )(
+		.then( EXPECT_CALL_WRAPPER(
 		[ queue ]( std::tuple< int, std::string >&& values )
 		{
 			int& i = std::get< 0 >( values );
@@ -85,7 +85,7 @@ TEST_F( then, tuple_to_promise )
 
 			return q::with( queue, ( s[ 0 ] - s[ 1 ] ) * i );
 		} ) )
-		.then( EXPECT_CALL_WRAPPER( spy )(
+		.then( EXPECT_CALL_WRAPPER(
 		[ ]( long value )
 		{
 			EXPECT_EQ( 3 * 17, value );
