@@ -29,17 +29,17 @@ namespace q {
 template< typename... T >
 promise<
 	typename decayed_tuple<
-		typename std::remove_reference< T >::type...
+		typename std::decay< T >::type...
 	>::type
 >
 with( const queue_ptr& queue, T&&... t )
 {
 	typedef detail::defer<
-		typename std::remove_reference< T >::type...
+		typename std::decay< T >::type...
 	> defer_type;
 	auto deferred = ::q::make_shared< defer_type >( queue );
 
-	deferred->set_value( std::forward_as_tuple( t... ) );
+	deferred->set_value( std::forward_as_tuple( std::forward< T >( t )... ) );
 
 	return deferred->get_promise( );
 }

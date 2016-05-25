@@ -93,9 +93,9 @@ protected:
 template<
 	typename T,
 	bool Static =
-		::q::is_nothrow_default_constructible< T >::value &&
+		std::is_default_constructible< T >::value &&
 		(
-			::q::is_nothrow_copy_constructible< T >::value ||
+			::q::is_copy_constructible< T >::value ||
 			!::q::is_copy_constructible< T >::value
 		) &&
 		::q::is_movable< T >::value
