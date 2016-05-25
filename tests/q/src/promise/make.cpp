@@ -11,7 +11,7 @@ TEST_F( make, by_expression_with_value )
 			return 17;
 		}
 	)
-	.then( EXPECT_CALL_WRAPPER( spy )( [ ]( int value )
+	.then( EXPECT_CALL_WRAPPER( [ ]( int value )
 	{
 		EXPECT_EQ( value, 17 );
 	} ) );
@@ -27,9 +27,9 @@ TEST_F( make, by_expression_with_exception )
 			Q_THROW( Error( ) );
 		}
 	)
-	.then( EXPECT_NO_CALL( spy, void, int )( ) )
-	.fail( EXPECT_CALL( spy, void, Error& )( ) )
-	.fail( EXPECT_NO_CALL( spy, void, std::exception_ptr )( ) );
+	.then( EXPECT_NO_CALL( void, int )( ) )
+	.fail( EXPECT_CALL( void, Error& )( ) )
+	.fail( EXPECT_NO_CALL( void, std::exception_ptr )( ) );
 
 	run( std::move( promise ) );
 }
@@ -43,7 +43,7 @@ TEST_F( make, async_with_value )
 			resolve( 1, 2 );
 		}
 	)
-	.then( EXPECT_CALL_WRAPPER( spy )( [ ]( int a, int b )
+	.then( EXPECT_CALL_WRAPPER( [ ]( int a, int b )
 	{
 		EXPECT_EQ( a, 1 );
 		EXPECT_EQ( b, 2 );
@@ -62,9 +62,9 @@ TEST_F( make, async_with_exception )
 			reject( Error( ) );
 		}
 	)
-	.then( EXPECT_NO_CALL( spy, void, int, int )( ) )
-	.fail( EXPECT_CALL( spy, void, Error& )( ) )
-	.fail( EXPECT_NO_CALL( spy, void, std::exception_ptr )( ) );
+	.then( EXPECT_NO_CALL( void, int, int )( ) )
+	.fail( EXPECT_CALL( void, Error& )( ) )
+	.fail( EXPECT_NO_CALL( void, std::exception_ptr )( ) );
 
 	run( std::move( promise ) );
 }

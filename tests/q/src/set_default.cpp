@@ -10,14 +10,14 @@ TEST_F( set_default, no_default )
 	auto main_thread_name = q::detail::get_thread_name( );
 
 	auto promise2 = promise1
-	.then( EXPECT_CALL_WRAPPER( spy )(
+	.then( EXPECT_CALL_WRAPPER(
 		[ &main_thread_name ]( )
 		{
 			auto thread_name = q::detail::get_thread_name( );
 			EXPECT_NE( main_thread_name, thread_name );
 		}
 	), tp_queue )
-	.then( EXPECT_CALL_WRAPPER( spy )(
+	.then( EXPECT_CALL_WRAPPER(
 		[ &main_thread_name ]( )
 		{
 			auto thread_name = q::detail::get_thread_name( );
@@ -40,14 +40,14 @@ TEST_F( set_default, set_default )
 	auto main_thread_name = q::detail::get_thread_name( );
 
 	auto promise2 = promise1
-	.then( EXPECT_CALL_WRAPPER( spy )(
+	.then( EXPECT_CALL_WRAPPER(
 		[ &main_thread_name ]( )
 		{
 			auto thread_name = q::detail::get_thread_name( );
 			EXPECT_NE( main_thread_name, thread_name );
 		}
 	), q::set_default( tp_queue ) )
-	.then( EXPECT_CALL_WRAPPER( spy )(
+	.then( EXPECT_CALL_WRAPPER(
 		[ &main_thread_name ]( )
 		{
 			auto thread_name = q::detail::get_thread_name( );

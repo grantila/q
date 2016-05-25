@@ -13,18 +13,18 @@ TEST_F( fail, exception_ptr_to_value )
 {
 	run(
 		q::with( queue )
-		.then( EXPECT_CALL_WRAPPER( spy )(
+		.then( EXPECT_CALL_WRAPPER(
 		[ ]( ) -> int
 		{
 			Q_THROW( Error( ) );
 		} ) )
-		.then( EXPECT_NO_CALL( spy, int, int )( 4711 ) )
-		.fail( EXPECT_CALL_WRAPPER( spy )(
+		.then( EXPECT_NO_CALL( int, int )( 4711 ) )
+		.fail( EXPECT_CALL_WRAPPER(
 		[ ]( std::exception_ptr e )
 		{
 			return 17;
 		} ) )
-		.then( EXPECT_CALL_WRAPPER( spy )(
+		.then( EXPECT_CALL_WRAPPER(
 		[ ]( int value )
 		{
 			EXPECT_EQ( 17, value );
@@ -38,18 +38,18 @@ TEST_F( fail, exception_ptr_to_promise )
 
 	run(
 		q::with( queue )
-		.then( EXPECT_CALL_WRAPPER( spy )(
+		.then( EXPECT_CALL_WRAPPER(
 		[ ]( ) -> int
 		{
 			Q_THROW( Error( ) );
 		} ) )
-		.then( EXPECT_NO_CALL( spy, int, int )( 4711 ) )
-		.fail( EXPECT_CALL_WRAPPER( spy )(
+		.then( EXPECT_NO_CALL( int, int )( 4711 ) )
+		.fail( EXPECT_CALL_WRAPPER(
 		[ queue ]( std::exception_ptr e )
 		{
 			return q::with( queue, 17 );
 		} ) )
-		.then( EXPECT_CALL_WRAPPER( spy )(
+		.then( EXPECT_CALL_WRAPPER(
 		[ ]( int value )
 		{
 			EXPECT_EQ( 17, value );
@@ -61,23 +61,23 @@ TEST_F( fail, error_class_to_value )
 {
 	run(
 		q::with( queue )
-		.then( EXPECT_CALL_WRAPPER( spy )(
+		.then( EXPECT_CALL_WRAPPER(
 		[ ]( ) -> int
 		{
 			Q_THROW( Error( ) );
 		} ) )
-		.then( EXPECT_NO_CALL( spy, int, int )( 4711 ) )
-		.fail( EXPECT_CALL_WRAPPER( spy )(
+		.then( EXPECT_NO_CALL( int, int )( 4711 ) )
+		.fail( EXPECT_CALL_WRAPPER(
 		[ ]( Error& e )
 		{
 			return 17;
 		} ) )
-		.fail( EXPECT_NO_CALL_WRAPPER( spy )(
+		.fail( EXPECT_NO_CALL_WRAPPER(
 		[ ]( std::exception_ptr e )
 		{
 			return 18;
 		} ) )
-		.then( EXPECT_CALL_WRAPPER( spy )(
+		.then( EXPECT_CALL_WRAPPER(
 		[ ]( int value )
 		{
 			EXPECT_EQ( 17, value );
@@ -91,23 +91,23 @@ TEST_F( fail, error_class_to_promise )
 
 	run(
 		q::with( queue )
-		.then( EXPECT_CALL_WRAPPER( spy )(
+		.then( EXPECT_CALL_WRAPPER(
 		[ ]( ) -> int
 		{
 			Q_THROW( Error( ) );
 		} ) )
-		.then( EXPECT_NO_CALL( spy, int, int )( 4711 ) )
-		.fail( EXPECT_CALL_WRAPPER( spy )(
+		.then( EXPECT_NO_CALL( int, int )( 4711 ) )
+		.fail( EXPECT_CALL_WRAPPER(
 		[ queue ]( Error& e )
 		{
 			return q::with( queue, 17 );
 		} ) )
-		.fail( EXPECT_NO_CALL_WRAPPER( spy )(
+		.fail( EXPECT_NO_CALL_WRAPPER(
 		[ queue ]( std::exception_ptr e )
 		{
 			return q::with( queue, 18 );
 		} ) )
-		.then( EXPECT_CALL_WRAPPER( spy )(
+		.then( EXPECT_CALL_WRAPPER(
 		[ ]( int value )
 		{
 			EXPECT_EQ( 17, value );

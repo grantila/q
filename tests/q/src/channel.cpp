@@ -25,25 +25,25 @@ TEST_F( channel, zero_types )
 	writable.close( );
 
 	auto promise = readable.receive( )
-	.then( EXPECT_CALL_WRAPPER( spy )(
+	.then( EXPECT_CALL_WRAPPER(
 		[ &readable ]( )
 		{
 			return readable.receive( );
 		}
 	) )
-	.then( EXPECT_CALL_WRAPPER( spy )(
+	.then( EXPECT_CALL_WRAPPER(
 		[ &readable ]( std::tuple< >&& )
 		{
 			return readable.receive( );
 		}
 	) )
-	.then( EXPECT_NO_CALL_WRAPPER( spy )(
+	.then( EXPECT_NO_CALL_WRAPPER(
 		[ ]( ) { }
 	) )
-	.fail( EXPECT_CALL_WRAPPER( spy )(
+	.fail( EXPECT_CALL_WRAPPER(
 		[ ]( q::channel_closed_exception& ) { }
 	) )
-	.fail( EXPECT_NO_CALL_WRAPPER( spy )(
+	.fail( EXPECT_NO_CALL_WRAPPER(
 		[ ]( std::exception_ptr ) { }
 	) );
 
@@ -62,7 +62,7 @@ TEST_F( channel, one_type )
 	writable.close( );
 
 	auto promise = readable.receive( )
-	.then( EXPECT_CALL_WRAPPER( spy )(
+	.then( EXPECT_CALL_WRAPPER(
 		[ &readable ]( int value )
 		{
 			EXPECT_EQ( value, 17 );
@@ -70,7 +70,7 @@ TEST_F( channel, one_type )
 			return readable.receive( );
 		}
 	) )
-	.then( EXPECT_CALL_WRAPPER( spy )(
+	.then( EXPECT_CALL_WRAPPER(
 		[ &readable ]( int value )
 		{
 			EXPECT_EQ( value, 4711 );
@@ -78,13 +78,13 @@ TEST_F( channel, one_type )
 			return readable.receive( );
 		}
 	) )
-	.then( EXPECT_NO_CALL_WRAPPER( spy )(
+	.then( EXPECT_NO_CALL_WRAPPER(
 		[ ]( int value ) { }
 	) )
-	.fail( EXPECT_CALL_WRAPPER( spy )(
+	.fail( EXPECT_CALL_WRAPPER(
 		[ ]( q::channel_closed_exception& ) { }
 	) )
-	.fail( EXPECT_NO_CALL_WRAPPER( spy )(
+	.fail( EXPECT_NO_CALL_WRAPPER(
 		[ ]( std::exception_ptr ) { }
 	) );
 
@@ -103,7 +103,7 @@ TEST_F( channel, two_types )
 	writable.close( );
 
 	auto promise = readable.receive( )
-	.then( EXPECT_CALL_WRAPPER( spy )(
+	.then( EXPECT_CALL_WRAPPER(
 		[ &readable ]( int value, std::string&& s )
 		{
 			EXPECT_EQ( 17, value );
@@ -112,7 +112,7 @@ TEST_F( channel, two_types )
 			return readable.receive( );
 		}
 	) )
-	.then( EXPECT_CALL_WRAPPER( spy )(
+	.then( EXPECT_CALL_WRAPPER(
 		[ &readable ]( int value, std::string s )
 		{
 			EXPECT_EQ( 4711, value );
@@ -121,13 +121,13 @@ TEST_F( channel, two_types )
 			return readable.receive( );
 		}
 	) )
-	.then( EXPECT_NO_CALL_WRAPPER( spy )(
+	.then( EXPECT_NO_CALL_WRAPPER(
 		[ ]( int value, std::string&& ) { }
 	) )
-	.fail( EXPECT_CALL_WRAPPER( spy )(
+	.fail( EXPECT_CALL_WRAPPER(
 		[ ]( q::channel_closed_exception& ) { }
 	) )
-	.fail( EXPECT_NO_CALL_WRAPPER( spy )(
+	.fail( EXPECT_NO_CALL_WRAPPER(
 		[ ]( std::exception_ptr ) { }
 	) );
 
@@ -152,7 +152,7 @@ TEST_F( channel, auto_close_on_readable_destruction )
 	auto readable = channel_creator( );
 
 	auto promise = readable.receive( )
-	.then( EXPECT_CALL_WRAPPER( spy )(
+	.then( EXPECT_CALL_WRAPPER(
 		[ &readable ]( int value )
 		{
 			EXPECT_EQ( value, 17 );
@@ -160,7 +160,7 @@ TEST_F( channel, auto_close_on_readable_destruction )
 			return readable.receive( );
 		}
 	) )
-	.then( EXPECT_CALL_WRAPPER( spy )(
+	.then( EXPECT_CALL_WRAPPER(
 		[ &readable ]( int value )
 		{
 			EXPECT_EQ( value, 4711 );
@@ -168,13 +168,13 @@ TEST_F( channel, auto_close_on_readable_destruction )
 			return readable.receive( );
 		}
 	) )
-	.then( EXPECT_NO_CALL_WRAPPER( spy )(
+	.then( EXPECT_NO_CALL_WRAPPER(
 		[ ]( int value ) { }
 	) )
-	.fail( EXPECT_CALL_WRAPPER( spy )(
+	.fail( EXPECT_CALL_WRAPPER(
 		[ ]( q::channel_closed_exception& ) { }
 	) )
-	.fail( EXPECT_NO_CALL_WRAPPER( spy )(
+	.fail( EXPECT_NO_CALL_WRAPPER(
 		[ ]( std::exception_ptr ) { }
 	) );
 
@@ -192,13 +192,13 @@ TEST_F( channel, auto_close_on_writable_destruction )
 		auto writable = ch.get_writable( );
 
 		auto promise = readable.receive( )
-		.then( EXPECT_NO_CALL_WRAPPER( spy )(
+		.then( EXPECT_NO_CALL_WRAPPER(
 			[ ]( int value ) { }
 		) )
-		.fail( EXPECT_CALL_WRAPPER( spy )(
+		.fail( EXPECT_CALL_WRAPPER(
 			[ ]( q::channel_closed_exception& ) { }
 		) )
-		.fail( EXPECT_NO_CALL_WRAPPER( spy )(
+		.fail( EXPECT_NO_CALL_WRAPPER(
 			[ ]( std::exception_ptr ) { }
 		) );
 
