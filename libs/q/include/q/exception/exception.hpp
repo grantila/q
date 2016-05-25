@@ -258,6 +258,17 @@ private:
 
 std::ostream& operator<<( std::ostream& , const stream_exception& );
 
+/**
+ * Tries to convert an `exception_ptr` to a `std::string`, by
+ * extracting exception information, using `q::stream_exception`;
+ */
+static inline std::string to_string( std::exception_ptr e )
+{
+	std::stringstream ss;
+	ss << stream_exception( e );
+	return ss.str( );
+}
+
 } // namespace q
 
 #endif // LIBQ_EXCEPTION_EXCEPTION_HPP
