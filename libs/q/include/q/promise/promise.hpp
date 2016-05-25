@@ -501,8 +501,10 @@ public:
 
 	promise< T > unshare( ) noexcept // TODO: analyze noexcept here
 	{
-		return promise< T >(
-			base_type::state_->acquire( ), this->get_queue( ) );
+		return this->then( [ ]( typename base_type::tuple_type&& value )
+		{
+			return value;
+		} );
 	}
 };
 
