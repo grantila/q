@@ -70,6 +70,7 @@ add_subdirectory( "progs/benchmark" )
 
 add_subdirectory( "3rdparty/gmock-1.7.0" )
 
+add_subdirectory( "tests/qtest" )
 add_subdirectory( "tests/q" )
 add_subdirectory( "tests/q-io" )
 
