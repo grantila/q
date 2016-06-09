@@ -27,6 +27,8 @@
 #include <q/promise.hpp>
 #include <q/scope.hpp>
 
+#include "unistd.h"
+
 namespace q { namespace io {
 
 std::shared_ptr< dispatcher >

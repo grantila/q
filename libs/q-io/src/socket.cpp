@@ -22,6 +22,8 @@
 
 #include <event2/event.h>
 
+#include <unistd.h>
+
 #ifdef LIBQ_ON_WINDOWS
 #	include <winsock2.h>
 #	define ioctl ioctlsocket
