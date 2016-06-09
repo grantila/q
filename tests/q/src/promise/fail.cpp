@@ -16,7 +16,7 @@ TEST_F( fail, exception_ptr_to_value )
 		.then( EXPECT_CALL_WRAPPER( spy )(
 		[ ]( ) -> int
 		{
-			throw Error( );
+			Q_THROW( Error( ) );
 		} ) )
 		.then( EXPECT_NO_CALL( spy, int, int )( 4711 ) )
 		.fail( EXPECT_CALL_WRAPPER( spy )(
@@ -41,7 +41,7 @@ TEST_F( fail, exception_ptr_to_promise )
 		.then( EXPECT_CALL_WRAPPER( spy )(
 		[ ]( ) -> int
 		{
-			throw Error( );
+			Q_THROW( Error( ) );
 		} ) )
 		.then( EXPECT_NO_CALL( spy, int, int )( 4711 ) )
 		.fail( EXPECT_CALL_WRAPPER( spy )(
@@ -64,7 +64,7 @@ TEST_F( fail, error_class_to_value )
 		.then( EXPECT_CALL_WRAPPER( spy )(
 		[ ]( ) -> int
 		{
-			throw Error( );
+			Q_THROW( Error( ) );
 		} ) )
 		.then( EXPECT_NO_CALL( spy, int, int )( 4711 ) )
 		.fail( EXPECT_CALL_WRAPPER( spy )(
@@ -94,7 +94,7 @@ TEST_F( fail, error_class_to_promise )
 		.then( EXPECT_CALL_WRAPPER( spy )(
 		[ ]( ) -> int
 		{
-			throw Error( );
+			Q_THROW( Error( ) );
 		} ) )
 		.then( EXPECT_NO_CALL( spy, int, int )( 4711 ) )
 		.fail( EXPECT_CALL_WRAPPER( spy )(
