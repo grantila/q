@@ -34,6 +34,9 @@ struct ipv4_address
 	ipv4_address( ) = default;
 	ipv4_address( ipv4_address&& ) = default;
 	ipv4_address( const ipv4_address& ) = default;
+	ipv4_address( struct sockaddr* addr );
+	ipv4_address( struct sockaddr_in* addr )
+	: ipv4_address( reinterpret_cast< struct sockaddr* >( addr ) ) { }
 	ipv4_address( const char* addr );
 	explicit ipv4_address( const std::string& addr )
 	: ipv4_address( addr.c_str( ) )
@@ -51,6 +54,9 @@ struct ipv6_address
 	ipv6_address( ) = default;
 	ipv6_address( ipv6_address&& ) = default;
 	ipv6_address( const ipv6_address& ) = default;
+	ipv6_address( struct sockaddr* addr );
+	ipv6_address( struct sockaddr_in6* addr )
+	: ipv6_address( reinterpret_cast< struct sockaddr* >( addr ) ) { }
 	ipv6_address( const char* addr );
 	explicit ipv6_address( const std::string& addr )
 	: ipv6_address( addr.c_str( ) )
@@ -109,6 +115,34 @@ private:
 		else
 			ipv4.push_back(
 				ipv4_address( std::forward< First >( ip ) ) );
+
+		add( std::forward< Ips >( ips )... );
+	}
+
+	template< typename First, typename... Ips >
+	typename std::enable_if<
+		q::is_same_type<
+			typename std::decay< First >::type,
+			ipv4_address
+		>::value
+	>::type
+	_add( First&& ip, Ips&&... ips )
+	{
+		ipv4.push_back( std::forward< First >( ip ) );
+
+		add( std::forward< Ips >( ips )... );
+	}
+
+	template< typename First, typename... Ips >
+	typename std::enable_if<
+		q::is_same_type<
+			typename std::decay< First >::type,
+			ipv6_address
+		>::value
+	>::type
+	_add( First&& ip, Ips&&... ips )
+	{
+		ipv6.push_back( std::forward< First >( ip ) );
 
 		add( std::forward< Ips >( ips )... );
 	}

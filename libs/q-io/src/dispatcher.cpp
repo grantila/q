@@ -26,6 +26,7 @@
 #include <q/queue.hpp>
 #include <q/promise.hpp>
 #include <q/scope.hpp>
+#include <q/threadpool.hpp>
 
 #include "unistd.h"
 
@@ -48,6 +49,12 @@ dispatcher::dispatcher( q::queue_ptr user_queue, std::string name )
 	pimpl_->name = name;
 	pimpl_->dummy_event.ev = nullptr;
 	pimpl_->dummy_event.pipes[ 0 ] = pimpl_->dummy_event.pipes[ 1 ] = -1;
+
+#ifndef QIO_USE_LIBEVENT_DNS
+	pimpl_->dns_context_ = q::make_execution_context< q::threadpool >(
+		"q-io dns worker", user_queue, 6 );
+	pimpl_->dns_queue_ = pimpl_->dns_context_->queue( );
+#endif
 
 	event_config* cfg = ::event_config_new( );
 	auto config_scope = q::make_scoped_function( [ cfg ]( )
@@ -294,12 +301,57 @@ dispatcher::delay( q::timer::duration_type dur )
 	return q::async_task( runner );
 }
 
+template< typename T >
+T identity( T&& t ) { return t; }
+
 q::promise< std::tuple< resolver_response > >
 dispatcher::lookup( const std::string& name )
 {
+#ifdef QIO_USE_LIBEVENT_DNS
 	auto _resolver = q::make_shared< resolver >( shared_from_this( ) );
 	return _resolver->lookup(
 		pimpl_->user_queue, name, resolver::resolve_flags::normal );
+#else
+	return q::make_promise( pimpl_->dns_queue_, [ name ]( ) -> ip_addresses
+	{
+		struct addrinfo* info;
+		int error;
+
+		error = ::getaddrinfo( name.c_str( ), nullptr, nullptr, &info );
+
+		if ( error )
+		{
+			std::string err = gai_strerror( error );
+			Q_THROW( dns_lookup_error( ) /* << err */ );
+		}
+
+		ip_addresses res;
+
+		struct addrinfo* iter = info;
+		while ( iter )
+		{
+			if ( iter->ai_family == PF_INET )
+				res.add( ipv4_address( info->ai_addr ) );
+
+			if ( iter->ai_family == PF_INET6 )
+				res.add( ipv6_address( info->ai_addr ) );
+
+			iter = iter->ai_next;
+		}
+
+		freeaddrinfo( info );
+
+		return res;
+	} )
+	.then( [ ]( ip_addresses&& addresses )
+	{
+		// TTL isn't available in getaddrinfo-based dns lookup.
+		return resolver_response{
+			std::move( addresses ),
+			std::chrono::seconds( 0 )
+		};
+	}, pimpl_->user_queue );
+#endif
 }
 
 // Tries to connect to the first IP address, then the next, etc, until all

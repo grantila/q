@@ -42,7 +42,7 @@ public:
 	q::readable< q::byte_block > in( );
 
 	/**
-	 * Get the outoming channel, to write data to the socket
+	 * Get the outgoing channel, to write data to the socket
 	 */
 	q::writable< q::byte_block > out( );
 

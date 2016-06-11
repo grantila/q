@@ -27,6 +27,8 @@
 
 namespace q { namespace io {
 
+Q_MAKE_SIMPLE_EXCEPTION( dns_lookup_error );
+
 enum class dispatcher_termination
 {
 	graceful,

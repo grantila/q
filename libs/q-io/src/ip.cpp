@@ -31,6 +31,20 @@ ipv4_address::ipv4_address( const char* addr )
 		Q_THROW( invalid_ip_address( ) );
 }
 
+ipv4_address::ipv4_address( struct sockaddr* addr )
+{
+	if ( addr->sa_family != AF_INET )
+		Q_THROW( invalid_ip_address( ) );
+
+	auto addr_in = reinterpret_cast< struct sockaddr_in* >( addr );
+
+	std::memcpy(
+		data,
+		&addr_in->sin_addr,
+		std::min< std::size_t >( 4, sizeof addr_in->sin_addr )
+	);
+}
+
 std::string ipv4_address::string( ) const
 {
 	if ( true )
@@ -76,6 +90,24 @@ ipv6_address::ipv6_address( const char* addr )
 
 	if ( ret != 1 )
 		Q_THROW( invalid_ip_address( ) );
+}
+
+ipv6_address::ipv6_address( struct sockaddr* addr )
+{
+	if ( addr->sa_family != AF_INET && addr->sa_family != AF_INET6 )
+		Q_THROW( invalid_ip_address( ) );
+
+	if ( addr->sa_len < 16 )
+		// This might mean ipv4
+		Q_THROW( invalid_ip_address( ) );
+
+	auto addr_in = reinterpret_cast< struct sockaddr_in6* >( addr );
+
+	std::memcpy(
+		data,
+		&addr_in->sin6_addr,
+		std::min< std::size_t >( 16, sizeof addr_in->sin6_addr )
+	);
 }
 
 static std::string ipv6_address_to_string( const ipv6_address& ipv6 )

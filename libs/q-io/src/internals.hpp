@@ -22,6 +22,7 @@
 #include <q-io/dns.hpp>
 
 #include <q/thread.hpp>
+#include <q/execution_context.hpp>
 
 #include <event2/event.h>
 #include <event2/dns.h>
@@ -87,6 +88,11 @@ struct event::pimpl
 struct dispatcher::pimpl
 {
 	std::shared_ptr< q::thread< void > > thread;
+
+#ifndef QIO_USE_LIBEVENT_DNS
+	q::queue_ptr dns_queue_;
+	q::specific_execution_context_ptr< q::threadpool > dns_context_;
+#endif
 
 	struct {
 		::event* ev;

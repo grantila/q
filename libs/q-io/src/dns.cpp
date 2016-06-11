@@ -16,6 +16,8 @@
 
 #include <q-io/dns.hpp>
 
+#include <q/threadpool.hpp>
+
 #include "internals.hpp"
 
 namespace q { namespace io {
