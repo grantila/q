@@ -11,7 +11,7 @@ QIO_TEST_MAKE_SCOPE( dns );
 TEST_F( dns, lookup_simple )
 {
 	auto lookup = io_dispatcher->lookup( "www.google.com" )
-	.then( EXPECT_CALL_WRAPPER( spy )(
+	.then( EXPECT_CALL_WRAPPER(
 		[ ]( q::io::resolver_response&& response )
 		{
 			EXPECT_GE( response.ips.ipv4.size( ), 1 );
@@ -29,7 +29,7 @@ TEST_F( dns, lookup_ipv4 )
 	auto flags = q::io::resolver::resolve_flags::ipv4;
 
 	auto lookup = resolver->lookup( queue, "www.google.com", flags )
-	.then( EXPECT_CALL_WRAPPER( spy )(
+	.then( EXPECT_CALL_WRAPPER(
 		[ ]( q::io::resolver_response&& response )
 		{
 			EXPECT_GE( response.ips.ipv4.size( ), 1 );
@@ -47,7 +47,7 @@ TEST_F( dns, lookup_ipv6 )
 	auto flags = q::io::resolver::resolve_flags::ipv6;
 
 	auto lookup = resolver->lookup( queue, "www.google.com", flags )
-	.then( EXPECT_CALL_WRAPPER( spy )(
+	.then( EXPECT_CALL_WRAPPER(
 		[ ]( q::io::resolver_response&& response )
 		{
 			EXPECT_EQ( response.ips.ipv4.size( ), 0 );
@@ -67,7 +67,7 @@ TEST_F( dns, lookup_normal )
 		q::io::resolver::resolve_flags::ipv6;
 
 	auto lookup = resolver->lookup( queue, "www.google.com", flags )
-	.then( EXPECT_CALL_WRAPPER( spy )(
+	.then( EXPECT_CALL_WRAPPER(
 		[ ]( q::io::resolver_response&& response )
 		{
 			EXPECT_GE( response.ips.ipv4.size( ), 1 );

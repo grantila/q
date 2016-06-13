@@ -16,7 +16,7 @@ TEST_F( connect, client_server_connrefused )
 	{
 		EXPECT_TRUE( false );
 	} )
-	.fail( EXPECT_CALL_WRAPPER( spy )(
+	.fail( EXPECT_CALL_WRAPPER(
 		[ ]( const q::errno_connrefused_exception& e ) { }
 	) )
 	.fail( [ ]( std::exception_ptr e )
@@ -79,7 +79,7 @@ TEST_F( connect, client_server_close_client_on_destruction )
 		{
 			EXPECT_TRUE( false );
 		} )
-		.fail( EXPECT_CALL_WRAPPER( spy )(
+		.fail( EXPECT_CALL_WRAPPER(
 			[ ]( std::exception_ptr e ) { }
 		) );
 	} );
