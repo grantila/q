@@ -590,14 +590,21 @@ void dispatcher::attach_event( const event_ptr& event )
 	event->attach( shared_from_this( ) );
 }
 
-void dispatcher::do_terminate( dispatcher_termination termination )
+void dispatcher::do_terminate( dispatcher_termination termination_method )
 {
+	termination dns_termination =
+		termination_method == dispatcher_termination::graceful
+		? termination::linger
+		: termination::annihilate;
+
+	pimpl_->dns_context_->dispatcher( )->terminate( dns_termination );
+
 	int ret;
 
-	if ( termination == dispatcher_termination::graceful )
+	if ( termination_method == dispatcher_termination::graceful )
 		ret = event_base_loopexit( pimpl_->event_base, nullptr );
 
-	else if ( termination == dispatcher_termination::immediate )
+	else if ( termination_method == dispatcher_termination::immediate )
 		ret = event_base_loopbreak( pimpl_->event_base );
 
 	else
@@ -610,6 +617,7 @@ void dispatcher::do_terminate( dispatcher_termination termination )
 
 q::expect< > dispatcher::await_termination( )
 {
+	pimpl_->dns_context_->dispatcher( )->await_termination( );
 	return pimpl_->thread->await_termination( );
 }
 
