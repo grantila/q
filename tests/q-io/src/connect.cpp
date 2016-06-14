@@ -11,20 +11,10 @@ TEST_F( connect, client_server_connrefused )
 {
 	auto dest = q::io::ip_addresses( "127.0.0.1" );
 
-	auto promise = io_dispatcher->connect_to( dest, 1 )
-	.then( [ ]( q::io::socket_ptr socket )
-	{
-		EXPECT_TRUE( false );
-	} )
-	.fail( EXPECT_CALL_WRAPPER(
-		[ ]( const q::errno_connrefused_exception& e ) { }
-	) )
-	.fail( [ ]( std::exception_ptr e )
-	{
-		EXPECT_TRUE( false );
-	} );
-
-	run( std::move( promise ) );
+	EVENTUALLY_EXPECT_REJECTION_WITH(
+		io_dispatcher->connect_to( dest, 1 ),
+		q::errno_connrefused_exception
+	);
 }
 
 TEST_F( connect, DISABLED_client_server_send_data )

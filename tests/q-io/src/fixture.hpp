@@ -5,6 +5,7 @@
 #include <q-io/dispatcher.hpp>
 
 #include <q-test/q-test.hpp>
+#include <q-test/expect.hpp>
 
 #define QIO_TEST_MAKE_SCOPE( name ) \
 	class name : public q::io::test::fixture { }
