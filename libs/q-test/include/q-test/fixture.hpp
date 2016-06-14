@@ -64,6 +64,7 @@ protected:
 	void _run( Promise&& promise )
 	{
 		promise
+		.strip( )
 		.then( [ this ]( )
 		{
 			// Await all other promises which have been added for
@@ -83,6 +84,8 @@ protected:
 		{
 			bd->dispatcher( )->terminate( q::termination::linger );
 		} );
+
+		started_ = true;
 
 		bd->dispatcher( )->start( );
 	}
@@ -148,6 +151,8 @@ private:
 
 	q::scope scope_;
 	std::vector< q::scope > test_scopes_;
+
+	std::atomic< bool > started_;
 };
 
 } } // namespace test, namespace q

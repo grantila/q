@@ -25,24 +25,24 @@ template< bool Shared, typename... Args >
 class generic_promise< Shared, std::tuple< Args... > >
 {
 public:
-	typedef bool_type< Shared >                        shared_type;
-	typedef arguments< Args... >                       argument_types;
-	typedef std::tuple< Args... >                      tuple_type;
-	typedef generic_promise< Shared, tuple_type >      this_type;
-	typedef generic_promise< false, tuple_type >       unique_this_type;
-	typedef generic_promise< true, tuple_type >        shared_this_type;
-	typedef promise_state< tuple_type, Shared >        state_type;
-	typedef promise_state< tuple_type, false >         unique_state_type;
-	typedef unique_this_type                           promise_type;
-	typedef shared_this_type                           shared_promise_type;
+	typedef bool_type< Shared >                   shared_type;
+	typedef arguments< Args... >                  argument_types;
+	typedef std::tuple< Args... >                 tuple_type;
+	typedef generic_promise< Shared, tuple_type > this_type;
+	typedef promise< tuple_type >                 unique_this_type;
+	typedef shared_promise< tuple_type >          shared_this_type;
+	typedef promise_state< tuple_type, Shared >   state_type;
+	typedef promise_state< tuple_type, false >    unique_state_type;
+	typedef unique_this_type                      promise_type;
+	typedef shared_this_type                      shared_promise_type;
+	typedef ::q::expect< tuple_type >             tuple_expect_type;
 	typedef typename std::conditional<
 		sizeof...( Args ) < 2,
 		::q::expect<
 			typename ::q::arguments< Args..., void >::first_type
 		>,
 		void
-	>::type                                            short_expect_type;
-	typedef ::q::expect< tuple_type >                  tuple_expect_type;
+	>::type                                       short_expect_type;
 
 	template< typename... T >
 	struct is_valid_arguments

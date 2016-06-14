@@ -40,6 +40,9 @@ void fixture::SetUp( )
 	tp_queue = tp->queue( );
 
 	on_setup( );
+
+	if ( !started_ )
+		run( q::with( queue ) );
 }
 
 void fixture::TearDown( )

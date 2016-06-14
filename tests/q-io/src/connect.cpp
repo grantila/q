@@ -17,7 +17,7 @@ TEST_F( connect, client_server_connrefused )
 	);
 }
 
-TEST_F( connect, DISABLED_client_server_send_data )
+TEST_F( connect, ONLY_client_server_send_data )
 {
 	const std::string test_data = "hello world";
 
@@ -31,9 +31,12 @@ TEST_F( connect, DISABLED_client_server_send_data )
 		return client->in( ).receive( )
 		.then( [ client, &test_data ]( q::byte_block&& block )
 		{
-			EXPECT_EQ( block.to_string( ), test_data );
+			return block.to_string( );
 		} );
 	} );
+	//.share( );
+
+	EVENTUALLY_EXPECT_EQ( promise_server, test_data );
 
 	auto promise_client = q::with( io_queue )
 	.then( io_dispatcher->delay( std::chrono::milliseconds( 10 ) ) )

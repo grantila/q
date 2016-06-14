@@ -25,7 +25,7 @@ clock::time_point clock::now( )
 	// TODO: Handle return value
 	gettimeofday( &tv, nullptr );
 
-	return std::move( from_timeval( tv ) );
+	return from_timeval( tv );
 }
 
 clock::time_point clock::from_timeval( const timeval& tv )
@@ -53,7 +53,7 @@ timeval clock::to_timeval( const duration& dur )
 	tv.tv_sec  = seconds;
 	tv.tv_usec = usec - seconds * ( 1000 * 1000 );
 
-	return std::move( tv );
+	return tv;
 }
 
 } } // namespace io, namespace q
