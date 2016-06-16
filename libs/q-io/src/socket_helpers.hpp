@@ -24,14 +24,22 @@
 
 namespace q { namespace io {
 
-static inline void prepare_socket( evutil_socket_t socket )
+#ifdef QIO_USE_LIBEVENT
+typedef evutil_socket_t qio_socket_t;
+#else
+typedef uv_os_sock_t qio_socket_t;
+#endif
+
+static inline void prepare_socket( qio_socket_t socket )
 {
+#ifdef QIO_USE_LIBEVENT
 	::evutil_make_socket_nonblocking( socket );
+#endif
 }
 
-static inline evutil_socket_t create_socket( int family )
+static inline qio_socket_t create_socket( int family )
 {
-	evutil_socket_t socket = ::socket( family, SOCK_STREAM, 6 );
+	qio_socket_t socket = ::socket( family, SOCK_STREAM, 6 );
 
 	prepare_socket( socket );
 
@@ -52,7 +60,7 @@ typename std::enable_if<
 	>::value,
 	std::pair< bool, int >
 >::type
-connect( evutil_socket_t socket, const Sockaddr& addr )
+connect( qio_socket_t socket, const Sockaddr& addr )
 {
 	auto ret = ::connect(
 		socket,

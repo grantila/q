@@ -439,6 +439,7 @@ q::promise< std::tuple< socket_ptr > > dispatcher::connect_to(
 		std::size_t pos_ipv4;
 		std::size_t pos_ipv6;
 		std::uint16_t port;
+#ifdef QIO_USE_LIBEVENT
 		evutil_socket_t fd;
 
 		~destination( )
@@ -446,6 +447,9 @@ q::promise< std::tuple< socket_ptr > > dispatcher::connect_to(
 			if ( fd != -1 )
 				EVUTIL_CLOSESOCKET( fd );
 		}
+#else
+		std::unique_ptr< socket_event::pimpl > socket_event_pimpl;
+#endif
 	};
 
 	auto dest = std::make_shared< destination >( );
@@ -453,7 +457,13 @@ q::promise< std::tuple< socket_ptr > > dispatcher::connect_to(
 	dest->pos_ipv4 = 0;
 	dest->pos_ipv6 = 0;
 	dest->port = port;
+#ifdef QIO_USE_LIBEVENT
 	dest->fd = -1;
+#else
+	dest->socket_event_pimpl = q::make_unique< socket_event::pimpl >( );
+
+	::uv_tcp_init( &pimpl_->uv_loop, &dest->socket_event_pimpl->socket );
+#endif
 
 	auto self = shared_from_this( );
 
@@ -463,6 +473,147 @@ q::promise< std::tuple< socket_ptr > > dispatcher::connect_to(
 			( dest->pos_ipv6 < dest->addresses.ipv6.size( ) );
 	};
 
+#ifndef QIO_USE_LIBEVENT
+	// Returns the next sockaddr (or nullptr)
+	auto get_next_address = [ self, dest ]( ) -> std::unique_ptr< sockaddr >
+	{
+		if ( dest->pos_ipv4 < dest->addresses.ipv4.size( ) )
+		{
+			const ipv4_address& ipv4_address =
+				dest->addresses.ipv4[ dest->pos_ipv4++ ];
+
+			auto addr_in = q::make_unique< sockaddr_in >( );
+
+			ipv4_address.populate( *addr_in, dest->port );
+
+			return std::unique_ptr< sockaddr >(
+				reinterpret_cast< sockaddr* >(
+					addr_in.release( ) ) );
+		}
+
+		if ( dest->pos_ipv6 < dest->addresses.ipv6.size( ) )
+		{
+			const ipv6_address& ipv6_address =
+				dest->addresses.ipv6[ dest->pos_ipv6++ ];
+
+			auto addr_in6 = q::make_unique< sockaddr_in6 >( );
+
+			ipv6_address.populate( *addr_in6, dest->port );
+
+			return std::unique_ptr< sockaddr >(
+				reinterpret_cast< sockaddr* >(
+					addr_in6.release( ) ) );
+		}
+
+		return nullptr;
+	};
+
+	return q::make_promise_sync( pimpl_->user_queue,
+		[ self, dest, get_next_address, has_more_addresses ](
+			q::resolver< socket_ptr > resolve,
+			q::rejecter< socket_ptr > reject
+		)
+	{
+		struct context
+		{
+			dispatcher_ptr dispatcher;
+			q::resolver< socket_ptr > resolve_;
+			q::rejecter< socket_ptr > reject_;
+			std::function< std::unique_ptr< sockaddr >( void ) >
+				get_next_address;
+			std::function< bool( void ) > has_more_addresses;
+			std::function< void( context* ) > try_connect;
+			std::shared_ptr< destination > dest;
+			std::unique_ptr< sockaddr > last_address;
+			int last_error;
+
+			void resolve( socket_ptr&& socket )
+			{
+				resolve_( std::move( socket ) );
+				free( );
+			}
+
+			void reject( std::exception_ptr&& e )
+			{
+				reject_( std::move( e ) );
+				free( );
+			}
+
+		private:
+			void free( )
+			{
+				delete this;
+			}
+			~context( ) { }
+		};
+
+		uv_connect_cb connect_callback = [ ]( uv_connect_t* req, int status )
+		{
+			auto ctx = reinterpret_cast< context* >( req->data );
+
+			if ( status == 0 )
+			{
+				// Success
+				auto& socket_event_pimpl =
+					ctx->dest->socket_event_pimpl;
+				auto sock = ::q::io::socket::construct(
+					std::move( socket_event_pimpl ) );
+				sock->attach( ctx->dispatcher );
+
+				ctx->resolve( std::move( sock ) );
+			}
+			else
+			{
+				// Error
+				ctx->last_error = -status; // TODO: Translate for win32
+				ctx->try_connect( ctx );
+			}
+		};
+
+		auto try_connect = [ connect_callback ]( context* ctx )
+		{
+			auto& connect = ctx->dest->socket_event_pimpl->connect;
+			auto& socket = ctx->dest->socket_event_pimpl->socket;
+
+			if ( !ctx->has_more_addresses( ) )
+			{
+				auto& ipv4 = ctx->dest->addresses.ipv4;
+				auto& ipv6 = ctx->dest->addresses.ipv6;
+				int _errno = ipv4.empty( ) && ipv6.empty( )
+					? EINVAL
+					: ctx->last_error;
+
+				ctx->reject( get_exception_by_errno( _errno ) );
+				return;
+			}
+
+			ctx->last_address = ctx->get_next_address( );
+
+			::uv_tcp_connect(
+				&connect,
+				&socket,
+				ctx->last_address.get( ),
+				connect_callback
+			);
+		};
+
+		context* ctx = new context {
+			self,
+			resolve,
+			reject,
+			get_next_address,
+			has_more_addresses,
+			try_connect,
+			dest,
+			nullptr,
+			ECONNREFUSED
+		};
+
+		dest->socket_event_pimpl->connect.data = ctx;
+
+		try_connect( ctx );
+	} );
+#else
 	// Performs a connect against the next not-yet-tried address
 	// Returns true if connect was synchronously successful (i.e. we must
 	// await the result of the connect)
@@ -623,6 +774,7 @@ q::promise< std::tuple< socket_ptr > > dispatcher::connect_to(
 			ctx,
 			nullptr );
 	} );
+#endif
 }
 
 server_socket_ptr dispatcher::listen( std::uint16_t port )

@@ -122,8 +122,34 @@ struct dispatcher::pimpl
 	::q::task_fetcher_task task_fetcher_;
 
 	pimpl( )
+#ifdef QIO_USE_LIBEVENT
 	: event_base( nullptr )
+#endif
 	{ }
+};
+
+struct socket_event::pimpl
+{
+#ifdef QIO_USE_LIBEVENT
+	socket_t fd_;
+
+	::event* ev_read_;
+	::event* ev_write_;
+#else
+	::uv_tcp_t socket;
+	::uv_connect_t connect;
+#endif
+
+	std::atomic< bool > closed_;
+
+#ifdef QIO_USE_LIBEVENT
+	pimpl( socket_t sock )
+	: fd_( sock )
+	, ev_read_( nullptr )
+	, ev_write_( nullptr )
+	, closed_( false )
+	{ }
+#endif
 };
 
 struct resolver::pimpl

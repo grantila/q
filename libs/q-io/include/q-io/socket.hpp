@@ -33,6 +33,7 @@ class socket
 : public std::enable_shared_from_this< socket >
 , public socket_event
 {
+	struct pimpl;
 public:
 	~socket( );
 
@@ -64,10 +65,12 @@ public:
 	void detach( );
 
 protected:
-	static socket_ptr construct( socket_t );
+	static socket_ptr construct( socket_t ); // libevent
+	static socket_ptr construct( std::unique_ptr< socket_event::pimpl >&& );
 
 private:
 	socket( socket_t );
+	socket( std::unique_ptr< socket_event::pimpl >&& );
 
 	friend class dispatcher;
 	friend class server_socket;
@@ -85,7 +88,6 @@ private:
 
 	void close_socket( );
 
-	struct pimpl;
 	std::unique_ptr< pimpl > pimpl_;
 };
 

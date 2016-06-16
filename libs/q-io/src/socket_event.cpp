@@ -20,25 +20,13 @@
 
 namespace q { namespace io {
 
-struct socket_event::pimpl
-{
-	socket_t fd_;
-
-	::event* ev_read_;
-	::event* ev_write_;
-
-	std::atomic< bool > closed_;
-
-	pimpl( socket_t sock )
-	: fd_( sock )
-	, ev_read_( nullptr )
-	, ev_write_( nullptr )
-	, closed_( false )
-	{ }
-};
-
 socket_event::socket_event( socket_t sock )
 : pimpl_( make_unique< pimpl >( sock ) )
+{
+}
+
+socket_event::socket_event( std::unique_ptr< pimpl >&& pimpl )
+: pimpl_( std::move( pimpl ) )
 {
 }
 

@@ -33,7 +33,10 @@ public:
 	~socket_event( );
 
 protected:
+	struct pimpl;
+
 	socket_event( socket_t );
+	socket_event( std::unique_ptr< pimpl >&& );
 
 	void detect_readability( );
 	void detect_writability( );
@@ -59,7 +62,6 @@ private:
 
 	void sub_attach( const dispatcher_ptr& dispatcher ) noexcept override;
 
-	struct pimpl;
 	std::unique_ptr< pimpl > pimpl_;
 };
 

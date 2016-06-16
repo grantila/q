@@ -66,6 +66,19 @@ socket::socket( socket_t s )
 	pimpl_->can_write_ = true;
 }
 
+socket::socket( std::unique_ptr< socket_event::pimpl >&& _pimpl )
+: socket_event( std::move( _pimpl ) )
+, pimpl_( new pimpl {
+	nullptr,
+	nullptr,
+	nullptr,
+	nullptr
+} )
+{
+	pimpl_->can_read_ = false;
+	pimpl_->can_write_ = true;
+}
+
 socket::~socket( )
 {
 	close_socket( );
@@ -74,6 +87,11 @@ socket::~socket( )
 socket_ptr socket::construct( socket_t s )
 {
 	return q::make_shared_using_constructor< socket >( s );
+}
+
+socket_ptr socket::construct( std::unique_ptr< socket_event::pimpl >&& pimpl )
+{
+	return q::make_shared_using_constructor< socket >( std::move( pimpl ) );
 }
 
 
