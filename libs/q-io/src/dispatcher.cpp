@@ -47,7 +47,9 @@ dispatcher::dispatcher( q::queue_ptr user_queue, std::string name )
 {
 	pimpl_->user_queue = user_queue;
 	pimpl_->name = name;
+#ifdef QIO_USE_LIBEVENT
 	pimpl_->dummy_event.ev = nullptr;
+#endif
 	pimpl_->dummy_event.pipes[ 0 ] = pimpl_->dummy_event.pipes[ 1 ] = -1;
 
 #ifndef QIO_USE_LIBEVENT_DNS
@@ -56,6 +58,7 @@ dispatcher::dispatcher( q::queue_ptr user_queue, std::string name )
 	pimpl_->dns_queue_ = pimpl_->dns_context_->queue( );
 #endif
 
+#ifdef QIO_USE_LIBEVENT
 	event_config* cfg = ::event_config_new( );
 	auto config_scope = q::make_scoped_function( [ cfg ]( )
 	{
@@ -65,25 +68,35 @@ dispatcher::dispatcher( q::queue_ptr user_queue, std::string name )
 	::event_config_set_num_cpus_hint( cfg, q::hard_cores( ) );
 
 	pimpl_->event_base = ::event_base_new_with_config( cfg );
+#else
+	// libuv
+	::uv_loop_init( &pimpl_->uv_loop );
+#endif
 }
 
 dispatcher::~dispatcher( )
 {
-	if ( pimpl_->dummy_event.ev )
+	if ( true /* TODO: has ever started */ )
 	{
 		_cleanup_dummy_event( );
 	}
 
+#ifdef QIO_USE_LIBEVENT
 	if ( pimpl_->event_base )
 	{
 		::event_base_free( pimpl_->event_base );
 		pimpl_->event_base = nullptr;
 	}
+#else
+	::uv_loop_close( &pimpl_->uv_loop );
+#endif
 }
 
 std::string dispatcher::backend_method( ) const
 {
 	std::string method;
+// TODO: Remove this, or make libuv-compatible
+#ifdef QIO_USE_LIBEVENT
 	method.reserve( 40 );
 	method += "libevent2 using ";
 	method += ::event_base_get_method( pimpl_->event_base );
@@ -104,6 +117,7 @@ std::string dispatcher::backend_method( ) const
 		}
 		method += ")";
 	}
+#endif
 
 	return method;
 }
@@ -140,6 +154,9 @@ std::string dispatcher::dump_events( ) const
 {
 	std::string s;
 
+// TODO: Remove this, or make libuv-compatible
+#ifdef QIO_USE_LIBEVENT
+
 	event_base_event_iterator_fn fn = [ &s ]( const struct ::event* e )
 	-> iteration
 	{
@@ -157,12 +174,14 @@ std::string dispatcher::dump_events( ) const
 		pimpl_->event_base,
 		&event_base_event_iterator,
 		&fn ) );
+#endif
 
 	return s;
 }
 
 void dispatcher::_make_dummy_event( )
 {
+#ifdef QIO_USE_LIBEVENT
 	// This is incredibly stupid, but libevent seems not to be able to
 	// function without an event being added to the event_base before it is
 	// started with event_base_loop(). Also, this dummy event seems to
@@ -187,13 +206,53 @@ void dispatcher::_make_dummy_event( )
 	timeout.tv_sec = 0;
 	timeout.tv_usec = 1;
 	::event_add( pimpl_->dummy_event.ev, &timeout );
+#else
+	::pipe( pimpl_->dummy_event.pipes );
+
+	// Pipe
+	::uv_pipe_init( &pimpl_->uv_loop, &pimpl_->dummy_event.uv_pipe, 0 );
+	::uv_pipe_open(
+		&pimpl_->dummy_event.uv_pipe,
+		pimpl_->dummy_event.pipes[ 0 ] );
+
+	::uv_async_cb async_callback = [ ]( ::uv_async_t* async )
+	{
+		auto self = reinterpret_cast< dispatcher* >( async->data );
+
+		auto task = self->pimpl_->task_fetcher_( );
+		if ( !task )
+			return;
+
+		task( );
+
+		// Retry with another task if its available. We could do it
+		// in-place here, but instead we'll asynchronously do it,
+		// meaning we'll schedule this function to be called asap, but
+		// giving libuv the possibility to perform other I/O inbetween.
+		::uv_async_send( async );
+	};
+
+	// Async event for triggering tasks to be performed on the I/O thread
+	::uv_async_init( &pimpl_->uv_loop, &pimpl_->uv_async, async_callback );
+	pimpl_->uv_async.data = this;
+#endif
 }
 
 void dispatcher::_cleanup_dummy_event( )
 {
-	if ( pimpl_->dummy_event.ev )
+	if ( true /* TODO: If ever started */ )
 	{
+#ifdef QIO_USE_LIBEVENT
 		::event_del( pimpl_->dummy_event.ev );
+#else
+		::uv_close(
+			reinterpret_cast< uv_handle_t* >(
+				&pimpl_->dummy_event.uv_pipe ),
+			nullptr );
+		::uv_close(
+			reinterpret_cast< uv_handle_t* >( &pimpl_->uv_async ),
+			nullptr );
+#endif
 		::close( pimpl_->dummy_event.pipes[ 0 ] );
 		::close( pimpl_->dummy_event.pipes[ 1 ] );
 	}
@@ -201,8 +260,12 @@ void dispatcher::_cleanup_dummy_event( )
 
 void dispatcher::start_blocking( )
 {
+// TODO: Implement error translation
+//uv_strerror(int) and uv_err_name(int)
+
 	_make_dummy_event( );
 
+#ifdef QIO_USE_LIBEVENT
 	int flags = EVLOOP_NO_EXIT_ON_EMPTY;
 	int ret = event_base_loop( pimpl_->event_base, flags );
 
@@ -224,6 +287,13 @@ void dispatcher::start_blocking( )
 	const std::tuple< dispatcher_exit > _ret( _exit );
 
 	termination_done( _exit );
+#else
+	::uv_run( &pimpl_->uv_loop, UV_RUN_DEFAULT );
+
+	::uv_loop_close( &pimpl_->uv_loop );
+
+	termination_done( dispatcher_exit::normal );
+#endif
 }
 
 void dispatcher::start( )
@@ -237,6 +307,7 @@ void dispatcher::start( )
 
 void dispatcher::notify( )
 {
+#ifdef QIO_USE_LIBEVENT
 	auto self = shared_from_this( );
 
 	while ( true )
@@ -275,6 +346,9 @@ void dispatcher::notify( )
 
 		// ::event_active( ev, 0, 0 );
 	};
+#else
+	::uv_async_send( &pimpl_->uv_async );
+#endif
 }
 
 void dispatcher::set_task_fetcher( ::q::task_fetcher_task&& fetcher )
@@ -599,6 +673,7 @@ void dispatcher::do_terminate( dispatcher_termination termination_method )
 
 	pimpl_->dns_context_->dispatcher( )->terminate( dns_termination );
 
+#ifdef QIO_USE_LIBEVENT
 	int ret;
 
 	if ( termination_method == dispatcher_termination::graceful )
@@ -613,6 +688,9 @@ void dispatcher::do_terminate( dispatcher_termination termination_method )
 
 	if ( ret != 0 )
 		; // TODO: Throw something, but read above.
+#else
+	::uv_stop( &pimpl_->uv_loop );
+#endif
 }
 
 q::expect< > dispatcher::await_termination( )

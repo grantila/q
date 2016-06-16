@@ -9,8 +9,18 @@ INSTALLDIR=`pwd`/dist
 # libevent
 cd libevent-2.1.5*
 ./configure --prefix=${INSTALLDIR} --disable-openssl
-make
+make -j${CORES}
 make install
+cd ..
+
+# libuv
+cd libuv-v1.*
+sh autogen.sh
+./configure --prefix=${INSTALLDIR}
+make -j${CORES}
+make check
+make install
+cd ..
 
 # libcurl
 cd curl-*

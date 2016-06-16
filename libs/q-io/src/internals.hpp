@@ -27,6 +27,8 @@
 #include <event2/event.h>
 #include <event2/dns.h>
 
+#include <uv.h>
+
 #include <queue>
 
 // This shouldn't conflict with other EV_-constants
@@ -95,15 +97,25 @@ struct dispatcher::pimpl
 #endif
 
 	struct {
-		::event* ev;
 		int pipes[ 2 ];
+#ifdef QIO_USE_LIBEVENT
+		::event* ev;
+#else
+		::uv_pipe_t uv_pipe;
+#endif
 	} dummy_event;
 
-	q::queue_ptr            user_queue;
-	std::string             name;
+	q::queue_ptr user_queue;
+	std::string name;
 
+#ifdef QIO_USE_LIBEVENT
 	// libevent2 types
 	::event_base*           event_base;
+#else
+	// libuv
+	::uv_loop_t uv_loop;
+	::uv_async_t uv_async;
+#endif
 
 	std::queue< q::task > tasks_;
 

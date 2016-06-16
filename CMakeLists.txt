@@ -37,6 +37,7 @@ include_directories( "libs/q/include" )
 
 include_directories( "3rdparty/dist/include" )
 set( LIBEVENT_LIB "${Q_ROOT}/3rdparty/dist/lib/libevent.${STATIC_LIB_SUFFIX}" )
+set( LIBUV_LIB "${Q_ROOT}/3rdparty/dist/lib/libuv.${STATIC_LIB_SUFFIX}" )
 
 set( LIBCURL_LIB "${Q_ROOT}/3rdparty/dist/lib/libcurl.${STATIC_LIB_SUFFIX}" )
 IF (APPLE)
