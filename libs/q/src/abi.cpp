@@ -63,12 +63,12 @@ std::string default_demangle_cxx( const char* name )
 
 	demangled_name = abi::__cxa_demangle( name, 0, 0, &status );
 
-	if ( status == 0)
+	if ( status == 0 )
 	{
 		std::string ret( demangled_name );
 		std::free( demangled_name );
 
-		return std::move( ret );
+		return ret;
 	}
 
 	// Something went wrong with the demangling (memory issue or bad name),

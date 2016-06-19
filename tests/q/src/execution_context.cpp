@@ -4,9 +4,9 @@
 #include <q/threadpool.hpp>
 #include <q/promise.hpp>
 
-#include <gtest/gtest.h>
+#include <q-test/q-test.hpp>
 
-TEST( ExecutionContext, BlockDispatcher )
+TEST( execution_context, block_dispatcher )
 {
 	auto bd = q::make_shared< q::blocking_dispatcher >( "test dispatcher" );
 	auto s = q::make_shared< q::direct_scheduler >( bd );
@@ -29,7 +29,7 @@ TEST( ExecutionContext, BlockDispatcher )
 	bd->start( );
 }
 
-TEST( ExecutionContext, ThreadPoolDispatcher )
+TEST( execution_context, thread_pool_dispatcher )
 {
 	auto bd = q::make_shared< q::blocking_dispatcher >( "test dispatcher" );
 	auto s = q::make_shared< q::direct_scheduler >( bd );
@@ -59,7 +59,7 @@ TEST( ExecutionContext, ThreadPoolDispatcher )
 	q::all( std::move( promises ), tpqu )
 	.then( [ num, &val, tasks, bd, tpctx ]( )
 	{
-		EXPECT_EQ( val.load( ), num + tasks );
+		EXPECT_EQ( static_cast< std::size_t >( val.load( ) ), num + tasks );
 		bd->terminate( q::termination::linger );
 		tpctx->dispatcher( )->terminate( q::termination::linger );
 	}, qu );

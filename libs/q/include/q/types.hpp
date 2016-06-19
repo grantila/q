@@ -139,26 +139,6 @@ typedef int priority_t;
 
 typedef std::function< void( void ) noexcept > task;
 
-// Channels
-
-template< typename... Args >
-class writable;
-
-template< typename... Args >
-class readable;
-
-template< typename... Args >
-class channel;
-
-template< typename... T >
-using writable_ptr = std::shared_ptr< writable< T... > >;
-
-template< typename... T >
-using readable_ptr = std::shared_ptr< readable< T... > >;
-
-template< typename... T >
-using channel_ptr = std::shared_ptr< channel< T... > >;
-
 // Execution context
 
 class execution_context;

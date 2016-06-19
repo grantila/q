@@ -17,42 +17,39 @@
 #ifndef LIBQ_TEST_SPY_HPP
 #define LIBQ_TEST_SPY_HPP
 
-#include <q/pp.hpp>
 #include <q/type_traits.hpp>
 #include <q/functional.hpp>
-
-#ifdef LIBQ_ON_GCC
-#	pragma GCC diagnostic push
-#	pragma GCC diagnostic ignored "-Wsign-compare"
-#endif // LIBQ_ON_GCC
-
-#include <gtest/gtest.h>
-
-#ifdef LIBQ_ON_GCC
-#	pragma GCC diagnostic pop
-#endif // LIBQ_ON_GCC
 
 #include <vector>
 #include <atomic>
 #include <memory>
 
-#define EXPECT_CALL( spy, ... ) \
-	spy.expect_call( __FILE__, __LINE__, 1 ).template create< __VA_ARGS__ >
+#define EXPECT_CALL( ... ) \
+	this->spy.expect_call( __FILE__, __LINE__, 1 ).template create< __VA_ARGS__ >
 
-#define EXPECT_NO_CALL( spy, ... ) \
-	spy.expect_call( __FILE__, __LINE__, 0 ).template create< __VA_ARGS__ >
+#define EXPECT_NO_CALL( ... ) \
+	this->spy.expect_call( __FILE__, __LINE__, 0 ).template create< __VA_ARGS__ >
 
-#define EXPECT_N_CALLS( n, spy, ... ) \
-	spy.expect_call( __FILE__, __LINE__, n ).template create< __VA_ARGS__ >
+#define EXPECT_N_CALLS( n, ... ) \
+	this->spy.expect_call( __FILE__, __LINE__, n ).template create< __VA_ARGS__ >
 
-#define EXPECT_CALL_WRAPPER( spy ) \
-	spy.expect_call( __FILE__, __LINE__, 1 ).wrap
+#define EXPECT_CALL_WRAPPER_SPY( spy, fn ) \
+	spy.expect_call( __FILE__, __LINE__, 1 ).wrap( fn )
 
-#define EXPECT_NO_CALL_WRAPPER( spy ) \
-	spy.expect_call( __FILE__, __LINE__, 0 ).wrap
+#define EXPECT_NO_CALL_WRAPPER_SPY( spy, fn ) \
+	spy.expect_call( __FILE__, __LINE__, 0 ).wrap( fn )
 
-#define EXPECT_N_CALLS_WRAPPER( n, spy ) \
-	spy.expect_call( __FILE__, __LINE__, n ).wrap
+#define EXPECT_N_CALLS_WRAPPER_SPY( spy, n, fn ) \
+	spy.expect_call( __FILE__, __LINE__, n ).wrap( fn )
+
+#define EXPECT_CALL_WRAPPER( fn ) \
+	EXPECT_CALL_WRAPPER_SPY( this->spy, fn )
+
+#define EXPECT_NO_CALL_WRAPPER( fn ) \
+	EXPECT_NO_CALL_WRAPPER_SPY( this->spy, fn )
+
+#define EXPECT_N_CALLS_WRAPPER( n, fn ) \
+	EXPECT_N_CALLS_WRAPPER_SPY( this->spy, n, fn )
 
 
 namespace q { namespace test {

@@ -36,15 +36,12 @@ endif ( )
 include_directories( "libs/q/include" )
 add_subdirectory( "libs/q" )
 
-include_directories( "3rdparty/dist/include" )
-set( LIBEVENT_LIB "${Q_ROOT}/3rdparty/dist/lib/libevent.${STATIC_LIB_SUFFIX}" )
-
 include_directories( "3rdparty/gmock-1.7.0/gtest/include/" )
 include_directories( "3rdparty/gmock-1.7.0/include/" )
 include_directories( "libs/q-test/include" )
 add_subdirectory( "libs/q-test" )
 
-add_subdirectory( "libs/p" )
+#add_subdirectory( "libs/p" )
 
 include_directories( "3rdparty/dist/include/" )
 
@@ -58,6 +55,7 @@ add_subdirectory( "progs/benchmark" )
 
 add_subdirectory( "3rdparty/gmock-1.7.0" )
 
+add_subdirectory( "tests/qtest" )
 add_subdirectory( "tests/q" )
 add_subdirectory( "tests/q-rx" )
 

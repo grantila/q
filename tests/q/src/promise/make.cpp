@@ -1,9 +1,9 @@
 
 #include <q-test/q-test.hpp>
 
-Q_TEST_MAKE_SCOPE( Make );
+Q_TEST_MAKE_SCOPE( make );
 
-TEST_F( Make, ByExpressionWithValue )
+TEST_F( make, by_expression_with_value )
 {
 	auto promise = q::make_promise( queue,
 		[ ]( )
@@ -11,15 +11,15 @@ TEST_F( Make, ByExpressionWithValue )
 			return 17;
 		}
 	)
-	.then( EXPECT_CALL_WRAPPER( spy )( [ ]( int value )
+	.then( EXPECT_CALL_WRAPPER( [ ]( int value )
 	{
 		EXPECT_EQ( value, 17 );
 	} ) );
 
-	run( promise );
+	run( std::move( promise ) );
 }
 
-TEST_F( Make, ByExpressionWithException )
+TEST_F( make, by_expression_with_exception )
 {
 	auto promise = q::make_promise( queue,
 		[ ]( ) -> int
@@ -27,14 +27,14 @@ TEST_F( Make, ByExpressionWithException )
 			throw Error( );
 		}
 	)
-	.then( EXPECT_NO_CALL( spy, void, int )( ) )
-	.fail( EXPECT_CALL( spy, void, Error& )( ) )
-	.fail( EXPECT_NO_CALL( spy, void, std::exception_ptr )( ) );
+	.then( EXPECT_NO_CALL( void, int )( ) )
+	.fail( EXPECT_CALL( void, Error& )( ) )
+	.fail( EXPECT_NO_CALL( void, std::exception_ptr )( ) );
 
-	run( promise );
+	run( std::move( promise ) );
 }
 
-TEST_F( Make, AsyncWithValue )
+TEST_F( make, async_with_value )
 {
 	auto promise = q::make_promise( queue,
 		[ ]( q::resolver< int, int > resolve,
@@ -43,17 +43,17 @@ TEST_F( Make, AsyncWithValue )
 			resolve( 1, 2 );
 		}
 	)
-	.then( EXPECT_CALL_WRAPPER( spy )( [ ]( int a, int b )
+	.then( EXPECT_CALL_WRAPPER( [ ]( int a, int b )
 	{
 		EXPECT_EQ( a, 1 );
 		EXPECT_EQ( b, 2 );
 	} ) );
 
-	run( promise );
+	run( std::move( promise ) );
 }
 
 
-TEST_F( Make, AsyncWithException )
+TEST_F( make, async_with_exception )
 {
 	auto promise = q::make_promise( queue,
 		[ ]( q::resolver< int, int > resolve,
@@ -62,16 +62,16 @@ TEST_F( Make, AsyncWithException )
 			reject( Error( ) );
 		}
 	)
-	.then( EXPECT_NO_CALL( spy, void, int, int )( ) )
-	.fail( EXPECT_CALL( spy, void, Error& )( ) )
-	.fail( EXPECT_NO_CALL( spy, void, std::exception_ptr )( ) );
+	.then( EXPECT_NO_CALL( void, int, int )( ) )
+	.fail( EXPECT_CALL( void, Error& )( ) )
+	.fail( EXPECT_NO_CALL( void, std::exception_ptr )( ) );
 
-	run( promise );
+	run( std::move( promise ) );
 }
 
 #ifdef LIBQ_WITH_CPP14
 
-TEST_F( Make, ByLambdaAuto )
+TEST_F( make, by_lambda_auto )
 {
 	auto promise1 = q::make_promise( queue,
 		[ ]( q::resolver< int > resolve, q::rejecter< int > reject )
@@ -94,7 +94,7 @@ TEST_F( Make, ByLambdaAuto )
 		EXPECT_EQ( b, 4712 );
 	} );
 
-	run( promise3 );
+	run( std::move( promise3 ) );
 }
 
 #endif

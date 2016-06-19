@@ -1,23 +1,23 @@
 
 #include <q-test/q-test.hpp>
 
-Q_TEST_MAKE_SCOPE( SetDefault );
+Q_TEST_MAKE_SCOPE( set_default );
 
-TEST_F( SetDefault, NoDefault )
+TEST_F( set_default, no_default )
 {
 	auto promise1 = q::with( queue ).share( );
 
 	auto main_thread_name = q::detail::get_thread_name( );
 
 	auto promise2 = promise1
-	.then( EXPECT_CALL_WRAPPER( spy )(
+	.then( EXPECT_CALL_WRAPPER(
 		[ &main_thread_name ]( )
 		{
 			auto thread_name = q::detail::get_thread_name( );
 			EXPECT_NE( main_thread_name, thread_name );
 		}
 	), tp_queue )
-	.then( EXPECT_CALL_WRAPPER( spy )(
+	.then( EXPECT_CALL_WRAPPER(
 		[ &main_thread_name ]( )
 		{
 			auto thread_name = q::detail::get_thread_name( );
@@ -33,21 +33,21 @@ TEST_F( SetDefault, NoDefault )
 	);
 }
 
-TEST_F( SetDefault, SetDefault )
+TEST_F( set_default, set_default )
 {
 	auto promise1 = q::with( queue ).share( );
 
 	auto main_thread_name = q::detail::get_thread_name( );
 
 	auto promise2 = promise1
-	.then( EXPECT_CALL_WRAPPER( spy )(
+	.then( EXPECT_CALL_WRAPPER(
 		[ &main_thread_name ]( )
 		{
 			auto thread_name = q::detail::get_thread_name( );
 			EXPECT_NE( main_thread_name, thread_name );
 		}
 	), q::set_default( tp_queue ) )
-	.then( EXPECT_CALL_WRAPPER( spy )(
+	.then( EXPECT_CALL_WRAPPER(
 		[ &main_thread_name ]( )
 		{
 			auto thread_name = q::detail::get_thread_name( );

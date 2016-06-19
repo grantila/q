@@ -8,7 +8,7 @@
 
 #include <queue>
 
-TEST( ThreadPool, PerformTasks )
+TEST( thread_pool, perform_tasks )
 {
 	q::test::spy spy;
 
@@ -24,10 +24,10 @@ TEST( ThreadPool, PerformTasks )
 		return tasks->pop( );
 	} );
 
-	auto task = EXPECT_CALL_WRAPPER( spy )(
+	auto task = EXPECT_CALL_WRAPPER_SPY( spy, (
 		[ tasks, tp, &spy ]( )
 		{
-			auto task = EXPECT_CALL_WRAPPER( spy )(
+			auto task = EXPECT_CALL_WRAPPER_SPY( spy,
 				[ tp ]( )
 				{
 					;
@@ -38,7 +38,7 @@ TEST( ThreadPool, PerformTasks )
 			tasks->push( task );
 			tp->notify( );
 		}
-	);
+	) );
 
 	tp->start( );
 

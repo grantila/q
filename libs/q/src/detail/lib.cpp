@@ -52,7 +52,13 @@ namespace {
 static const char* get_shared_object_name( )
 noexcept
 {
-	static char filename[ PATH_MAX ];
+	static char filename[ PATH_MAX ] = { 0 };
+
+	// TODO: Apply proper locking
+
+	if ( filename[ 0 ] )
+		return filename;
+
 #ifdef _WIN32
 	::GetModuleFileName( ( HINSTANCE )&__ImageBase, filename, PATH_MAX );
 #else // not _WIN32

@@ -1,21 +1,21 @@
 
 #include <q-test/q-test.hpp>
 
-Q_TEST_MAKE_SCOPE( Then );
+Q_TEST_MAKE_SCOPE( then );
 
-TEST_F( Then, ValuesToValue )
+TEST_F( then, values_to_value )
 {
 	int i = 17;
 	std::string s = "hello";
 
 	run(
 		q::with( queue, i, s )
-		.then( EXPECT_CALL_WRAPPER( spy )(
+		.then( EXPECT_CALL_WRAPPER(
 		[ ]( int i, std::string s ) -> long
 		{
 			return ( s[ 0 ] - s[ 1 ] ) * i;
 		} ) )
-		.then( EXPECT_CALL_WRAPPER( spy )(
+		.then( EXPECT_CALL_WRAPPER(
 		[ ]( long value )
 		{
 			EXPECT_EQ( 3 * 17, value );
@@ -23,14 +23,14 @@ TEST_F( Then, ValuesToValue )
 	);
 }
 
-TEST_F( Then, TupleToValue )
+TEST_F( then, tuple_to_value )
 {
 	int i = 17;
 	std::string s = "hello";
 
 	run(
 		q::with( queue, i, s )
-		.then( EXPECT_CALL_WRAPPER( spy )(
+		.then( EXPECT_CALL_WRAPPER(
 		[ ]( std::tuple< int, std::string >&& values ) -> long
 		{
 			int& i = std::get< 0 >( values );
@@ -38,7 +38,7 @@ TEST_F( Then, TupleToValue )
 
 			return ( s[ 0 ] - s[ 1 ] ) * i;
 		} ) )
-		.then( EXPECT_CALL_WRAPPER( spy )(
+		.then( EXPECT_CALL_WRAPPER(
 		[ ]( long value )
 		{
 			EXPECT_EQ( 3 * 17, value );
@@ -46,7 +46,7 @@ TEST_F( Then, TupleToValue )
 	);
 }
 
-TEST_F( Then, ValuesToPromise )
+TEST_F( then, values_to_promise )
 {
 	int i = 17;
 	std::string s = "hello";
@@ -55,12 +55,12 @@ TEST_F( Then, ValuesToPromise )
 
 	run(
 		q::with( queue, i, s )
-		.then( EXPECT_CALL_WRAPPER( spy )(
+		.then( EXPECT_CALL_WRAPPER(
 		[ queue ]( int i, std::string s )
 		{
 			return q::with( queue, ( s[ 0 ] - s[ 1 ] ) * i );
 		} ) )
-		.then( EXPECT_CALL_WRAPPER( spy )(
+		.then( EXPECT_CALL_WRAPPER(
 		[ ]( long value )
 		{
 			EXPECT_EQ( 3 * 17, value );
@@ -68,7 +68,7 @@ TEST_F( Then, ValuesToPromise )
 	);
 }
 
-TEST_F( Then, TupleToPromise )
+TEST_F( then, tuple_to_promise )
 {
 	int i = 17;
 	std::string s = "hello";
@@ -77,7 +77,7 @@ TEST_F( Then, TupleToPromise )
 
 	run(
 		q::with( queue, i, s )
-		.then( EXPECT_CALL_WRAPPER( spy )(
+		.then( EXPECT_CALL_WRAPPER(
 		[ queue ]( std::tuple< int, std::string >&& values )
 		{
 			int& i = std::get< 0 >( values );
@@ -85,7 +85,7 @@ TEST_F( Then, TupleToPromise )
 
 			return q::with( queue, ( s[ 0 ] - s[ 1 ] ) * i );
 		} ) )
-		.then( EXPECT_CALL_WRAPPER( spy )(
+		.then( EXPECT_CALL_WRAPPER(
 		[ ]( long value )
 		{
 			EXPECT_EQ( 3 * 17, value );

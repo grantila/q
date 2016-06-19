@@ -25,14 +25,16 @@ namespace q { namespace detail {
 template< bool Shared, typename... Args >
 template< typename Fn, typename Queue >
 inline typename std::enable_if<
+	Q_IS_FUNCTION( Fn )::value
+	and
 	generic_promise<
 		Shared, std::tuple< Args... >
 	>::template is_valid_arguments<
 		Q_ARGUMENTS_OF( Fn )
 	>::value
-	&&
+	and
 	!is_promise< Q_RESULT_OF( Fn ) >::value
-	&&
+	and
 	Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
 	promise< Q_RESULT_OF_AS_TUPLE_TYPE( Fn ) >
 >::type
@@ -78,15 +80,17 @@ then( Fn&& fn, Queue&& queue )
 template< bool Shared, typename... Args >
 template< typename Fn, typename Queue >
 typename std::enable_if<
+	Q_IS_FUNCTION( Fn )::value
+	and
 	Q_FIRST_ARGUMENT_IS_TUPLE( Fn )
-	&&
+	and
 	::q::is_argument_same_or_convertible<
 		arguments< std::tuple< Args... > >,
 		Q_ARGUMENTS_OF( Fn )
 	>::value
-	&&
+	and
 	!is_promise< Q_RESULT_OF( Fn ) >::value
-	&&
+	and
 	Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
 	promise< Q_RESULT_OF_AS_ARGUMENT_TYPE( Fn )::tuple_type >
 >::type
@@ -123,14 +127,16 @@ then( Fn&& fn, Queue&& queue )
 template< bool Shared, typename... Args >
 template< typename Fn, typename Queue >
 typename std::enable_if<
+	Q_IS_FUNCTION( Fn )::value
+	and
 	generic_promise<
 		Shared, std::tuple< Args... >
 	>::template is_valid_arguments<
 		Q_ARGUMENTS_OF( Fn )
 	>::value
-	&&
+	and
 	is_promise< Q_RESULT_OF( Fn ) >::value
-	&&
+	and
 	Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
 	Q_RESULT_OF( Fn )::unique_this_type
 >::type
@@ -168,15 +174,17 @@ then( Fn&& fn, Queue&& queue )
 template< bool Shared, typename... Args >
 template< typename Fn, typename Queue >
 typename std::enable_if<
+	Q_IS_FUNCTION( Fn )::value
+	and
 	Q_FIRST_ARGUMENT_IS_TUPLE( Fn )
-	&&
+	and
 	::q::is_argument_same_or_convertible<
 		arguments< std::tuple< Args... > >,
 		Q_ARGUMENTS_OF( Fn )
 	>::value
-	&&
+	and
 	is_promise< Q_RESULT_OF( Fn ) >::value
-	&&
+	and
 	Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
 	Q_RESULT_OF( Fn )::unique_this_type
 >::type
@@ -211,7 +219,7 @@ template< bool Shared, typename... Args >
 template< typename Logger, typename Queue >
 inline typename std::enable_if<
 	is_same_type< Logger, log_chain_generator >::value
-	&&
+	and
 	Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
 	typename generic_promise< Shared, std::tuple< Args... > >::this_type
 >::type
@@ -248,12 +256,8 @@ then( AsyncTask&& task )
 	auto state = state_;
 	auto tmp_task = Q_TEMPORARILY_COPYABLE( task );
 
-	std::cout << "Scheduling async_task::run" << std::endl;
-
 	auto perform = [ tmp_task, deferred, state ]( ) mutable
 	{
-		std::cout << "Running async_task::run" << std::endl;
-
 		auto value = state->consume( );
 
 		if ( value.has_exception( ) )
@@ -295,20 +299,22 @@ then( AsyncTask&& task )
 template< bool Shared, typename... Args >
 template< typename Fn, typename Queue >
 typename std::enable_if<
+	Q_IS_FUNCTION( Fn )::value
+	and
 	Q_ARITY_OF( Fn ) == 1
-	&&
+	and
 	is_same_type<
 		Q_FIRST_ARGUMENT_OF( Fn ),
 		std::exception_ptr
 	>::value
-	&&
+	and
 	detail::tuple_arguments< Q_RESULT_OF( Fn ) >
 		::template is_convertible_to<
 			typename generic_promise<
 				Shared, std::tuple< Args... >
 			>::argument_types
 		>::value
-	&&
+	and
 	Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
 	typename generic_promise< Shared, std::tuple< Args... > >::this_type
 >::type
@@ -359,19 +365,22 @@ fail( Fn&& fn, Queue&& queue )
 template< bool Shared, typename... Args >
 template< typename Fn, typename Queue >
 typename std::enable_if<
+	Q_IS_FUNCTION( Fn )::value
+	and
 	is_same_type<
 		Q_FIRST_ARGUMENT_OF( Fn ),
 		std::exception_ptr
-	>::value &&
+	>::value
+	and
 	is_promise< Q_RESULT_OF( Fn ) >::value
-	&&
+	and
 	Q_FUNCTIONTRAITS( Fn )::result_type::argument_types
 		::template is_convertible_to<
 			typename generic_promise<
 				Shared, std::tuple< Args... >
 			>::argument_types
 		>::value
-	&&
+	and
 	Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
 	typename generic_promise< Shared, std::tuple< Args... > >::this_type
 >::type
@@ -415,17 +424,19 @@ fail( Fn&& fn, Queue&& queue )
 template< bool Shared, typename... Args >
 template< typename Fn, typename Queue >
 typename std::enable_if<
+	Q_IS_FUNCTION( Fn )::value
+	and
 	Q_ARITY_OF( Fn ) == 1
-	&&
+	and
 	!Q_ARGUMENTS_ARE( Fn, std::exception_ptr )::value
-	&&
+	and
 	detail::tuple_arguments< Q_RESULT_OF( Fn ) >
 		::template is_convertible_to<
 			typename generic_promise<
 				Shared, std::tuple< Args... >
 			>::argument_types
 		>::value
-	&&
+	and
 	Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
 	typename generic_promise< Shared, std::tuple< Args... > >::this_type
 >::type
@@ -491,19 +502,21 @@ fail( Fn&& fn, Queue&& queue )
 template< bool Shared, typename... Args >
 template< typename Fn, typename Queue >
 typename std::enable_if<
+	Q_IS_FUNCTION( Fn )::value
+	and
 	Q_ARITY_OF( Fn ) == 1
-	&&
+	and
 	!Q_ARGUMENTS_ARE( Fn, std::exception_ptr )::value
-	&&
+	and
 	is_promise< Q_RESULT_OF( Fn ) >::value
-	&&
+	and
 	Q_FUNCTIONTRAITS( Fn )::result_type::argument_types
 		::template is_convertible_to<
 			typename generic_promise<
 				Shared, std::tuple< Args... >
 			>::argument_types
 		>::value
-	&&
+	and
 	Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
 	typename generic_promise< Shared, std::tuple< Args... > >::this_type
 >::type
@@ -569,6 +582,8 @@ fail( Fn&& fn, Queue&& queue )
 template< bool Shared, typename... Args >
 template< typename Fn, typename Queue >
 typename std::enable_if<
+	Q_IS_FUNCTION( Fn )::value
+	and
 	std::is_void< Q_RESULT_OF( Fn ) >::value
 	and
 	Q_ARITY_OF( Fn ) == 0
@@ -617,6 +632,8 @@ finally( Fn&& fn, Queue&& queue )
 template< bool Shared, typename... Args >
 template< typename Fn, typename Queue >
 typename std::enable_if<
+	Q_IS_FUNCTION( Fn )::value
+	and
 	::q::is_promise< Q_RESULT_OF( Fn ) >::value
 	and
 	Q_FUNCTIONTRAITS( Fn )::result_type::argument_types::size::value == 0
@@ -730,5 +747,25 @@ reflect( )
 }
 
 } } // namespace detail, namespace q
+
+namespace q {
+
+template< typename T >
+::q::promise< std::tuple< > > promise< T >::
+strip( )
+{
+	return this->then( [ ]( const typename base_type::tuple_type& ){ } );
+}
+
+template< typename T >
+::q::shared_promise< std::tuple< > > shared_promise< T >::
+strip( )
+{
+	return this->then( [ ]( const typename base_type::tuple_type& ){ } )
+	.share( );
+}
+
+} // namespace q
+
 
 #endif // LIBQ_PROMISE_PROMISE_IMPL_HPP
