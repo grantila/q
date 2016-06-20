@@ -163,7 +163,13 @@ public:
 	 * Create a server_socket which listens to incoming connections on a
 	 * certain interface (given its ip address) and port.
 	 */
-	server_socket_ptr listen( std::uint16_t port );
+	server_socket_ptr listen( std::uint16_t port, ip_addresses&& bind_to );
+	server_socket_ptr listen(
+		std::uint16_t port, std::string bind_to = "0.0.0.0"
+	)
+	{
+		return listen( port, ip_addresses( bind_to ) );
+	}
 
 	/**
 	 *
@@ -189,6 +195,7 @@ private:
 
 	friend class event;
 	friend class resolver;
+	friend class server_socket;
 
 	void _make_dummy_event( );
 	void _cleanup_dummy_event( );

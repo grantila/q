@@ -23,27 +23,17 @@
 
 namespace q { namespace io {
 
-struct server_socket::pimpl
-{
-	std::shared_ptr< q::channel< socket_ptr > > channel_;
-	socket_t socket_;
+typedef std::weak_ptr< server_socket > inner_ref_type;
 
-	dispatcher_ptr dispatcher_;
-
-	std::size_t backlog_;
-
-	::event* ev_;
-
-	std::atomic< bool > can_read_;
-
-	server_socket_ptr self_;
-
-	std::atomic< bool > closed_;
-};
-
-server_socket::server_socket( socket_t sock )
+server_socket::server_socket( std::uint16_t port, ip_addresses&& bind_to )
 : pimpl_( q::make_unique< pimpl >( ) )
 {
+	pimpl_->port_ = port;
+	pimpl_->bind_to_ = std::move( bind_to );
+
+	pimpl_->socket_.data = nullptr;
+	pimpl_->uv_loop_ = nullptr;
+
 	pimpl_->channel_ = nullptr;
 	pimpl_->socket_ = sock;
 	pimpl_->dispatcher_ = nullptr;
@@ -56,15 +46,20 @@ server_socket::server_socket( socket_t sock )
 
 server_socket::~server_socket( )
 {
+	auto ref = reinterpret_cast< inner_ref_type* >( pimpl_->socket_.data );
+	if ( ref )
+		delete ref;
+
 	if ( pimpl_->ev_ )
 		::event_free( pimpl_->ev_ );
 
 	::evutil_closesocket( pimpl_->socket_ );
 }
 
-server_socket_ptr server_socket::construct( socket_t sock )
+server_socket_ptr
+server_socket::construct( std::uint16_t port, ip_addresses&& bind_to )
 {
-	return q::make_shared< server_socket >( sock );
+	return q::make_shared< server_socket >( port, std::move( bind_to ) );
 }
 
 q::readable< socket_ptr > server_socket::clients( )
@@ -72,6 +67,87 @@ q::readable< socket_ptr > server_socket::clients( )
 	return pimpl_->channel_->get_readable( );
 }
 
+void server_socket::attach_dispatcher( const dispatcher_ptr& dispatcher )
+{
+	pimpl_->dispatcher_ = dispatcher;
+
+	pimpl_->uv_loop_ = &pimpl_->dispatcher_->pimpl_->uv_loop;
+
+	auto iter = pimpl_->bind_to_.begin( pimpl_->port_ );
+
+	if ( iter == pimpl_->bind_to_.end( pimpl_->port_ ) )
+		Q_THROW( invalid_ip_address( ) );
+
+	auto addr = *iter;
+
+	::uv_tcp_init( pimpl_->uv_loop_, &pimpl_->socket_ );
+	::uv_tcp_bind( &pimpl_->socket_, &*addr, 0 );
+
+	const int backlog = 64; // TODO: Reconsider backlog
+
+	::uv_stream_t* server = reinterpret_cast< ::uv_stream_t* >(
+		&pimpl_->socket_ );
+
+	auto ref = new inner_ref_type( shared_from_this( ) );
+
+	server->data = reinterpret_cast< void* >( ref );
+
+	uv_connection_cb connection_callback = [ ]( ::uv_stream_t* server, int status )
+	{
+		auto ref = reinterpret_cast< inner_ref_type* >( server->data )
+			->lock( );
+
+		if ( status < 0 )
+		{
+			// TODO: Consider whether to potentially close the
+			//       entire listening server and send an exception
+			//       over the channel.
+			fprintf(
+				stderr,
+				"New connection error %s\n",
+				::uv_strerror( status ) );
+			return;
+		}
+
+		if ( !ref )
+		{
+			// We have just removed this server listener when an
+			// incoming socket came in. Just ignore it.
+			// This should probably never happen.
+			return;
+		}
+
+		auto socket_event_pimpl = q::make_unique< socket_event::pimpl >( );
+
+		::uv_tcp_init(
+			ref->pimpl_->uv_loop_, &socket_event_pimpl->socket_ );
+
+		auto client = reinterpret_cast< ::uv_stream_t* >(
+			&socket_event_pimpl->socket_ );
+
+		if ( ::uv_accept( server, client ) == 0 )
+		{
+			//::uv_read_start( client, alloc_buffer, echo_read );
+		}
+		else
+		{
+			auto client_handle =
+				reinterpret_cast< ::uv_handle_t* >( client );
+			::uv_close( client_handle, nullptr );
+		}
+	};
+
+	int ret = ::uv_listen( server, backlog, connection_callback );
+
+	if ( ret )
+	{
+		// TODO: Convert libuv error to exception
+		// TODO: Also do uv_strerror( r ) to get message
+		throw_by_errno( uv_error_to_errno( ret ) );
+	}
+
+}
+/*
 void server_socket::sub_attach( const dispatcher_ptr& dispatcher ) noexcept
 {
 	auto& dispatcher_pimpl = get_dispatcher_pimpl( );
@@ -122,7 +198,7 @@ void server_socket::sub_attach( const dispatcher_ptr& dispatcher ) noexcept
 
 	::event_active( self->pimpl_->ev_, EV_READ, 0 );
 }
-
+*/
 void server_socket::on_event_read( ) noexcept
 {
 	bool done = false;

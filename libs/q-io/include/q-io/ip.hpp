@@ -99,6 +99,54 @@ struct ip_addresses
 	std::vector< ipv4_address > ipv4;
 	std::vector< ipv6_address > ipv6;
 
+	class iterator
+	: public virtual std::iterator<
+		std::input_iterator_tag,
+		std::shared_ptr< ::sockaddr >
+	>
+	{
+	public:
+		iterator( );
+		iterator( const iterator& ) = default;
+		iterator( iterator&& ) = default;
+		~iterator( );
+
+		iterator& operator=( const iterator& ) = default;
+		iterator& operator=( iterator&& ) = default;
+
+		iterator operator++( int );
+		iterator& operator++( );
+		value_type operator*( );
+		pointer operator->( );
+		bool operator==( const iterator& other );
+		bool operator!=( const iterator& other );
+
+	private:
+		friend struct ip_addresses;
+
+		iterator(
+			ip_addresses* root,
+			std::uint16_t port,
+			std::size_t ipv4_pos,
+			std::size_t ipv6_pos
+		);
+
+		void increase( );
+		void prepare( );
+
+		ip_addresses* root_;
+		std::uint16_t port_;
+		std::size_t ipv4_pos_;
+		std::size_t ipv6_pos_;
+
+		std::size_t tmp_ipv4_pos_;
+		std::size_t tmp_ipv6_pos_;
+		std::shared_ptr< sockaddr > tmp_;
+	};
+
+	iterator begin( std::uint16_t port );
+	iterator end( std::uint16_t port );
+
 private:
 	template< typename First, typename... Ips >
 	typename std::enable_if<

@@ -439,6 +439,9 @@ q::promise< std::tuple< socket_ptr > > dispatcher::connect_to(
 		std::size_t pos_ipv4;
 		std::size_t pos_ipv6;
 		std::uint16_t port;
+
+		ip_addresses::iterator cur_addr;
+		ip_addresses::iterator end_addr;
 #ifdef QIO_USE_LIBEVENT
 		evutil_socket_t fd;
 
@@ -457,20 +460,27 @@ q::promise< std::tuple< socket_ptr > > dispatcher::connect_to(
 	dest->pos_ipv4 = 0;
 	dest->pos_ipv6 = 0;
 	dest->port = port;
+
+	dest->cur_addr = dest->addresses.begin( port );
+	dest->end_addr = dest->addresses.end( port );
 #ifdef QIO_USE_LIBEVENT
 	dest->fd = -1;
 #else
 	dest->socket_event_pimpl = q::make_unique< socket_event::pimpl >( );
 
-	::uv_tcp_init( &pimpl_->uv_loop, &dest->socket_event_pimpl->socket );
+	::uv_tcp_init( &pimpl_->uv_loop, &dest->socket_event_pimpl->socket_ );
 #endif
 
 	auto self = shared_from_this( );
 
 	auto has_more_addresses = [ dest ]( )
 	{
+#ifdef QIO_USE_LIBEVENT
 		return ( dest->pos_ipv4 < dest->addresses.ipv4.size( ) ) or
 			( dest->pos_ipv6 < dest->addresses.ipv6.size( ) );
+#else
+		return dest->cur_addr != dest->end_addr;
+#endif
 	};
 
 #ifndef QIO_USE_LIBEVENT
@@ -565,15 +575,15 @@ q::promise< std::tuple< socket_ptr > > dispatcher::connect_to(
 			else
 			{
 				// Error
-				ctx->last_error = -status; // TODO: Translate for win32
+				ctx->last_error = uv_error_to_errno( status );
 				ctx->try_connect( ctx );
 			}
 		};
 
 		auto try_connect = [ connect_callback ]( context* ctx )
 		{
-			auto& connect = ctx->dest->socket_event_pimpl->connect;
-			auto& socket = ctx->dest->socket_event_pimpl->socket;
+			auto& connect = ctx->dest->socket_event_pimpl->connect_;
+			auto& socket = ctx->dest->socket_event_pimpl->socket_;
 
 			if ( !ctx->has_more_addresses( ) )
 			{
@@ -609,7 +619,7 @@ q::promise< std::tuple< socket_ptr > > dispatcher::connect_to(
 			ECONNREFUSED
 		};
 
-		dest->socket_event_pimpl->connect.data = ctx;
+		dest->socket_event_pimpl->connect_.data = ctx;
 
 		try_connect( ctx );
 	} );
@@ -777,8 +787,17 @@ q::promise< std::tuple< socket_ptr > > dispatcher::connect_to(
 #endif
 }
 
-server_socket_ptr dispatcher::listen( std::uint16_t port )
+server_socket_ptr dispatcher::listen(
+	std::uint16_t port, ip_addresses&& bind_to
+)
 {
+#ifndef QIO_USE_LIBEVENT
+	auto server = server_socket::construct( port, std::move( bind_to ) );
+
+	server->attach_dispatcher( shared_from_this( ) );
+
+	return server;
+#else
 	auto dest = ip_addresses( "127.0.0.1" );
 
 	struct sockaddr_in addr;
@@ -809,6 +828,7 @@ server_socket_ptr dispatcher::listen( std::uint16_t port )
 	server_socket->attach( shared_from_this( ) );
 
 	return server_socket;
+#endif
 }
 
 void dispatcher::attach_event( const event_ptr& event )

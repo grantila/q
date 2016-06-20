@@ -200,4 +200,141 @@ void ipv6_address::populate( ::sockaddr_in6& addr, std::uint16_t port ) const
 	addr.sin6_scope_id = 0;
 }
 
+ip_addresses::iterator::iterator( )
+: root_( nullptr )
+{
+}
+
+ip_addresses::iterator::iterator(
+	ip_addresses* root,
+	std::uint16_t port,
+	std::size_t ipv4_pos,
+	std::size_t ipv6_pos
+)
+: root_( root )
+, port_( port )
+, ipv4_pos_( ipv4_pos )
+, ipv6_pos_( ipv6_pos )
+, tmp_ipv4_pos_( ipv4_pos )
+, tmp_ipv6_pos_( ipv6_pos )
+{
+}
+
+ip_addresses::iterator::~iterator( )
+{
+}
+
+ip_addresses::iterator ip_addresses::iterator::operator++( int )
+{
+	iterator ret( *this );
+
+	increase( );
+
+	return ret;
+}
+
+ip_addresses::iterator& ip_addresses::iterator::operator++( )
+{
+	increase( );
+
+	return *this;
+}
+
+ip_addresses::iterator::value_type ip_addresses::iterator::operator*( )
+{
+	prepare( );
+
+	return tmp_;
+}
+
+ip_addresses::iterator::pointer ip_addresses::iterator::operator->( )
+{
+	prepare( );
+
+	return &tmp_;
+}
+
+bool ip_addresses::iterator::operator==( const ip_addresses::iterator& other )
+{
+	return root_ == other.root_ &&
+		port_ == other.port_ &&
+		ipv4_pos_ == other.ipv4_pos_ &&
+		ipv6_pos_ == other.ipv6_pos_;
+}
+
+bool ip_addresses::iterator::operator!=( const ip_addresses::iterator& other )
+{
+	return !operator==( other );
+}
+
+void ip_addresses::iterator::increase( )
+{
+	std::size_t ipv4_size = root_->ipv4.size( );
+
+	if ( ipv4_pos_ < ipv4_size )
+		++ipv4_pos_;
+
+	if ( ipv4_pos_ < ipv4_size )
+		return;
+
+	std::size_t ipv6_size = root_->ipv6.size( );
+
+	if ( ipv6_pos_ < ipv6_size )
+		++ipv6_pos_;
+}
+
+void ip_addresses::iterator::prepare( )
+{
+	if (
+		tmp_ipv4_pos_ == ipv4_pos_ &&
+		tmp_ipv6_pos_ == ipv6_pos_ &&
+		!!tmp_
+	)
+		// Re-use the existing object, it's not dirty
+		return;
+
+	tmp_ipv4_pos_ = ipv4_pos_;
+	tmp_ipv6_pos_ = ipv6_pos_;
+
+	if ( ipv4_pos_ < root_->ipv4.size( ) )
+	{
+		const ipv4_address& ipv4_address = root_->ipv4[ ipv4_pos_ ];
+
+		// reinterpret_pointer_cast is C++17, so we need to do this...
+		auto addr_in = new sockaddr_in;
+
+		tmp_ = std::make_shared< sockaddr >( addr_in );
+
+		ipv4_address.populate( *addr_in, port_ );
+
+		return;
+	}
+
+	if ( ipv6_pos_ < root_->ipv6.size( ) )
+	{
+		const ipv6_address& ipv6_address = root_->ipv6[ ipv6_pos_ ];
+
+		// reinterpret_pointer_cast is C++17, so we need to do this...
+		auto addr_in6 = new sockaddr_in6;
+
+		tmp_ = std::make_shared< sockaddr >( addr_in6 );
+
+		ipv6_address.populate( *addr_in6, port_ );
+
+		return;
+	}
+
+	tmp_.reset( );
+}
+
+ip_addresses::iterator ip_addresses::begin( std::uint16_t port )
+{
+	return iterator( this, port, 0, 0 );
+}
+
+ip_addresses::iterator ip_addresses::end( std::uint16_t port )
+{
+	return iterator( this, port, ipv4.size( ), ipv6.size( ) );
+}
+
 } } // namespace io, namespace q

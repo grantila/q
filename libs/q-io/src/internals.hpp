@@ -136,8 +136,8 @@ struct socket_event::pimpl
 	::event* ev_read_;
 	::event* ev_write_;
 #else
-	::uv_tcp_t socket;
-	::uv_connect_t connect;
+	::uv_tcp_t socket_;
+	::uv_connect_t connect_;
 #endif
 
 	std::atomic< bool > closed_;
@@ -152,11 +152,43 @@ struct socket_event::pimpl
 #endif
 };
 
+struct server_socket::pimpl
+{
+	std::shared_ptr< q::channel< socket_ptr > > channel_;
+
+	std::uint16_t port_;
+	ip_addresses bind_to_;
+
+	dispatcher_ptr dispatcher_;
+
+	::uv_loop_t* uv_loop_;
+
+#ifdef QIO_USE_LIBEVENT
+	socket_t socket_;
+	std::size_t backlog_;
+	::event* ev_;
+#else
+	::uv_tcp_t socket_;
+#endif
+
+	std::atomic< bool > can_read_;
+
+	server_socket_ptr self_;
+
+	std::atomic< bool > closed_;
+};
+
 struct resolver::pimpl
 {
 	dispatcher_ptr dispatcher_;
 	::evdns_base* base_;
 };
+
+// TODO: Properly implement this for Win32
+int uv_error_to_errno( int errnum )
+{
+	return -errnum;
+}
 
 } } // namespace io, namespace q
 

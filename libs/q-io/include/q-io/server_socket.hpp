@@ -40,16 +40,17 @@ public:
 	q::readable< socket_ptr > clients( );
 
 protected:
-	static server_socket_ptr construct( socket_t );
+	static server_socket_ptr
+	construct( std::uint16_t port, ip_addresses&& bind_to );
 
 private:
-	server_socket( socket_t );
+	server_socket( std::uint16_t port, ip_addresses&& bind_to );
 
 	friend class dispatcher;
 
 	template< typename T > friend class q::shared_constructor;
 
-	void sub_attach( const dispatcher_ptr& dispatcher ) noexcept override;
+	void attach_dispatcher( const dispatcher_ptr& dispatcher );
 
 	void on_event_read( ) noexcept override;
 
