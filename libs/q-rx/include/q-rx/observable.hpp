@@ -23,5 +23,6 @@
 
 #include <q-rx/observable/observable.hpp>
 #include <q-rx/observable/observable_impl.hpp>
+#include <q-rx/observable/observable_impl_consume.hpp>
 
 #endif // LIBQ_RX_OBSERVABLE_HPP

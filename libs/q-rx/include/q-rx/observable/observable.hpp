@@ -28,8 +28,12 @@ public:
 	observable( )
 	{ }
 
-	observable( q::readable_ptr< T >&& readable )
+	observable( q::readable< T >&& readable )
 	: readable_( std::move( readable ) )
+	{ }
+
+	observable( q::channel< T > channel )
+	: observable( channel.get_readable( ) )
 	{ }
 
 	// Construction methods
@@ -38,7 +42,7 @@ public:
 
 	static observable< T > never( const q::queue_ptr& queue );
 
-	static observable< T > from( q::channel_ptr< T > channel );
+	static observable< T > from( q::channel< T > channel );
 
 	template< typename U, typename Queue >
 	static typename std::enable_if<
@@ -83,12 +87,16 @@ public:
 	/**
 	 * ( T ) -> void
 	 */
-	template< typename Fn >
+	template< typename Fn, typename Queue = queue_ptr >
 	typename std::enable_if<
-		std::is_void< ::q::result_of< Fn > >::value,
+		Q_ARGUMENTS_ARE_CONVERTIBLE_FROM( Fn, T )::value
+		and
+		std::is_void< ::q::result_of< Fn > >::value
+		and
+		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
 		::q::promise< std::tuple< > >
 	>::type
-	consume( Fn&& fn );
+	consume( Fn&& fn, Queue&& queue = nullptr );
 
 	/**
 	 * ( T ) -> promise< >
@@ -97,14 +105,18 @@ public:
 	 * when the promise is resolved. It causes proper back pressure
 	 * handling and will also stop if the promise is rejected.
 	 */
-	template< typename Fn >
+	template< typename Fn, typename Queue = queue_ptr >
 	typename std::enable_if<
-		::q::is_promise< ::q::result_of< Fn > >::value
+		/*Q_ARGUMENTS_ARE_CONVERTIBLE_FROM( Fn, T )::value
+		and*/
+		::q::is_promise< typename std::decay< ::q::result_of< Fn > >::type >::value
 		and
-		::q::result_of< Fn >::argument_types::size == 0,
+		::q::result_of< Fn >::argument_types::size::value == 0
+		and
+		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
 		::q::promise< std::tuple< > >
 	>::type
-	consume( Fn&& fn );
+	consume( Fn&& fn, Queue&& queue = nullptr );
 
 	// TODO: Implemement properly, e.g. with promises
 	T onNext( );
@@ -112,33 +124,41 @@ public:
 	void onComplete( );
 
 private:
-	q::readable_ptr< T > readable_;
-};
+	template< typename Queue >
+	typename std::enable_if<
+		std::is_same<
+			typename std::decay< Queue >::type,
+			queue_ptr
+		>::value,
+		queue_ptr
+	>::type
+	ensure( Queue&& queue )
+	{
+		if ( queue )
+			return std::forward< Queue >( queue );
+		return readable_.get_queue( );
+	}
 
-// TODO: Move to channel implementation
-template< typename T, typename Queue >
-q::channel_ptr< T > make_channel( Queue&& queue, std::size_t buffer_count )
-{
-	return std::make_shared< q::channel< T > >( std::forward< Queue >( queue ), buffer_count );
-}
+	q::readable< T > readable_;
+};
 
 template< typename T >
 inline observable< T > observable< T >::empty( const q::queue_ptr& queue )
 {
-	auto channel_ = make_channel< T >( queue, 0 );
-	channel_->close( );
+	q::channel< T > channel_( queue, 0 );
+	channel_.get_writable( ).close( );
 	return observable< T >( channel_ );
 }
 
 template< typename T >
 inline observable< T > observable< T >::never( const q::queue_ptr& queue )
 {
-	auto channel_ = make_channel< T >( queue, 1 );
+	auto channel_ = q::channel< T >( queue, 1 );
 	return observable< T >( channel_ );
 }
 
 template< typename T >
-inline observable< T > observable< T >::from( q::channel_ptr< T > channel )
+inline observable< T > observable< T >::from( q::channel< T > channel )
 {
 	return observable< T >( channel );
 }
@@ -153,9 +173,10 @@ inline typename std::enable_if<
 observable< T >::
 from( U&& container, Queue&& queue )
 {
-	auto channel_ = make_channel< T >( queue, container.size( ) );
+	auto channel_ = q::channel< T >( queue, container.size( ) );
+	auto writable = channel_.get_writable( );
 	for ( auto& val : container )
-		channel_->send( val );
+		writable.send( val );
 	return observable< T >( channel_ );
 }
 

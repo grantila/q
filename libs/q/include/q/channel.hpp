@@ -189,6 +189,11 @@ public:
 		scopes_.emplace_back( std::move( scope ) );
 	}
 
+	queue_ptr get_queue( )
+	{
+		return default_queue_;
+	}
+
 private:
 	inline void resume( )
 	{
@@ -246,7 +251,7 @@ class readable
 public:
 	typedef std::tuple< T... > tuple_type;
 
-	readable( ) = delete;
+	readable( ) = default;
 	readable( const readable& ) = default;
 	readable( readable&& ) = default;
 
@@ -273,6 +278,11 @@ public:
 		shared_channel_->add_scope_until_closed( std::move( scope ) );
 	}
 
+	queue_ptr get_queue( )
+	{
+		return shared_channel_->get_queue( );
+	}
+
 private:
 	readable( std::shared_ptr< detail::shared_channel< T... > > ch )
 	: shared_channel_( ch )
@@ -292,7 +302,7 @@ class writable
 public:
 	typedef std::tuple< T... > tuple_type;
 
-	writable( ) = delete;
+	writable( ) = default;
 	writable( const writable& ) = default;
 	writable( writable&& ) = default;
 

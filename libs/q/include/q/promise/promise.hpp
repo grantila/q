@@ -82,9 +82,28 @@ public:
 	/**
 	 * @return queue_ptr The current queue for this promise
 	 */
-	queue_ptr get_queue( ) noexcept
+	queue_ptr get_queue( ) const noexcept
 	{
 		return queue_;
+	}
+
+	/**
+	 * *Consumes* the promise and returns a new promise with a new default
+	 * queue. The promise on which this is called, is thereby left in an
+	 * undefined state and must not be used again, just like `then()`.
+	 */
+	template< typename Queue >
+	typename std::enable_if<
+		std::is_same<
+			typename std::decay< Queue >::type,
+			queue_ptr
+		>::value,
+		this_type
+	>::type
+	use_queue( Queue&& queue ) noexcept
+	{
+		queue_ = std::forward< Queue >( queue );
+		return this_type( std::move( *this ) );
 	}
 
 	/**

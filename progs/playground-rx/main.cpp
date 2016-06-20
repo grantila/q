@@ -63,18 +63,35 @@ int main( int argc, char** argv )
 
 	auto o_from_vector = q::rx::observable< int >::from( vec_int, queue );
 
-	auto consumer = [ ]( int i )
+	auto consumer = [ queue ]( int i )
 	{
-		std::cout << "GOT i = " << i << std::endl;
+		return q::make_promise_sync( queue, [ i ]( )
+		{
+			std::cout << "GOT i = " << i << std::endl;
+		} )
+		.then( [ i ]( )
+		{
+			std::cout << "  -- just a reminder: " << i << std::endl;
+		} );
 	};
 
-	auto consumtion_complete = [ ]( ){ };
-	auto consumtion_failed = [ ]( std::exception_ptr e ){ };
+	auto consumption_complete = [ ]( )
+	{
+		std::cout << "Stream ended" << std::endl;
+	};
+	auto consumption_failed = [ ]( std::exception_ptr e )
+	{
+		std::cout << "Stream error " << q::stream_exception( e ) << std::endl;
+	};
 
 	o_from_vector
 		.consume( consumer )
-		.then( consumtion_complete )
-		.fail( consumtion_failed );
+		.then( consumption_complete )
+		.fail( consumption_failed )
+		.finally( [ bd ]( )
+		{
+			bd->terminate( q::termination::linger );
+		} );
 
 	bd->start( );
 

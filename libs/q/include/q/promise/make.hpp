@@ -22,6 +22,8 @@ namespace q {
 template< typename... Args >
 struct resolver
 {
+	resolver( ) = default;
+
 	resolver( const std::shared_ptr< ::q::detail::defer< Args... > >& d )
 	: deferred_( d )
 	{ }
@@ -44,6 +46,8 @@ private:
 template< typename... Args >
 struct rejecter
 {
+	rejecter( ) = default;
+
 	rejecter( const std::shared_ptr< ::q::detail::defer< Args... > >& d )
 	: deferred_( d )
 	{ }
@@ -116,12 +120,13 @@ struct resolve_helper
 template< typename Fn >
 typename std::enable_if<
 	Q_ARITY_OF( Fn ) == 0,
-	promise< std::tuple< Q_RESULT_OF( Fn ) > >
+	promise< Q_RESULT_OF_AS_TUPLE_TYPE( Fn ) >
 >::type
 make_promise( const queue_ptr& queue, Fn&& fn )
 {
-	auto deferred = ::q::detail::defer< Q_RESULT_OF( Fn ) >::
-		construct( queue );
+	auto deferred = Q_RESULT_OF_AS_ARGUMENT( Fn )
+		::template apply< ::q::detail::defer >::type
+		::construct( queue );
 
 	auto tmp_fn = Q_TEMPORARILY_COPYABLE( fn );
 
@@ -136,12 +141,13 @@ make_promise( const queue_ptr& queue, Fn&& fn )
 template< typename Fn >
 typename std::enable_if<
 	Q_ARITY_OF( Fn ) == 0,
-	promise< std::tuple< Q_RESULT_OF( Fn ) > >
+	promise< Q_RESULT_OF_AS_TUPLE_TYPE( Fn ) >
 >::type
 make_promise_sync( const queue_ptr& queue, Fn&& fn )
 {
-	auto deferred = ::q::detail::defer< Q_RESULT_OF( Fn ) >::
-		construct( queue );
+	auto deferred = Q_RESULT_OF_AS_ARGUMENT( Fn )
+		::template apply< ::q::detail::defer >::type
+		::construct( queue );
 
 	deferred->set_by_fun( std::forward< Fn >( fn ) );
 
