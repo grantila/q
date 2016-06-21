@@ -22,6 +22,8 @@
 
 namespace q { namespace io {
 
+#ifdef QIO_USE_LIBEVENT
+
 resolver::resolver( dispatcher_ptr dispatcher, settings settings )
 : pimpl_( new pimpl{ dispatcher, nullptr } )
 {
@@ -181,5 +183,7 @@ resolver::lookup(
 		return ipv4;
 	} );
 }
+
+#endif
 
 } } // namespace io, namespace q

@@ -31,18 +31,18 @@ public:
 	~event( );
 
 protected:
-	event( socket_t sock = invalid_socket::value );
+	event( );
 
 	virtual void on_event_read( ) noexcept { }
 	virtual void on_event_write( ) noexcept { }
 	virtual void on_event_timeout( ) noexcept { }
 
-	struct pimpl;
-	std::unique_ptr< pimpl > pimpl_;
-
 	dispatcher::pimpl& get_dispatcher_pimpl( );
 
 	dispatcher_ptr get_dispatcher( );
+
+	struct pimpl;
+	pimpl* pimpl_;
 
 private:
 	friend class dispatcher;

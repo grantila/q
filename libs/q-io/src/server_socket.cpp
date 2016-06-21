@@ -25,6 +25,15 @@ namespace q { namespace io {
 
 typedef std::weak_ptr< server_socket > inner_ref_type;
 
+void closer( ::uv_handle_t* handle )
+{
+	auto socket = reinterpret_cast< ::uv_tcp_t* >( handle );
+	auto ref = reinterpret_cast< inner_ref_type* >( socket->data );
+
+	if ( ref )
+		delete ref;
+};
+
 server_socket::server_socket( std::uint16_t port, ip_addresses&& bind_to )
 : pimpl_( q::make_unique< pimpl >( ) )
 {
@@ -34,6 +43,7 @@ server_socket::server_socket( std::uint16_t port, ip_addresses&& bind_to )
 	pimpl_->socket_.data = nullptr;
 	pimpl_->uv_loop_ = nullptr;
 
+/*
 	pimpl_->channel_ = nullptr;
 	pimpl_->socket_ = sock;
 	pimpl_->dispatcher_ = nullptr;
@@ -42,18 +52,28 @@ server_socket::server_socket( std::uint16_t port, ip_addresses&& bind_to )
 	pimpl_->can_read_ = true;
 	pimpl_->self_ = nullptr;
 	pimpl_->closed_ = false;
+*/
 }
 
 server_socket::~server_socket( )
 {
+	if ( pimpl_->uv_loop_ )
+	{
+		::uv_close(
+			reinterpret_cast< ::uv_handle_t* >( &pimpl_->socket_ ),
+			closer
+		);
+	}
+
 	auto ref = reinterpret_cast< inner_ref_type* >( pimpl_->socket_.data );
 	if ( ref )
 		delete ref;
-
+/*
 	if ( pimpl_->ev_ )
 		::event_free( pimpl_->ev_ );
 
 	::evutil_closesocket( pimpl_->socket_ );
+*/
 }
 
 server_socket_ptr
@@ -71,7 +91,13 @@ void server_socket::attach_dispatcher( const dispatcher_ptr& dispatcher )
 {
 	pimpl_->dispatcher_ = dispatcher;
 
-	pimpl_->uv_loop_ = &pimpl_->dispatcher_->pimpl_->uv_loop;
+	auto& dispatcher_pimpl = *pimpl_->dispatcher_->pimpl_;
+
+	const int channel_backlog = 32; // TODO: Reconsider backlog
+	const int socket_backlog = 64;  // TODO: Reconsider backlog
+
+	pimpl_->channel_ = std::make_shared< q::channel< socket_ptr > >(
+		dispatcher_pimpl.user_queue, channel_backlog );
 
 	auto iter = pimpl_->bind_to_.begin( pimpl_->port_ );
 
@@ -80,10 +106,13 @@ void server_socket::attach_dispatcher( const dispatcher_ptr& dispatcher )
 
 	auto addr = *iter;
 
-	::uv_tcp_init( pimpl_->uv_loop_, &pimpl_->socket_ );
-	::uv_tcp_bind( &pimpl_->socket_, &*addr, 0 );
+	pimpl_->uv_loop_ = &dispatcher_pimpl.uv_loop;
 
-	const int backlog = 64; // TODO: Reconsider backlog
+	::uv_tcp_init( pimpl_->uv_loop_, &pimpl_->socket_ );
+
+	pimpl_->socket_.data = nullptr;
+
+	::uv_tcp_bind( &pimpl_->socket_, &*addr, 0 );
 
 	::uv_stream_t* server = reinterpret_cast< ::uv_stream_t* >(
 		&pimpl_->socket_ );
@@ -117,17 +146,20 @@ void server_socket::attach_dispatcher( const dispatcher_ptr& dispatcher )
 			return;
 		}
 
-		auto socket_event_pimpl = q::make_unique< socket_event::pimpl >( );
+		auto socket_pimpl = q::make_unique< socket::pimpl >( );
 
-		::uv_tcp_init(
-			ref->pimpl_->uv_loop_, &socket_event_pimpl->socket_ );
+		::uv_tcp_init( ref->pimpl_->uv_loop_, &socket_pimpl->socket_ );
 
 		auto client = reinterpret_cast< ::uv_stream_t* >(
-			&socket_event_pimpl->socket_ );
+			&socket_pimpl->socket_ );
 
 		if ( ::uv_accept( server, client ) == 0 )
 		{
-			//::uv_read_start( client, alloc_buffer, echo_read );
+			auto client_socket = socket::construct(
+				std::move( socket_pimpl ) );
+
+			auto writable = ref->pimpl_->channel_->get_writable( );
+			writable.send( std::move( client_socket ) );
 		}
 		else
 		{
@@ -137,7 +169,7 @@ void server_socket::attach_dispatcher( const dispatcher_ptr& dispatcher )
 		}
 	};
 
-	int ret = ::uv_listen( server, backlog, connection_callback );
+	int ret = ::uv_listen( server, socket_backlog, connection_callback );
 
 	if ( ret )
 	{
@@ -199,6 +231,8 @@ void server_socket::sub_attach( const dispatcher_ptr& dispatcher ) noexcept
 	::event_active( self->pimpl_->ev_, EV_READ, 0 );
 }
 */
+
+/*
 void server_socket::on_event_read( ) noexcept
 {
 	bool done = false;
@@ -251,7 +285,9 @@ void server_socket::on_event_read( ) noexcept
 		pimpl_->can_read_ = false;
 	}
 }
+*/
 
+/*
 void server_socket::close_socket( )
 {
 	auto was_closed = pimpl_->closed_.exchange( true );
@@ -269,10 +305,13 @@ void server_socket::close_socket( )
 
 	pimpl_->channel_->get_writable( ).close( );
 }
+*/
 
+/*
 void server_socket::close_channel( )
 {
 	pimpl_->self_.reset( );
 }
+*/
 
 } } // namespace io, namespace q

@@ -33,16 +33,7 @@
 
 namespace q { namespace io {
 
-//
-// TODO: This implementation currently has an implicit circular dependency
-//       between the socket and its two channels (through lambda-captured
-//       shared_ptr's). This needs to be fixed if the user chooses to not refer
-//       to any of these instances and just leave them. It should close the
-//       socket and clean up.
-//
-
-struct socket::pimpl
-{
+/*
 	std::shared_ptr< q::readable< q::byte_block > > readable_in_; // Ext
 	std::shared_ptr< q::writable< q::byte_block > > writable_in_; // Int
 	std::shared_ptr< q::readable< q::byte_block > > readable_out_; // Int
@@ -51,32 +42,22 @@ struct socket::pimpl
 	std::atomic< bool > can_read_;
 	std::atomic< bool > can_write_;
 	q::byte_block out_buffer_;
-};
 
-socket::socket( socket_t s )
-: socket_event( s )
-, pimpl_( new pimpl {
-	nullptr,
-	nullptr,
-	nullptr,
-	nullptr
-} )
+	std::atomic< bool > closed_;
+
+	::uv_tcp_t socket_;
+	::uv_connect_t connect_;
+*/
+
+socket::socket( std::unique_ptr< socket::pimpl >&& _pimpl )
+: pimpl_( std::move( _pimpl ) )
 {
+	event::pimpl_ = &pimpl_->event_;
+
+/*
 	pimpl_->can_read_ = false;
 	pimpl_->can_write_ = true;
-}
-
-socket::socket( std::unique_ptr< socket_event::pimpl >&& _pimpl )
-: socket_event( std::move( _pimpl ) )
-, pimpl_( new pimpl {
-	nullptr,
-	nullptr,
-	nullptr,
-	nullptr
-} )
-{
-	pimpl_->can_read_ = false;
-	pimpl_->can_write_ = true;
+*/
 }
 
 socket::~socket( )
@@ -84,12 +65,7 @@ socket::~socket( )
 	close_socket( );
 }
 
-socket_ptr socket::construct( socket_t s )
-{
-	return q::make_shared_using_constructor< socket >( s );
-}
-
-socket_ptr socket::construct( std::unique_ptr< socket_event::pimpl >&& pimpl )
+socket_ptr socket::construct( std::unique_ptr< socket::pimpl >&& pimpl )
 {
 	return q::make_shared_using_constructor< socket >( std::move( pimpl ) );
 }
@@ -131,22 +107,25 @@ void socket::detach( )
 	std::atomic_store( &pimpl_->writable_out_, out );
 }
 
+/*
 socket_event_ptr socket::socket_event_shared_from_this( )
 {
 	return shared_from_this( );
 }
+*/
 
-void socket::on_attached( const dispatcher_ptr& dispatcher ) noexcept
+void socket::sub_attach( const dispatcher_ptr& dispatcher ) noexcept
 {
 	auto& dispatcher_pimpl = get_dispatcher_pimpl( );
 
+	// TODO: Reconsider these
 	std::size_t backlog_in = 6;
 	std::size_t backlog_out = 10;
 
-	channel< q::byte_block > channel_in(
-		dispatcher_pimpl.user_queue, backlog_in );
-	channel< q::byte_block > channel_out(
-		dispatcher_pimpl.user_queue, backlog_out );
+	auto queue = dispatcher_pimpl.user_queue;
+
+	channel< q::byte_block > channel_in( queue, backlog_in );
+	channel< q::byte_block > channel_out( queue, backlog_out );
 
 	pimpl_->readable_in_ =
 		std::make_shared< q::readable< q::byte_block > >(
@@ -164,6 +143,7 @@ void socket::on_attached( const dispatcher_ptr& dispatcher ) noexcept
 	auto self = shared_from_this( );
 	auto weak_self = weak_socket_ptr{ self };
 
+/*
 	auto resume = [ weak_self ]( )
 	{
 		auto self = weak_self.lock( );
@@ -173,11 +153,13 @@ void socket::on_attached( const dispatcher_ptr& dispatcher ) noexcept
 	};
 
 	pimpl_->writable_in_->set_resume_notification( resume );
+*/
 
-	detect_readability( );
-	try_write( );
+//	detect_readability( );
+//	try_write( );
 }
 
+/*
 // TODO: Analyse exceptions
 void socket::on_event_read( ) noexcept
 {
@@ -367,13 +349,19 @@ void socket::try_write( )
 		; // TODO: Do something. Close, set error, ...
 	} );
 }
+*/
 
 void socket::close_socket( )
 {
 	auto writable_in = std::atomic_load( &pimpl_->writable_in_ );
 	auto readable_out = std::atomic_load( &pimpl_->readable_out_ );
 
+#ifdef QIO_USE_LIBEVENT
 	::q::io::socket_event::close_socket( );
+#else
+	auto handle = reinterpret_cast< ::uv_handle_t* >( &pimpl_->socket_ );
+	::uv_close( handle, nullptr );
+#endif
 
 	if ( !!writable_in )
 	{

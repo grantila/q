@@ -20,6 +20,8 @@
 #include <q-io/event.hpp>
 #include <q-io/dispatcher.hpp>
 #include <q-io/dns.hpp>
+#include <q-io/socket.hpp>
+#include <q-io/server_socket.hpp>
 
 #include <q/thread.hpp>
 #include <q/execution_context.hpp>
@@ -81,8 +83,10 @@ struct timer_arg_type
 
 struct event::pimpl
 {
+#ifdef QIO_USE_LIBEVENT
 	struct ::event* ev;
 	socket_t fd;
+#endif
 
 	std::weak_ptr< dispatcher > dispatcher;
 };
@@ -128,6 +132,7 @@ struct dispatcher::pimpl
 	{ }
 };
 
+/*
 struct socket_event::pimpl
 {
 #ifdef QIO_USE_LIBEVENT
@@ -151,6 +156,26 @@ struct socket_event::pimpl
 	{ }
 #endif
 };
+*/
+
+struct socket::pimpl
+{
+	event::pimpl event_;
+
+	std::shared_ptr< q::readable< q::byte_block > > readable_in_; // Ext
+	std::shared_ptr< q::writable< q::byte_block > > writable_in_; // Int
+	std::shared_ptr< q::readable< q::byte_block > > readable_out_; // Int
+	std::shared_ptr< q::writable< q::byte_block > > writable_out_; // Ext
+
+	std::atomic< bool > can_read_;
+	std::atomic< bool > can_write_;
+	q::byte_block out_buffer_;
+
+	std::atomic< bool > closed_;
+
+	::uv_tcp_t socket_;
+	::uv_connect_t connect_;
+};
 
 struct server_socket::pimpl
 {
@@ -171,11 +196,13 @@ struct server_socket::pimpl
 	::uv_tcp_t socket_;
 #endif
 
+#ifdef QIO_USE_LIBEVENT
 	std::atomic< bool > can_read_;
 
 	server_socket_ptr self_;
 
 	std::atomic< bool > closed_;
+#endif
 };
 
 struct resolver::pimpl

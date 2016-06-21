@@ -20,6 +20,8 @@
 
 namespace q { namespace io {
 
+#ifdef QIO_USE_LIBEVENT
+
 socket_event::socket_event( socket_t sock )
 : pimpl_( make_unique< pimpl >( sock ) )
 {
@@ -145,5 +147,7 @@ void socket_event::close_socket( )
 		::event_active( pimpl_->ev_write_, LIBQ_EV_CLOSE, 0 );
 	}
 }
+
+#endif
 
 } } // namespace io, namespace q

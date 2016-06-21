@@ -80,8 +80,12 @@ void timeout_event::sub_attach( const dispatcher_ptr& dispatcher ) noexcept
 			delete weak_self;
 	};
 
+#ifdef QIO_USE_LIBEVENT
 	auto event_base = get_dispatcher_pimpl( ).event_base;
 	pimpl_->event_ = ::event_new( event_base, -1, EV_TIMEOUT, fn, self );
+#else
+	// TODO: Implement for libuv
+#endif
 
 	on_initialized( );
 }

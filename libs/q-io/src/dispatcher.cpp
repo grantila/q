@@ -451,7 +451,7 @@ q::promise< std::tuple< socket_ptr > > dispatcher::connect_to(
 				EVUTIL_CLOSESOCKET( fd );
 		}
 #else
-		std::unique_ptr< socket_event::pimpl > socket_event_pimpl;
+		std::unique_ptr< socket::pimpl > socket_pimpl;
 #endif
 	};
 
@@ -466,9 +466,9 @@ q::promise< std::tuple< socket_ptr > > dispatcher::connect_to(
 #ifdef QIO_USE_LIBEVENT
 	dest->fd = -1;
 #else
-	dest->socket_event_pimpl = q::make_unique< socket_event::pimpl >( );
+	dest->socket_pimpl = q::make_unique< socket::pimpl >( );
 
-	::uv_tcp_init( &pimpl_->uv_loop, &dest->socket_event_pimpl->socket_ );
+	::uv_tcp_init( &pimpl_->uv_loop, &dest->socket_pimpl->socket_ );
 #endif
 
 	auto self = shared_from_this( );
@@ -565,7 +565,7 @@ q::promise< std::tuple< socket_ptr > > dispatcher::connect_to(
 			{
 				// Success
 				auto& socket_event_pimpl =
-					ctx->dest->socket_event_pimpl;
+					ctx->dest->socket_pimpl;
 				auto sock = ::q::io::socket::construct(
 					std::move( socket_event_pimpl ) );
 				sock->attach( ctx->dispatcher );
@@ -582,8 +582,8 @@ q::promise< std::tuple< socket_ptr > > dispatcher::connect_to(
 
 		auto try_connect = [ connect_callback ]( context* ctx )
 		{
-			auto& connect = ctx->dest->socket_event_pimpl->connect_;
-			auto& socket = ctx->dest->socket_event_pimpl->socket_;
+			auto& connect = ctx->dest->socket_pimpl->connect_;
+			auto& socket = ctx->dest->socket_pimpl->socket_;
 
 			if ( !ctx->has_more_addresses( ) )
 			{

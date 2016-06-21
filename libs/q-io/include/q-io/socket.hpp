@@ -17,9 +17,9 @@
 #ifndef LIBQIO_SOCKET_HPP
 #define LIBQIO_SOCKET_HPP
 
-#include <q-io/socket_event.hpp>
 #include <q-io/ip.hpp>
 #include <q-io/types.hpp>
+#include <q-io/event.hpp>
 
 #include <q/channel.hpp>
 #include <q/block.hpp>
@@ -31,7 +31,7 @@ namespace q { namespace io {
  */
 class socket
 : public std::enable_shared_from_this< socket >
-, public socket_event
+, public event
 {
 	struct pimpl;
 public:
@@ -65,27 +65,26 @@ public:
 	void detach( );
 
 protected:
-	static socket_ptr construct( socket_t ); // libevent
-	static socket_ptr construct( std::unique_ptr< socket_event::pimpl >&& );
+	static socket_ptr construct( std::unique_ptr< socket::pimpl >&& );
 
 private:
-	socket( socket_t );
-	socket( std::unique_ptr< socket_event::pimpl >&& );
+	socket( std::unique_ptr< socket::pimpl >&& );
 
 	friend class dispatcher;
 	friend class server_socket;
 
 	template< typename T > friend class q::shared_constructor;
 
-	socket_event_ptr socket_event_shared_from_this( ) override;
+	void sub_attach( const dispatcher_ptr& dispatcher ) noexcept override;
 
-	void on_attached( const dispatcher_ptr& dispatcher ) noexcept override;
+/*
+	socket_event_ptr socket_event_shared_from_this( ) override;
 
 	void on_event_read( ) noexcept override;
 	void on_event_write( ) noexcept override;
 
 	void try_write( );
-
+*/
 	void close_socket( );
 
 	std::unique_ptr< pimpl > pimpl_;

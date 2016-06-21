@@ -303,7 +303,7 @@ void ip_addresses::iterator::prepare( )
 		// reinterpret_pointer_cast is C++17, so we need to do this...
 		auto addr_in = new sockaddr_in;
 
-		tmp_ = std::make_shared< sockaddr >( addr_in );
+		tmp_.reset( reinterpret_cast< sockaddr* >( addr_in ) );
 
 		ipv4_address.populate( *addr_in, port_ );
 
@@ -317,7 +317,7 @@ void ip_addresses::iterator::prepare( )
 		// reinterpret_pointer_cast is C++17, so we need to do this...
 		auto addr_in6 = new sockaddr_in6;
 
-		tmp_ = std::make_shared< sockaddr >( addr_in6 );
+		tmp_.reset( reinterpret_cast< sockaddr* >( addr_in6 ) );
 
 		ipv6_address.populate( *addr_in6, port_ );
 

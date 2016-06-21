@@ -28,8 +28,8 @@ namespace q { namespace io {
  * A server_socket is a socket which allows incoming connections.
  */
 class server_socket
-: public event
-, public std::enable_shared_from_this< server_socket >
+//: public event
+: public std::enable_shared_from_this< server_socket >
 {
 public:
 	~server_socket( );
@@ -51,12 +51,12 @@ private:
 	template< typename T > friend class q::shared_constructor;
 
 	void attach_dispatcher( const dispatcher_ptr& dispatcher );
-
+/*
 	void on_event_read( ) noexcept override;
 
 	void close_socket( );
 	void close_channel( );
-
+*/
 	struct pimpl;
 	std::unique_ptr< pimpl > pimpl_;
 };
