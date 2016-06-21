@@ -61,7 +61,8 @@ int main( int argc, char** argv )
 
 	std::vector< int > vec_int{ 1, 2, 3 };
 
-	auto o_from_vector = q::rx::observable< int >::from( vec_int, queue );
+	//auto o_from_vector = q::rx::observable< int >::from( vec_int, queue );
+	auto o_from_vector = q::rx::with( vec_int, queue );
 
 	auto consumer = [ queue ]( int i )
 	{
@@ -85,6 +86,11 @@ int main( int argc, char** argv )
 	};
 
 	o_from_vector
+		//.map( q::rx::f::mul( 2 ) )
+		.map( [ queue ]( int i )
+		{
+			return i * 2;//q::with( queue, i * 2 );
+		} )
 		.consume( consumer )
 		.then( consumption_complete )
 		.fail( consumption_failed )

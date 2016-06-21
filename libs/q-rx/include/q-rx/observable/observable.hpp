@@ -52,8 +52,24 @@ public:
 	>::type
 	from( U&& container, Queue&& queue = nullptr );
 
+	template< typename Queue, typename Tag >
+	static observable< T > from(
+		std::iterator< Tag, T > begin,
+		std::iterator< Tag, T > end,
+		Queue&& queue
+	);
 
 	// Transformation operators
+
+	/**
+	 * ( In ) -> Out
+	 */
+	template< typename Fn >
+	typename std::enable_if<
+		!q::is_promise< Q_RESULT_OF( Fn ) >::value,
+		observable< Q_RESULT_OF( Fn ) >
+	>::type
+	map( Fn&& fn );
 
 	/**
 	 * ( In ) -> promise< Out >
@@ -61,24 +77,9 @@ public:
 	template< typename Fn >
 	typename std::enable_if<
 		q::is_promise< Q_RESULT_OF( Fn ) >::value,
-		observable<
-			typename std::conditional<
-				std::tuple_size<
-					typename ::q::result_of< Fn >::tuple_type
-				>::value == 0,
-				void,
-				typename std::conditional<
-					std::tuple_size<
-						typename ::q::result_of< Fn >::tuple_type
-					>::value == 1,
-					typename std::tuple_element<
-						0,
-						typename ::q::result_of< Fn >::tuple_type
-					>::type,
-					typename ::q::result_of< Fn >::tuple_type
-				>::type
-			>::type
-		>
+		typename detail::tuple_to_observable<
+			typename ::q::result_of< Fn >::tuple_type
+		>::type
 	>::type
 	map( Fn&& fn );
 
@@ -141,44 +142,6 @@ private:
 
 	q::readable< T > readable_;
 };
-
-template< typename T >
-inline observable< T > observable< T >::empty( const q::queue_ptr& queue )
-{
-	q::channel< T > channel_( queue, 0 );
-	channel_.get_writable( ).close( );
-	return observable< T >( channel_ );
-}
-
-template< typename T >
-inline observable< T > observable< T >::never( const q::queue_ptr& queue )
-{
-	auto channel_ = q::channel< T >( queue, 1 );
-	return observable< T >( channel_ );
-}
-
-template< typename T >
-inline observable< T > observable< T >::from( q::channel< T > channel )
-{
-	return observable< T >( channel );
-}
-
-template< typename T >
-template< typename U, typename Queue >
-inline typename std::enable_if<
-	std::is_same< std::vector< T >, typename std::decay< U >::type >::value
-	,
-	observable< T >
->::type
-observable< T >::
-from( U&& container, Queue&& queue )
-{
-	auto channel_ = q::channel< T >( queue, container.size( ) );
-	auto writable = channel_.get_writable( );
-	for ( auto& val : container )
-		writable.send( val );
-	return observable< T >( channel_ );
-}
 
 } } // namespace rx, namespace q
 

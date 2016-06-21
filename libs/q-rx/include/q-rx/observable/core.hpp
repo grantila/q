@@ -14,20 +14,35 @@
  * limitations under the License.
  */
 
-#ifndef LIBQ_RX_OBSERVABLE_HPP
-#define LIBQ_RX_OBSERVABLE_HPP
+#ifndef LIBQ_RX_OBSERVABLE_CORE_HPP
+#define LIBQ_RX_OBSERVABLE_CORE_HPP
 
-#include <q/functional.hpp>
-#include <q/promise.hpp>
 #include <q/channel.hpp>
 
-#include <q-rx/types.hpp>
-#include <q-rx/observable/core.hpp>
-#include <q-rx/observable/observable.hpp>
-#include <q-rx/observable/observable_impl.hpp>
-#include <q-rx/observable/observable_impl_from.hpp>
-#include <q-rx/observable/observable_impl_consume.hpp>
-#include <q-rx/observable/observable_impl_transforms.hpp>
-#include <q-rx/observable/with.hpp>
+namespace q { namespace rx {
 
-#endif // LIBQ_RX_OBSERVABLE_HPP
+namespace detail {
+
+template< typename T, std::size_t Size = std::tuple_size< T >::value >
+struct tuple_to_observable
+{
+	typedef observable< T > type;
+};
+
+template< typename T >
+struct tuple_to_observable< T, 0 >
+{
+	typedef observable< void > type;
+};
+
+template< typename T >
+struct tuple_to_observable< T, 1 >
+{
+	typedef observable< typename std::tuple_element< 0, T >::type > type;
+};
+
+} // namespace detail
+
+} } // namespace rx, namespace q
+
+#endif // LIBQ_RX_OBSERVABLE_CORE_HPP

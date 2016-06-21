@@ -14,20 +14,14 @@
  * limitations under the License.
  */
 
-#ifndef LIBQ_RX_OBSERVABLE_HPP
-#define LIBQ_RX_OBSERVABLE_HPP
+#ifndef LIBQ_RX_TYPES_HPP
+#define LIBQ_RX_TYPES_HPP
 
-#include <q/functional.hpp>
-#include <q/promise.hpp>
-#include <q/channel.hpp>
+namespace q { namespace rx {
 
-#include <q-rx/types.hpp>
-#include <q-rx/observable/core.hpp>
-#include <q-rx/observable/observable.hpp>
-#include <q-rx/observable/observable_impl.hpp>
-#include <q-rx/observable/observable_impl_from.hpp>
-#include <q-rx/observable/observable_impl_consume.hpp>
-#include <q-rx/observable/observable_impl_transforms.hpp>
-#include <q-rx/observable/with.hpp>
+template< typename T >
+class observable;
 
-#endif // LIBQ_RX_OBSERVABLE_HPP
+} } // namespace rx, namespace q
+
+#endif // LIBQ_RX_TYPES_HPP

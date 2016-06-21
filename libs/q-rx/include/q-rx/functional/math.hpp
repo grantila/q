@@ -39,6 +39,34 @@ auto div( T denominator )
 	};
 }
 
+template< typename T >
+auto equal( T to )
+{
+	return [ to ]( auto from ) -> bool
+	{
+		return from == to;
+	};
+}
+
+template< typename T >
+auto greater_than( T right )
+{
+	return [ right ]( auto left ) -> bool
+	{
+		return left > right;
+	};
+}
+
+template< typename T >
+auto less_than( T right )
+{
+	return [ right ]( auto left ) -> bool
+	{
+		return left < right;
+	};
+}
+
+
 template< typename T, typename U >
 constexpr auto inner_product( T&& t, U&& u )
 -> decltype( std::declval< T >( ) * std::declval< U >( ) )
