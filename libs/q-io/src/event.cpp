@@ -22,8 +22,8 @@
 
 namespace q { namespace io {
 
-event::event( pimpl* _pimpl )
-: pimpl_( _pimpl )
+event::event( )
+: pimpl_( nullptr )
 {
 }
 

@@ -619,7 +619,7 @@ q::promise< std::tuple< socket_ptr > > dispatcher::connect_to(
 			ECONNREFUSED
 		};
 
-		dest->socket_event_pimpl->connect_.data = ctx;
+		dest->socket_pimpl->connect_.data = ctx;
 
 		try_connect( ctx );
 	} );

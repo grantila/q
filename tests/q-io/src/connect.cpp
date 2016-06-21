@@ -33,8 +33,8 @@ TEST_F( connect, ONLY_client_server_send_data )
 		{
 			return block.to_string( );
 		} );
-	} );
-	//.share( );
+	} )
+	.share( );
 
 	EVENTUALLY_EXPECT_EQ( promise_server, test_data );
 
