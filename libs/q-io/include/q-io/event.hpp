@@ -21,9 +21,13 @@
 #include <q-io/dispatcher.hpp>
 #include <q-io/types.hpp>
 
+#include <q/exception.hpp>
+
 #include <memory>
 
 namespace q { namespace io {
+
+Q_MAKE_SIMPLE_EXCEPTION( event_error );
 
 class event
 {

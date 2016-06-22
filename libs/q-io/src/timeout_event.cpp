@@ -20,15 +20,11 @@
 
 namespace q { namespace io {
 
-struct timeout_event::pimpl
-{
-	::event* event_;
-};
-
 timeout_event::timeout_event( )
 : pimpl_( ::q::make_unique< pimpl >( ) )
 {
-	pimpl_->event_ = nullptr;
+//	pimpl_->event_ = nullptr;
+	pimpl_->timer_.data = nullptr;
 }
 
 timeout_event::~timeout_event( )
@@ -62,6 +58,15 @@ void timeout_event::remove_timeout( )
 
 void timeout_event::sub_attach( const dispatcher_ptr& dispatcher ) noexcept
 {
+	auto& dispatcher_pimpl = *dispatcher->pimpl_;
+
+	pimpl_->loop_ = &dispatcher_pimpl.uv_loop;
+
+	if ( ::uv_timer_init( pimpl_->loop_, &pimpl_->timer_ ) )
+		Q_THROW( event_error( ) );
+
+	;
+
 	auto self = new timer_arg_type( shared_from_this( ) );
 
 	event_callback_fn fn = [ ](

@@ -22,6 +22,7 @@
 #include <q-io/dns.hpp>
 #include <q-io/socket.hpp>
 #include <q-io/server_socket.hpp>
+#include <q-io/timeout_event.hpp>
 
 #include <q/thread.hpp>
 #include <q/execution_context.hpp>
@@ -202,6 +203,16 @@ struct server_socket::pimpl
 	server_socket_ptr self_;
 
 	std::atomic< bool > closed_;
+#endif
+};
+
+struct timeout_event::pimpl
+{
+#ifdef QIO_USE_LIBEVENT
+	::event* event_;
+#else
+	::uv_loop_t* loop_;
+	::uv_timer_t timer_;
 #endif
 };
 
