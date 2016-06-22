@@ -246,10 +246,32 @@ protected:
 } // namespace detail
 
 template< typename... T >
+struct channel_traits
+{
+	typedef std::tuple< T... > tuple_type;
+	typedef q::bool_type<
+		sizeof...( T ) == 1
+		and
+		q::are_promises< T... >::value
+	> is_promise;
+	typedef typename promise_if_first_and_only< T... >::type
+		promise_type;
+	typedef typename promise_if_first_and_only< T... >::tuple_type
+		promise_tuple_type;
+	typedef typename promise_if_first_and_only< T... >::arguments_type
+		promise_arguments_type;
+};
+
+template< typename... T >
 class readable
+: channel_traits< T... >
 {
 public:
-	typedef std::tuple< T... > tuple_type;
+	using traits = channel_traits< T... >;
+	using tuple_type = typename traits::tuple_type;
+	using is_promise = typename traits::is_promise;
+	using promise_type = typename traits::promise_type;
+	using promise_tuple_type = typename traits::promise_tuple_type;
 
 	readable( ) = default;
 	readable( const readable& ) = default;
@@ -258,9 +280,28 @@ public:
 	readable& operator=( const readable& ) = default;
 	readable& operator=( readable&& ) = default;
 
-	promise< tuple_type > receive( )
+	template< typename IsPromise = is_promise >
+	typename std::enable_if<
+		!IsPromise::value,
+		promise< tuple_type >
+	>::type
+	receive( )
 	{
 		return shared_channel_->receive( );
+	}
+
+	template< typename IsPromise = is_promise >
+	typename std::enable_if<
+		IsPromise::value,
+		promise_type
+	>::type
+	receive( )
+	{
+		return shared_channel_->receive( )
+		.then( [ ]( promise_type&& promise ) -> promise_type
+		{
+			return std::move( promise );
+		} );
 	}
 
 	bool is_closed( )
@@ -298,9 +339,13 @@ private:
 
 template< typename... T >
 class writable
+: channel_traits< T... >
 {
 public:
-	typedef std::tuple< T... > tuple_type;
+	using traits = channel_traits< T... >;
+	using tuple_type = typename traits::tuple_type;
+	using is_promise = typename traits::is_promise;
+	using promise_arguments_type = typename traits::promise_arguments_type;
 
 	writable( ) = default;
 	writable( const writable& ) = default;
@@ -331,11 +376,14 @@ public:
 	>::type
 	send( Args&&... args )
 	{
-		this->send( std::forward_as_tuple( args... ) );
+		this->send( std::forward_as_tuple(
+			std::forward< Args >( args )... ) );
 	}
 
 	template< typename T_ = tuple_type >
 	typename std::enable_if<
+		!is_promise::value
+		and
 		is_empty_tuple< T_ >::value
 	>::type
 	send( )
@@ -355,6 +403,22 @@ public:
 	send( Tuple&& t )
 	{
 		shared_channel_->send( std::forward< Tuple >( t ) );
+	}
+
+	template< typename... U >
+	typename std::enable_if<
+		is_promise::value
+		and
+		q::arguments< U... >
+			::template is_convertible_to< promise_arguments_type >
+			::value
+	>::type
+	send( U&&... args )
+	{
+		send( q::with(
+			shared_channel_->get_queue( ),
+			std::forward< U >( args )...
+		) );
 	}
 
 	bool should_send( )

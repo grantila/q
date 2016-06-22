@@ -2,6 +2,7 @@
 #include <q/channel.hpp>
 
 #include <q-test/q-test.hpp>
+#include <q-test/expect.hpp>
 
 Q_TEST_MAKE_SCOPE( channel );
 
@@ -214,4 +215,21 @@ TEST_F( channel, auto_close_on_writable_destruction )
 	EXPECT_THROW( writable.send( 17 ), q::channel_closed_exception );
 
 	run( std::move( promise ) );
+}
+
+TEST_F( channel, promise_channel )
+{
+	q::channel< q::promise< std::tuple< int > > > ch( queue, 5 );
+
+	auto readable = ch.get_readable( );
+	auto writable = ch.get_writable( );
+
+	EVENTUALLY_EXPECT_EQ( readable.receive( ), 5 );
+	EVENTUALLY_EXPECT_EQ( readable.receive( ), 6 );
+	EVENTUALLY_EXPECT_REJECTION_WITH(
+		readable.receive( ), q::channel_closed_exception );
+
+	writable.send( q::with( queue, 5 ) );
+	writable.send( 6 );
+	writable.close( );
 }

@@ -23,6 +23,7 @@
 
 #include <q-rx/types.hpp>
 #include <q-rx/observable/core.hpp>
+#include <q-rx/observable/observable_readable.hpp>
 #include <q-rx/observable/observable.hpp>
 #include <q-rx/observable/observable_impl.hpp>
 #include <q-rx/observable/observable_impl_from.hpp>

@@ -150,7 +150,6 @@ consume( Fn&& fn, Queue&& queue )
 
 		context->recursive_consumer = [ context ]( )
 		{
-			//use_queue
 			auto promise = context->readable.receive( )
 			.then( [ context ]( T&& t )
 			{

@@ -34,13 +34,18 @@ map( Fn&& fn )
 	typedef Q_RESULT_OF( Fn ) T2;
 
 	auto queue = readable_.get_queue( );
+	auto next_queue = queue;
 
-	::q::channel< ::q::expect< T2 > > ch( queue, 1 );
+	::q::channel< ::q::expect< T2 > > ch( next_queue, 1 );
 
 	auto writable = ch.get_writable( );
 
-	consume( [ writable, fn ]( T t )
+	consume( [ queue, writable, fn ]( T t )
 	{
+		auto deferred = ::q::detail::defer< T2 >::construct( queue );
+
+		;//d
+
 		try
 		{
 			writable.send( ::q::fulfill( fn( std::move( t ) ) ) );

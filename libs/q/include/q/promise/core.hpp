@@ -60,6 +60,33 @@ struct are_promises
 >
 { };
 
+template< typename... T >
+struct promise_if_first_and_only
+{
+	typedef std::false_type valid;
+	typedef void type;
+	typedef std::tuple< > tuple_type;
+	typedef arguments< > arguments_type;
+};
+
+template< typename... Args >
+struct promise_if_first_and_only< ::q::promise< Args... > >
+{
+	typedef std::true_type valid;
+	typedef promise< Args... > type;
+	typedef typename type::tuple_type tuple_type;
+	typedef arguments< Args... > arguments_type;
+};
+
+template< typename... Args >
+struct promise_if_first_and_only< ::q::shared_promise< Args... > >
+{
+	typedef std::true_type valid;
+	typedef promise< Args... > type;
+	typedef typename type::tuple_type tuple_type;
+	typedef arguments< Args... > arguments_type;
+};
+
 // TODO: Make this exception actually chain the original exception that was thrown..
 class broken_promise_exception
 : exception

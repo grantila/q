@@ -17,8 +17,6 @@
 #ifndef LIBQ_RX_OBSERVABLE_OBSERVABLE_HPP
 #define LIBQ_RX_OBSERVABLE_OBSERVABLE_HPP
 
-#include <q/channel.hpp>
-
 namespace q { namespace rx {
 
 template< typename T >
@@ -29,10 +27,42 @@ public:
 	{ }
 
 	observable( q::readable< T >&& readable )
-	: readable_( std::move( readable ) )
+	: readable_( std::make_shared<
+		detail::observable_readable_direct< T >
+	>( std::move( readable ) ) )
 	{ }
 
 	observable( q::channel< T > channel )
+	: observable( channel.get_readable( ) )
+	{ }
+
+	observable( q::readable< q::expect< T > >&& readable )
+	: readable_( std::make_shared<
+		detail::observable_readable_expect< T >
+	>( std::move( readable ) ) )
+	{ }
+
+	observable( q::channel< q::expect< T > > channel )
+	: observable( channel.get_readable( ) )
+	{ }
+
+	observable( q::readable< q::promise< T > >&& readable )
+	: readable_( std::make_shared<
+		detail::observable_readable_promise< T >
+	>( std::move( readable ) ) )
+	{ }
+
+	observable( q::channel< q::promise< T > > channel )
+	: observable( channel.get_readable( ) )
+	{ }
+
+	observable( q::readable< q::shared_promise< T > >&& readable )
+	: readable_( std::make_shared<
+		detail::observable_readable_shared_promise< T >
+	>( std::move( readable ) ) )
+	{ }
+
+	observable( q::channel< q::shared_promise< T > > channel )
 	: observable( channel.get_readable( ) )
 	{ }
 
@@ -140,7 +170,8 @@ private:
 		return readable_.get_queue( );
 	}
 
-	q::readable< T > readable_;
+//	q::readable< T > readable_;
+	std::shared_ptr< detail::observable_readable< T > > readable_;
 };
 
 } } // namespace rx, namespace q
