@@ -32,10 +32,13 @@ typename std::enable_if<
 observable< T >::
 consume( Fn&& fn, Queue&& queue )
 {
+	typedef std::shared_ptr< detail::observable_readable< T > >
+		readable_type;
 	typedef typename std::decay< Fn >::type fn_type;
+
 	struct context_type
 	{
-		q::readable< T > readable;
+		readable_type readable;
 		std::unique_ptr< fn_type > fn;
 		std::function< void( void ) > recursive_consumer;
 		q::queue_ptr queue;
@@ -43,7 +46,7 @@ consume( Fn&& fn, Queue&& queue )
 		q::resolver< > resolver;
 		q::rejecter< > rejecter;
 
-		context_type( q::readable< T > readable )
+		context_type( readable_type readable )
 		: readable( readable )
 		, set_default( false )
 		{ }
@@ -71,13 +74,15 @@ consume( Fn&& fn, Queue&& queue )
 		context->recursive_consumer = [ context ]( )
 		{
 			//use_queue
-			auto promise = context->readable.receive( )
-			.then( [ context ]( T&& t )
-			{
-				( *context->fn )( std::move( t ) );
+			auto promise = context->readable.receive(
+				[ context ]( T&& t )
+				{
+					( *context->fn )( std::move( t ) );
 
-				context->recursive_consumer( );
-			}, context->queue );
+					context->recursive_consumer( );
+				},
+				context->queue
+			);
 
 			if ( context->set_default )
 				promise = promise.use_queue( context->queue );
