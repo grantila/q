@@ -22,6 +22,8 @@
 
 namespace q { namespace io {
 
+#if 0
+
 #ifdef QIO_USE_LIBEVENT
 
 resolver::resolver( dispatcher_ptr dispatcher, settings settings )
@@ -185,5 +187,7 @@ resolver::lookup(
 }
 
 #endif
+
+#endif // 0
 
 } } // namespace io, namespace q

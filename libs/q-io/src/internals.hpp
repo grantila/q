@@ -22,7 +22,7 @@
 #include <q-io/dns.hpp>
 #include <q-io/socket.hpp>
 #include <q-io/server_socket.hpp>
-#include <q-io/timeout_event.hpp>
+#include <q-io/timer_task.hpp>
 
 #include <q/thread.hpp>
 #include <q/execution_context.hpp>
@@ -38,49 +38,6 @@
 #define LIBQ_EV_CLOSE 0x1000
 
 namespace q { namespace io {
-
-struct callback_arg_type
-{
-	enum class event_type
-	{
-		timer,
-		socket_event,
-		server_socket
-	} type;
-};
-
-struct socket_arg_type
-: callback_arg_type
-{
-	socket_arg_type( std::shared_ptr< socket_event > socket_event )
-	: callback_arg_type{ callback_arg_type::event_type::socket_event }
-	, socket_event_( std::move( socket_event ) )
-	{ }
-
-	std::weak_ptr< socket_event > socket_event_;
-};
-
-struct server_socket_arg_type
-: callback_arg_type
-{
-	server_socket_arg_type( std::shared_ptr< server_socket > server_socket )
-	: callback_arg_type{ callback_arg_type::event_type::server_socket }
-	, server_socket_( std::move( server_socket ) )
-	{ }
-
-	std::weak_ptr< server_socket > server_socket_;
-};
-
-struct timer_arg_type
-: callback_arg_type
-{
-	timer_arg_type( std::shared_ptr< timeout_event > timer_event )
-	: callback_arg_type{ callback_arg_type::event_type::timer }
-	, timer_event_( std::move( timer_event ) )
-	{ }
-
-	std::weak_ptr< timeout_event > timer_event_;
-};
 
 struct event::pimpl
 {
@@ -206,24 +163,35 @@ struct server_socket::pimpl
 #endif
 };
 
-struct timeout_event::pimpl
+struct timer_task::pimpl
 {
-#ifdef QIO_USE_LIBEVENT
-	::event* event_;
-#else
 	::uv_loop_t* loop_;
 	::uv_timer_t timer_;
-#endif
+
+	std::shared_ptr< pimpl > cleanup_keepalive_ptr_;
+
+	std::shared_ptr< dispatcher::pimpl > dispatcher_pimpl_;
+	std::shared_ptr< q::task > task_;
+	clock::duration duration_;
+	clock::duration repeat_;
+
+	pimpl( )
+	: loop_( nullptr )
+	, duration_( clock::duration( 0 ) )
+	, repeat_( clock::duration( 0 ) )
+	{ }
 };
 
+/*
 struct resolver::pimpl
 {
 	dispatcher_ptr dispatcher_;
 	::evdns_base* base_;
 };
+*/
 
 // TODO: Properly implement this for Win32
-int uv_error_to_errno( int errnum )
+static int uv_error_to_errno( int errnum )
 {
 	return -errnum;
 }

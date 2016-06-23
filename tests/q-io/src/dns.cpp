@@ -8,6 +8,8 @@ QIO_TEST_MAKE_SCOPE( dns );
 // These unit tests go for www.google.com, and we expect it resolves to at
 // least one IPv4 and one IPv6 address.
 
+/*
+
 TEST_F( dns, lookup_simple )
 {
 	auto lookup = io_dispatcher->lookup( "www.google.com" )
@@ -77,3 +79,5 @@ TEST_F( dns, lookup_normal )
 
 	run( std::move( lookup ) );
 }
+
+*/

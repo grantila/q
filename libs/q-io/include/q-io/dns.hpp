@@ -31,7 +31,7 @@ struct resolver_response
 	ip_addresses ips;
 	std::chrono::seconds ttl;
 };
-
+/*
 class resolver
 : public std::enable_shared_from_this< resolver >
 {
@@ -68,6 +68,8 @@ private:
 
 Q_ENUM_FLAGS( resolver::settings )
 Q_ENUM_FLAGS( resolver::resolve_flags )
+
+*/
 
 } } // namespace io, namespace q
 

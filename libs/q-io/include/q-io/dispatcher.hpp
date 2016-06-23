@@ -111,7 +111,15 @@ public:
 	 * Attach an event to this dispatcher. The event should not have been
 	 * created by this dispatcher, as they are automatically attached.
 	 */
-	void attach_event( const event_ptr& event );
+	void attach_event( event* event );
+	void attach_event( const event_ptr& event )
+	{
+		attach_event( &*event );
+	}
+	void attach_event( event& event )
+	{
+		attach_event( &event );
+	}
 
 	/**
 	 * Creates a timeout-based forwarding_async_task which can be used to
@@ -196,11 +204,12 @@ private:
 	friend class event;
 	friend class resolver;
 	friend class server_socket;
+	friend class timer_task;
 
 	void _make_dummy_event( );
 	void _cleanup_dummy_event( );
 
-	std::unique_ptr< pimpl > pimpl_;
+	std::shared_ptr< pimpl > pimpl_;
 };
 
 } } // namespace io, namespace q

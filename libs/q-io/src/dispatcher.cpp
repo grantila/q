@@ -16,7 +16,6 @@
 
 #include <q-io/dispatcher.hpp>
 #include <q-io/config.hpp>
-#include <q-io/timeout_event.hpp>
 #include <q-io/socket.hpp>
 #include <q-io/server_socket.hpp>
 
@@ -32,6 +31,7 @@
 
 namespace q { namespace io {
 
+
 std::shared_ptr< dispatcher >
 dispatcher::construct( q::queue_ptr user_queue, std::string name )
 {
@@ -43,7 +43,7 @@ dispatcher::construct( q::queue_ptr user_queue, std::string name )
 
 dispatcher::dispatcher( q::queue_ptr user_queue, std::string name )
 : event_dispatcher_base( user_queue )
-, pimpl_( new pimpl )
+, pimpl_( std::make_shared< pimpl >( ) )
 {
 	pimpl_->user_queue = user_queue;
 	pimpl_->name = name;
@@ -76,7 +76,7 @@ dispatcher::dispatcher( q::queue_ptr user_queue, std::string name )
 
 dispatcher::~dispatcher( )
 {
-	if ( true /* TODO: has ever started */ )
+	if ( true ) // TODO: has ever started
 	{
 		_cleanup_dummy_event( );
 	}
@@ -240,7 +240,7 @@ void dispatcher::_make_dummy_event( )
 
 void dispatcher::_cleanup_dummy_event( )
 {
-	if ( true /* TODO: If ever started */ )
+	if ( true ) // TODO: If ever started
 	{
 #ifdef QIO_USE_LIBEVENT
 		::event_del( pimpl_->dummy_event.ev );
@@ -364,12 +364,19 @@ dispatcher::delay( q::timer::duration_type dur )
 
 	auto runner = [ dur_, self ]( q::async_task::task fn )
 	{
-		auto task = [ fn ]( ) mutable
+		auto timer = std::make_shared< timer_task >( );
+
+		self->attach_event( timer );
+
+		auto task = [ fn, timer ]( ) mutable
 		{
+			timer->unset_task( );
+
 			fn( q::fulfill< void >( ) );
 		};
 
-		self->attach_event( timeout_task::construct( task, dur_ ) );
+		timer->set_task( std::move( task ) );
+		timer->start_timeout( dur_ );
 	};
 
 	return q::async_task( runner );
@@ -396,7 +403,7 @@ dispatcher::lookup( const std::string& name )
 		if ( error )
 		{
 			std::string err = gai_strerror( error );
-			Q_THROW( dns_lookup_error( ) /* << err */ );
+			Q_THROW( dns_lookup_error( ) ); //, err );
 		}
 
 		ip_addresses res;
@@ -831,7 +838,7 @@ server_socket_ptr dispatcher::listen(
 #endif
 }
 
-void dispatcher::attach_event( const event_ptr& event )
+void dispatcher::attach_event( event* event )
 {
 	event->attach( shared_from_this( ) );
 }

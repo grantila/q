@@ -23,6 +23,7 @@ namespace q { namespace io {
 
 class dispatcher;
 typedef std::shared_ptr< dispatcher > dispatcher_ptr;
+typedef std::weak_ptr< dispatcher > dispatcher_weak_ptr;
 
 class event;
 typedef std::shared_ptr< event > event_ptr;
@@ -38,8 +39,7 @@ typedef std::weak_ptr< socket > weak_socket_ptr;
 class server_socket;
 typedef std::shared_ptr< server_socket > server_socket_ptr;
 
-class timeout_event;
-typedef std::shared_ptr< timeout_event > timeout_event_ptr;
+class timer_event;
 
 #ifdef _WIN32
 	typedef intptr_t socket_t;
