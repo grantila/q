@@ -25,8 +25,10 @@ class observable_readable
 public:
 	virtual ~observable_readable( ) { }
 
-	virtual q::promise< T >
+	virtual q::promise< std::tuple< > >
 	receive( std::function< void( T&& ) > fn, queue_ptr queue ) = 0;
+
+	virtual queue_ptr get_queue( ) const = 0;
 
 protected:
 	observable_readable( ) { }
@@ -37,14 +39,20 @@ class observable_readable_direct
 : public observable_readable< T >
 {
 public:
-	observable_readable_direct( )
+	observable_readable_direct( q::readable< T >&& readable )
+	: readable_( readable )
 	{ }
 
-	q::promise< T >
+	q::promise< std::tuple< > >
 	receive( std::function< void( T&& ) > fn, queue_ptr queue )
 	{
 		return readable_.receive( )
 		.then( fn, std::move( queue ) );
+	}
+
+	queue_ptr get_queue( ) const
+	{
+		return readable_.get_queue( );
 	}
 
 private:
@@ -56,10 +64,11 @@ class observable_readable_expect
 : public observable_readable< T >
 {
 public:
-	observable_readable_expect( )
+	observable_readable_expect( q::readable< q::expect< T > >&& readable )
+	: readable_( readable )
 	{ }
 
-	q::promise< T >
+	q::promise< std::tuple< > >
 	receive( std::function< void( T&& ) > fn, queue_ptr queue )
 	{
 		return readable_.receive( )
@@ -67,6 +76,11 @@ public:
 		{
 			return fn( exp.consume( ) );
 		}, std::move( queue ) );
+	}
+
+	queue_ptr get_queue( ) const
+	{
+		return readable_.get_queue( );
 	}
 
 private:
@@ -78,14 +92,22 @@ class observable_readable_promise
 : public observable_readable< T >
 {
 public:
-	observable_readable_promise( )
+	observable_readable_promise(
+		q::readable< q::promise< std::tuple< T > > >&& readable
+	)
+	: readable_( readable )
 	{ }
 
-	q::promise< T >
+	q::promise< std::tuple< > >
 	receive( std::function< void( T&& ) > fn, queue_ptr queue )
 	{
 		return readable_.receive( )
 		.then( fn, std::move( queue ) );
+	}
+
+	queue_ptr get_queue( ) const
+	{
+		return readable_.get_queue( );
 	}
 
 private:
@@ -97,14 +119,22 @@ class observable_readable_shared_promise
 : public observable_readable< T >
 {
 public:
-	observable_readable_shared_promise( )
+	observable_readable_shared_promise(
+		q::readable< q::shared_promise< std::tuple< T > > >&& readable
+	)
+	: readable_( readable )
 	{ }
 
-	q::promise< T >
+	q::promise< std::tuple< > >
 	receive( std::function< void( T&& ) > fn, queue_ptr queue )
 	{
 		return readable_.receive( )
 		.then( fn, std::move( queue ) );
+	}
+
+	queue_ptr get_queue( ) const
+	{
+		return readable_.get_queue( );
 	}
 
 private:

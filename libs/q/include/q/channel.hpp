@@ -189,7 +189,7 @@ public:
 		scopes_.emplace_back( std::move( scope ) );
 	}
 
-	queue_ptr get_queue( )
+	queue_ptr get_queue( ) const
 	{
 		return default_queue_;
 	}
@@ -248,6 +248,7 @@ protected:
 template< typename... T >
 struct channel_traits
 {
+	typedef channel_traits< T... > type;
 	typedef std::tuple< T... > tuple_type;
 	typedef q::bool_type<
 		sizeof...( T ) == 1
@@ -267,11 +268,11 @@ class readable
 : channel_traits< T... >
 {
 public:
-	using traits = channel_traits< T... >;
-	using tuple_type = typename traits::tuple_type;
-	using is_promise = typename traits::is_promise;
-	using promise_type = typename traits::promise_type;
-	using promise_tuple_type = typename traits::promise_tuple_type;
+	typedef typename channel_traits< T... >::type traits;
+	typedef typename traits::tuple_type tuple_type;
+	typedef typename traits::is_promise is_promise;
+	typedef typename traits::promise_type promise_type;
+	typedef typename traits::promise_tuple_type promise_tuple_type;
 
 	readable( ) = default;
 	readable( const readable& ) = default;
@@ -319,7 +320,7 @@ public:
 		shared_channel_->add_scope_until_closed( std::move( scope ) );
 	}
 
-	queue_ptr get_queue( )
+	queue_ptr get_queue( ) const
 	{
 		return shared_channel_->get_queue( );
 	}
@@ -342,10 +343,10 @@ class writable
 : channel_traits< T... >
 {
 public:
-	using traits = channel_traits< T... >;
-	using tuple_type = typename traits::tuple_type;
-	using is_promise = typename traits::is_promise;
-	using promise_arguments_type = typename traits::promise_arguments_type;
+	typedef typename channel_traits< T... >::type traits;
+	typedef typename traits::tuple_type tuple_type;
+	typedef typename traits::is_promise is_promise;
+	typedef typename traits::promise_arguments_type promise_arguments_type;
 
 	writable( ) = default;
 	writable( const writable& ) = default;

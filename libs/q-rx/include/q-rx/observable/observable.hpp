@@ -46,23 +46,23 @@ public:
 	: observable( channel.get_readable( ) )
 	{ }
 
-	observable( q::readable< q::promise< T > >&& readable )
+	observable( q::readable< q::promise< std::tuple< T > > >&& readable )
 	: readable_( std::make_shared<
 		detail::observable_readable_promise< T >
 	>( std::move( readable ) ) )
 	{ }
 
-	observable( q::channel< q::promise< T > > channel )
+	observable( q::channel< q::promise< std::tuple< T > > > channel )
 	: observable( channel.get_readable( ) )
 	{ }
 
-	observable( q::readable< q::shared_promise< T > >&& readable )
+	observable( q::readable< q::shared_promise< std::tuple< T > > >&& readable )
 	: readable_( std::make_shared<
 		detail::observable_readable_shared_promise< T >
 	>( std::move( readable ) ) )
 	{ }
 
-	observable( q::channel< q::shared_promise< T > > channel )
+	observable( q::channel< q::shared_promise< std::tuple< T > > > channel )
 	: observable( channel.get_readable( ) )
 	{ }
 
@@ -167,7 +167,7 @@ private:
 	{
 		if ( queue )
 			return std::forward< Queue >( queue );
-		return readable_.get_queue( );
+		return readable_->get_queue( );
 	}
 
 //	q::readable< T > readable_;
