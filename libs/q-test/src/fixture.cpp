@@ -57,7 +57,6 @@ void fixture::TearDown( )
 		_run( q::with( queue ) );
 
 	on_teardown( );
-
 	scope_ = q::make_scope( nullptr );
 	tp->dispatcher( )->terminate( q::termination::linger );
 	tp->dispatcher( )->await_termination( );
