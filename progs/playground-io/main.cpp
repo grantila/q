@@ -24,6 +24,8 @@
 
 #include <unistd.h>
 
+#include <uv.h>
+
 q::scope initialize( )
 {
 	q::settings settings;
@@ -61,6 +63,52 @@ private:
 
 int main( int argc, char** argv )
 {
+	::uv_loop_t* loop = new ::uv_loop_t;
+	::uv_loop_init( loop );
+
+	auto do_connect = [ loop ]( )
+	{
+		::uv_tcp_t* socket = new ::uv_tcp_t;
+		::uv_tcp_init( loop, socket );
+
+		::uv_connect_t* connect = new ::uv_connect_t;
+
+		struct sockaddr_in dest;
+		::uv_ip4_addr( "127.0.0.1", 80, &dest );
+
+		::uv_connect_cb on_connect = [ ]( ::uv_connect_t* req, int status )
+		{
+			std::cout << "Got status: " << status << std::endl;
+		};
+
+		::uv_tcp_connect( connect, socket, reinterpret_cast< sockaddr* >( &dest ), on_connect);
+	};
+
+	typedef decltype( do_connect ) connector;
+
+	::uv_async_cb on_async = [ ]( ::uv_async_t* async )
+	{
+		auto do_connect = reinterpret_cast< connector* >( async->data );
+		( *do_connect )( );
+	};
+
+	::uv_async_t* async = new ::uv_async_t;
+	::uv_async_init( loop, async, on_async );
+	async->data = &do_connect;
+
+	::q::run( "t", nullptr, [ async ]( )
+	{
+		::usleep( 1000 * 1000 );
+		std::cout << "Now connecting" << std::endl;
+		::uv_async_send( async );
+	} );
+
+	::uv_run( loop, UV_RUN_DEFAULT );
+
+	return 17;
+
+#if 0
+
 	auto q_scope = initialize( );
 
 	std::cout << "Starting..." << std::endl;
@@ -217,4 +265,6 @@ int main( int argc, char** argv )
 	print_line( ) << "-> C";
 
 	return 0;
+
+#endif // 0
 }

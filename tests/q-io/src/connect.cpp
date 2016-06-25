@@ -10,11 +10,18 @@ std::atomic< std::uint16_t > ports( 1030 );
 TEST_F( connect, client_server_connrefused )
 {
 	auto dest = q::io::ip_addresses( "127.0.0.1" );
+//	auto dest = q::io::ip_addresses( "172.217.18.142" );
 
 	EVENTUALLY_EXPECT_REJECTION_WITH(
-		io_dispatcher->connect_to( dest, 1 ),
+		io_dispatcher->connect_to( dest, 80 ),
 		q::errno_connrefused_exception
 	);
+
+	q::run("hacker", queue, [ this ]( )
+	{
+		::usleep( 1000 * 1000 );
+		std::cout << "EVENTS: " << this->io_dispatcher->dump_events( ) << std::endl;
+	} );
 }
 
 TEST_F( connect, ONLY_client_server_send_data )

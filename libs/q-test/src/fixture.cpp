@@ -47,8 +47,6 @@ void fixture::SetUp( )
 
 void fixture::TearDown( )
 {
-	on_teardown( );
-
 	bool need_to_await_promises;
 	{
 		Q_AUTO_UNIQUE_LOCK( mutex_ );
@@ -57,6 +55,8 @@ void fixture::TearDown( )
 
 	if ( need_to_await_promises )
 		_run( q::with( queue ) );
+
+	on_teardown( );
 
 	scope_ = q::make_scope( nullptr );
 	tp->dispatcher( )->terminate( q::termination::linger );

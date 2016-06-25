@@ -87,8 +87,6 @@ dispatcher::~dispatcher( )
 		::event_base_free( pimpl_->event_base );
 		pimpl_->event_base = nullptr;
 	}
-#else
-	::uv_loop_close( &pimpl_->uv_loop );
 #endif
 }
 
@@ -175,6 +173,69 @@ std::string dispatcher::dump_events( ) const
 		&event_base_event_iterator,
 		&fn ) );
 #endif
+	uv_walk_cb walker = [ ]( ::uv_handle_t* handle, void* arg )
+	{
+		auto handle_type_name = [ ]( ::uv_handle_type type )
+		-> std::string
+		{
+			switch ( type )
+			{
+				case ::uv_handle_type::UV_ASYNC: return "async";
+				case ::uv_handle_type::UV_CHECK: return "check";
+				case ::uv_handle_type::UV_FS_EVENT: return "fs_event";
+				case ::uv_handle_type::UV_FS_POLL: return "fs_poll";
+				case ::uv_handle_type::UV_HANDLE: return "handle";
+				case ::uv_handle_type::UV_IDLE: return "idle";
+				case ::uv_handle_type::UV_NAMED_PIPE: return "pipe";
+				case ::uv_handle_type::UV_POLL: return "poll";
+				case ::uv_handle_type::UV_PREPARE: return "prepare";
+				case ::uv_handle_type::UV_PROCESS: return "process";
+				case ::uv_handle_type::UV_STREAM: return "stream";
+				case ::uv_handle_type::UV_TCP: return "tcp";
+				case ::uv_handle_type::UV_TIMER: return "timer";
+				case ::uv_handle_type::UV_TTY: return "tty";
+				case ::uv_handle_type::UV_UDP: return "udp";
+				case ::uv_handle_type::UV_SIGNAL: return "signal";
+				case ::uv_handle_type::UV_FILE: return "file";
+				case ::uv_handle_type::UV_UNKNOWN_HANDLE: return "{unknown}";
+				default: return "{invalid type!}";
+			}
+		};
+
+		std::cout << "EVENT" << std::endl;
+		std::cout << "    Type       : " << handle_type_name( handle->type ) << std::endl;
+		std::cout << "    Active     : " << ::uv_is_active( handle ) << std::endl;
+		std::cout << "    Is closing : " << ::uv_is_closing( handle ) << std::endl;
+
+		bool is_fd_backed =
+			handle->type == ::uv_handle_type::UV_TCP ||
+			handle->type == ::uv_handle_type::UV_NAMED_PIPE ||
+			handle->type == ::uv_handle_type::UV_TTY ||
+			handle->type == ::uv_handle_type::UV_UDP ||
+			handle->type == ::uv_handle_type::UV_POLL;
+
+		if ( is_fd_backed )
+		{
+			uv_os_fd_t fd;
+			auto ret = ::uv_fileno( handle, &fd );
+			if ( ret )
+			{
+				std::cout << "    fd error   : ";
+				if ( ret == UV_EINVAL )
+					std::cout << "UV_EINVAL";
+				else if ( ret == UV_EBADF )
+					std::cout << "UV_EBADF";
+				else
+					std::cout << ret;
+				std::cout << std::endl;
+			}
+			else
+				std::cout << "    fd         : " << fd << std::endl;
+		}
+	};
+	::uv_walk( &pimpl_->uv_loop, walker, nullptr );
+
+	::uv_async_send( &pimpl_->uv_async );
 
 	return s;
 }
@@ -492,8 +553,12 @@ q::promise< std::tuple< socket_ptr > > dispatcher::connect_to(
 
 #ifndef QIO_USE_LIBEVENT
 	// Returns the next sockaddr (or nullptr)
-	auto get_next_address = [ self, dest ]( ) -> std::unique_ptr< sockaddr >
+	auto get_next_address = [ self, dest ]( ) -> std::shared_ptr< sockaddr >
 	{
+		if ( dest->cur_addr == dest->end_addr )
+			return nullptr;
+		return *dest->cur_addr++;
+/*
 		if ( dest->pos_ipv4 < dest->addresses.ipv4.size( ) )
 		{
 			const ipv4_address& ipv4_address =
@@ -523,6 +588,7 @@ q::promise< std::tuple< socket_ptr > > dispatcher::connect_to(
 		}
 
 		return nullptr;
+*/
 	};
 
 	return q::make_promise_sync( pimpl_->user_queue,
@@ -536,13 +602,14 @@ q::promise< std::tuple< socket_ptr > > dispatcher::connect_to(
 			dispatcher_ptr dispatcher;
 			q::resolver< socket_ptr > resolve_;
 			q::rejecter< socket_ptr > reject_;
-			std::function< std::unique_ptr< sockaddr >( void ) >
+			std::function< std::shared_ptr< sockaddr >( void ) >
 				get_next_address;
 			std::function< bool( void ) > has_more_addresses;
 			std::function< void( context* ) > try_connect;
 			std::shared_ptr< destination > dest;
-			std::unique_ptr< sockaddr > last_address;
+			std::shared_ptr< sockaddr > last_address;
 			int last_error;
+			uv_connect_cb connect_callback;
 
 			void resolve( socket_ptr&& socket )
 			{
@@ -587,7 +654,7 @@ q::promise< std::tuple< socket_ptr > > dispatcher::connect_to(
 			}
 		};
 
-		auto try_connect = [ connect_callback ]( context* ctx )
+		auto try_connect = [ ]( context* ctx )
 		{
 			auto& connect = ctx->dest->socket_pimpl->connect_;
 			auto& socket = ctx->dest->socket_pimpl->socket_;
@@ -610,7 +677,7 @@ q::promise< std::tuple< socket_ptr > > dispatcher::connect_to(
 				&connect,
 				&socket,
 				ctx->last_address.get( ),
-				connect_callback
+				ctx->connect_callback
 			);
 		};
 
@@ -623,7 +690,8 @@ q::promise< std::tuple< socket_ptr > > dispatcher::connect_to(
 			try_connect,
 			dest,
 			nullptr,
-			ECONNREFUSED
+			ECONNREFUSED,
+			connect_callback
 		};
 
 		dest->socket_pimpl->connect_.data = ctx;
@@ -869,6 +937,7 @@ void dispatcher::do_terminate( dispatcher_termination termination_method )
 		; // TODO: Throw something, but read above.
 #else
 	::uv_stop( &pimpl_->uv_loop );
+	::uv_async_send( &pimpl_->uv_async );
 #endif
 }
 

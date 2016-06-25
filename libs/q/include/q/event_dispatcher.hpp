@@ -31,6 +31,9 @@ typedef std::shared_ptr< basic_event_dispatcher > event_dispatcher_ptr;
 
 typedef std::function< task( void ) noexcept > task_fetcher_task;
 
+struct event_dispatcher_yes_tag;
+struct event_dispatcher_no_tag;
+
 class basic_event_dispatcher
 {
 public:
