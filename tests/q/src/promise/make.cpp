@@ -24,7 +24,7 @@ TEST_F( make, by_expression_with_exception )
 	auto promise = q::make_promise( queue,
 		[ ]( ) -> int
 		{
-			throw Error( );
+			Q_THROW( Error( ) );
 		}
 	)
 	.then( EXPECT_NO_CALL( void, int )( ) )

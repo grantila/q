@@ -32,7 +32,7 @@ TEST_F( finally, synchronous_with_exception )
 		.then( EXPECT_CALL_WRAPPER(
 		[ ]( ) -> long
 		{
-			throw Error( );
+			Q_THROW( Error( ) );
 		} ) )
 		.finally( EXPECT_CALL_WRAPPER(
 		[ ]( )
@@ -60,7 +60,7 @@ TEST_F( finally, synchronous_with_value_failed_finally )
 		.finally( EXPECT_CALL_WRAPPER(
 		[ ]( )
 		{
-			throw Error( );
+			Q_THROW( Error( ) );
 		} ) )
 		.then( EXPECT_NO_CALL_WRAPPER(
 		[ ]( long value )
@@ -106,7 +106,7 @@ TEST_F( finally, asynchronous_with_exception )
 		.then( EXPECT_CALL_WRAPPER(
 		[ ]( ) -> long
 		{
-			throw Error( );
+			Q_THROW( Error( ) );
 		} ) )
 		.finally( EXPECT_CALL_WRAPPER(
 		[ queue ]( )
@@ -139,7 +139,7 @@ TEST_F( finally, asynchronous_with_value_synchronous_failed_finally )
 		[ queue ]( )
 		-> q::promise< std::tuple< > >
 		{
-			throw Error( );
+			Q_THROW( Error( ) );
 		} ) )
 		.then( EXPECT_NO_CALL_WRAPPER(
 		[ ]( long value )
@@ -169,7 +169,7 @@ TEST_F( finally, asynchronous_with_value_asynchronous_failed_finally )
 			return q::with( queue )
 			.then( [ ]( )
 			{
-				throw Error( );
+				Q_THROW( Error( ) );
 			} );
 		} ) )
 		.then( EXPECT_NO_CALL_WRAPPER(
