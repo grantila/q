@@ -1,6 +1,8 @@
 
 #include "q-io-test.hpp"
 
+#include <q-test/expect.hpp>
+
 QIO_TEST_MAKE_SCOPE( timer );
 
 TEST_F( timer, on_void )

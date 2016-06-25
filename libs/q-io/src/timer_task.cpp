@@ -37,6 +37,8 @@ typename std::decay< Duration >::type::rep to_millis( Duration&& duration )
 timer_task::timer_task( )
 : pimpl_( std::make_shared< pimpl >( ) )
 {
+	event::set_pimpl( &pimpl_->event_ );
+
 	pimpl_->timer_.data = nullptr;
 }
 
@@ -95,29 +97,45 @@ void timer_task::start_timeout(
 	pimpl_->duration_ = duration;
 	pimpl_->repeat_ = repeat;
 
-	stop( );
+	auto _pimpl = pimpl_;
 
-	uv_timer_cb timer_callback = [ ]( ::uv_timer_t* timer )
+	auto starter = [ _pimpl ]( )
 	{
-		auto pimpl_ = reinterpret_cast< pimpl* >( timer->data );
+		::uv_timer_t* timer = &_pimpl->timer_;
+		/* ret */::uv_timer_stop( timer );
 
-		auto task = std::atomic_load( &pimpl_->task_ );
-		if ( task && *task )
-			( *task )( );
+		uv_timer_cb timer_callback = [ ]( ::uv_timer_t* timer )
+		{
+			auto pimpl_ = reinterpret_cast< pimpl* >( timer->data );
+
+			auto task = std::atomic_load( &pimpl_->task_ );
+			if ( task && *task )
+				( *task )( );
+		};
+
+		auto dur_millis = to_millis( _pimpl->duration_ );
+		auto rep_millis = to_millis( _pimpl->repeat_ );
+
+		/* ret */::uv_timer_start(
+			timer, timer_callback, dur_millis, rep_millis );
 	};
 
-	auto dur_millis = to_millis( pimpl_->duration_ );
-	auto rep_millis = to_millis( pimpl_->repeat_ );
-
-	/* ret */::uv_timer_start(
-		&pimpl_->timer_, timer_callback, dur_millis, rep_millis );
+	pimpl_->dispatcher_->get_queue( )->push( starter );
 }
 
 void timer_task::stop( )
 {
 	ensure_attached( );
 
-	/* ret */::uv_timer_stop( &pimpl_->timer_ );
+	auto _pimpl = pimpl_;
+
+	auto stopper = [ _pimpl ]( )
+	{
+		::uv_timer_t* timer = &_pimpl->timer_;
+		/* ret */::uv_timer_stop( timer );
+	};
+
+	pimpl_->dispatcher_->get_queue( )->push( stopper );
 }
 
 void timer_task::sub_attach( const dispatcher_ptr& dispatcher ) noexcept
@@ -125,8 +143,8 @@ void timer_task::sub_attach( const dispatcher_ptr& dispatcher ) noexcept
 	if ( is_attached( ) )
 		Q_THROW( event_error( ), "Already attached" ); // Better error
 
-	pimpl_->dispatcher_pimpl_ = dispatcher->pimpl_;
-	pimpl_->loop_ = &pimpl_->dispatcher_pimpl_->uv_loop;
+	pimpl_->dispatcher_ = dispatcher;
+	pimpl_->loop_ = &pimpl_->dispatcher_->pimpl_->uv_loop;
 
 	if ( ::uv_timer_init( pimpl_->loop_, &pimpl_->timer_ ) )
 		// TODO: Better error, well described and thought through logic

@@ -120,34 +120,6 @@ std::string dispatcher::backend_method( ) const
 	return method;
 }
 
-namespace {
-
-enum class iteration
-{
-	$continue,
-	$break
-};
-
-typedef std::function<
-	iteration( const struct ::event* )
-> event_base_event_iterator_fn;
-
-int event_base_event_iterator( const struct ::event_base*,
-                               const struct ::event* ev,
-                               void* user )
-{
-	auto& fn = *reinterpret_cast< event_base_event_iterator_fn* >( user );
-	switch ( fn( ev ) )
-	{
-		case iteration::$continue:
-			return 0;
-		default:
-			return 1;
-	}
-}
-
-} // anonymous namespace
-
 std::string dispatcher::dump_events( ) const
 {
 	std::string s;
@@ -234,8 +206,6 @@ std::string dispatcher::dump_events( ) const
 		}
 	};
 	::uv_walk( &pimpl_->uv_loop, walker, nullptr );
-
-	::uv_async_send( &pimpl_->uv_async );
 
 	return s;
 }
@@ -361,7 +331,10 @@ void dispatcher::start( )
 {
 	auto self = shared_from_this( );
 
-	auto runner = std::bind( &dispatcher::start_blocking, self );
+	auto runner = [ self ]( )
+	{
+		self->start_blocking( );
+	};
 
 	pimpl_->thread = q::run( pimpl_->name, pimpl_->user_queue, runner );
 }
@@ -443,9 +416,6 @@ dispatcher::delay( q::timer::duration_type dur )
 	return q::async_task( runner );
 }
 
-template< typename T >
-T identity( T&& t ) { return t; }
-
 q::promise< std::tuple< resolver_response > >
 dispatcher::lookup( const std::string& name )
 {
@@ -510,17 +480,7 @@ q::promise< std::tuple< socket_ptr > > dispatcher::connect_to(
 
 		ip_addresses::iterator cur_addr;
 		ip_addresses::iterator end_addr;
-#ifdef QIO_USE_LIBEVENT
-		evutil_socket_t fd;
-
-		~destination( )
-		{
-			if ( fd != -1 )
-				EVUTIL_CLOSESOCKET( fd );
-		}
-#else
-		std::unique_ptr< socket::pimpl > socket_pimpl;
-#endif
+		std::shared_ptr< socket::pimpl > socket_pimpl;
 	};
 
 	auto dest = std::make_shared< destination >( );
@@ -531,68 +491,12 @@ q::promise< std::tuple< socket_ptr > > dispatcher::connect_to(
 
 	dest->cur_addr = dest->addresses.begin( port );
 	dest->end_addr = dest->addresses.end( port );
-#ifdef QIO_USE_LIBEVENT
-	dest->fd = -1;
-#else
-	dest->socket_pimpl = q::make_unique< socket::pimpl >( );
-
-	::uv_tcp_init( &pimpl_->uv_loop, &dest->socket_pimpl->socket_ );
-#endif
+	dest->socket_pimpl = std::make_shared< socket::pimpl >( );
 
 	auto self = shared_from_this( );
 
-	auto has_more_addresses = [ dest ]( )
-	{
-#ifdef QIO_USE_LIBEVENT
-		return ( dest->pos_ipv4 < dest->addresses.ipv4.size( ) ) or
-			( dest->pos_ipv6 < dest->addresses.ipv6.size( ) );
-#else
-		return dest->cur_addr != dest->end_addr;
-#endif
-	};
-
-#ifndef QIO_USE_LIBEVENT
-	// Returns the next sockaddr (or nullptr)
-	auto get_next_address = [ self, dest ]( ) -> std::shared_ptr< sockaddr >
-	{
-		if ( dest->cur_addr == dest->end_addr )
-			return nullptr;
-		return *dest->cur_addr++;
-/*
-		if ( dest->pos_ipv4 < dest->addresses.ipv4.size( ) )
-		{
-			const ipv4_address& ipv4_address =
-				dest->addresses.ipv4[ dest->pos_ipv4++ ];
-
-			auto addr_in = q::make_unique< sockaddr_in >( );
-
-			ipv4_address.populate( *addr_in, dest->port );
-
-			return std::unique_ptr< sockaddr >(
-				reinterpret_cast< sockaddr* >(
-					addr_in.release( ) ) );
-		}
-
-		if ( dest->pos_ipv6 < dest->addresses.ipv6.size( ) )
-		{
-			const ipv6_address& ipv6_address =
-				dest->addresses.ipv6[ dest->pos_ipv6++ ];
-
-			auto addr_in6 = q::make_unique< sockaddr_in6 >( );
-
-			ipv6_address.populate( *addr_in6, dest->port );
-
-			return std::unique_ptr< sockaddr >(
-				reinterpret_cast< sockaddr* >(
-					addr_in6.release( ) ) );
-		}
-
-		return nullptr;
-*/
-	};
-
-	return q::make_promise_sync( pimpl_->user_queue,
-		[ self, dest, get_next_address, has_more_addresses ](
+	return q::make_promise( get_queue( ),
+		[ self, dest ](
 			q::resolver< socket_ptr > resolve,
 			q::rejecter< socket_ptr > reject
 		)
@@ -602,9 +506,6 @@ q::promise< std::tuple< socket_ptr > > dispatcher::connect_to(
 			dispatcher_ptr dispatcher;
 			q::resolver< socket_ptr > resolve_;
 			q::rejecter< socket_ptr > reject_;
-			std::function< std::shared_ptr< sockaddr >( void ) >
-				get_next_address;
-			std::function< bool( void ) > has_more_addresses;
 			std::function< void( context* ) > try_connect;
 			std::shared_ptr< destination > dest;
 			std::shared_ptr< sockaddr > last_address;
@@ -630,6 +531,9 @@ q::promise< std::tuple< socket_ptr > > dispatcher::connect_to(
 			}
 			~context( ) { }
 		};
+
+		::uv_tcp_init(
+			&self->pimpl_->uv_loop, &dest->socket_pimpl->socket_ );
 
 		uv_connect_cb connect_callback = [ ]( uv_connect_t* req, int status )
 		{
@@ -659,7 +563,7 @@ q::promise< std::tuple< socket_ptr > > dispatcher::connect_to(
 			auto& connect = ctx->dest->socket_pimpl->connect_;
 			auto& socket = ctx->dest->socket_pimpl->socket_;
 
-			if ( !ctx->has_more_addresses( ) )
+			if ( ctx->dest->cur_addr == ctx->dest->end_addr )
 			{
 				auto& ipv4 = ctx->dest->addresses.ipv4;
 				auto& ipv6 = ctx->dest->addresses.ipv6;
@@ -671,7 +575,7 @@ q::promise< std::tuple< socket_ptr > > dispatcher::connect_to(
 				return;
 			}
 
-			ctx->last_address = ctx->get_next_address( );
+			ctx->last_address = *ctx->dest->cur_addr++;
 
 			::uv_tcp_connect(
 				&connect,
@@ -685,8 +589,6 @@ q::promise< std::tuple< socket_ptr > > dispatcher::connect_to(
 			self,
 			resolve,
 			reject,
-			get_next_address,
-			has_more_addresses,
 			try_connect,
 			dest,
 			nullptr,
@@ -698,180 +600,21 @@ q::promise< std::tuple< socket_ptr > > dispatcher::connect_to(
 
 		try_connect( ctx );
 	} );
-#else
-	// Performs a connect against the next not-yet-tried address
-	// Returns true if connect was synchronously successful (i.e. we must
-	// await the result of the connect)
-	auto try_next_address = [ self, dest ]( ) -> std::pair< bool, int >
-	{
-		if ( dest->pos_ipv4 < dest->addresses.ipv4.size( ) )
-		{
-			if ( dest->fd != -1 )
-			{
-				EVUTIL_CLOSESOCKET( dest->fd );
-				dest->fd = -1;
-			}
-
-			const ipv4_address& ipv4_address =
-				dest->addresses.ipv4[ dest->pos_ipv4++ ];
-
-			struct sockaddr_in addr;
-
-			ipv4_address.populate( addr, dest->port );
-
-			dest->fd = create_socket( PF_INET );
-
-			return q::io::connect( dest->fd, addr );
-		}
-
-		if ( dest->pos_ipv6 < dest->addresses.ipv6.size( ) )
-		{
-			if ( dest->fd != -1 )
-			{
-				EVUTIL_CLOSESOCKET( dest->fd );
-				dest->fd = -1;
-			}
-
-			const ipv6_address& ipv6_address =
-				dest->addresses.ipv6[ dest->pos_ipv6++ ];
-
-			struct sockaddr_in6 addr;
-
-			ipv6_address.populate( addr, dest->port );
-
-			dest->fd = create_socket( PF_INET6 );
-
-			return q::io::connect( dest->fd, addr );
-		}
-
-		return std::make_pair( false, EINVAL );
-	};
-
-	int last_error = EINVAL;
-	bool first_success = false;
-	while ( has_more_addresses( ) && !first_success )
-	{
-		auto ret = try_next_address( );
-		first_success = ret.first;
-		last_error = ret.second;
-	}
-
-	if ( !first_success )
-		return q::reject< q::arguments< socket_ptr > >(
-			pimpl_->user_queue,
-			get_exception_by_errno( last_error ) );
-
-	return q::make_promise_sync( pimpl_->user_queue,
-		[ self, dest, try_next_address, has_more_addresses ](
-			q::resolver< socket_ptr > resolve,
-			q::rejecter< socket_ptr > reject
-		)
-	{
-		struct context
-		{
-			dispatcher_ptr dispatcher;
-			q::resolver< socket_ptr > resolve;
-			q::rejecter< socket_ptr > reject;
-			std::function< std::pair< bool, int >( void ) >
-				try_connect;
-			std::function< bool( void ) > has_more_addresses;
-			std::shared_ptr< destination > dest;
-			event_callback_fn cb;
-		};
-
-		auto event_cb = [ ](
-			evutil_socket_t socket, short what, void* arg )
-		{
-			context* ctx = reinterpret_cast< context* >( arg );
-
-			const dispatcher_ptr& dispatcher = ctx->dispatcher;
-			destination& dest = *ctx->dest;
-
-			::event_base* base = dispatcher->pimpl_->event_base;
-
-			int err;
-			socklen_t len = sizeof err;
-			auto ret = ::getsockopt(
-				socket, SOL_SOCKET, SO_ERROR, &err, &len );
-
-			if ( !ret && !err )
-			{
-				// Connection success
-				auto sock = ::q::io::socket::construct( socket );
-
-				sock->attach( dispatcher );
-
-				ctx->resolve( sock );
-
-				// Remove fd from destination to avoid closing
-				// it
-				dest.fd = -1;
-
-				delete ctx;
-
-				return;
-			}
-
-			if ( ret == -1 )
-				err = errno;
-
-			int errno_ = err;
-
-			while ( ctx->has_more_addresses( ) )
-			{
-				auto ret = ctx->try_connect( );
-				errno_ = ret.second;
-
-				if ( ret.first )
-				{
-					// Try again
-					::event_base_once(
-						base,
-						dest.fd,
-						EV_WRITE,
-						ctx->cb,
-						ctx,
-						nullptr );
-					return;
-				}
-			}
-
-			ctx->reject( get_exception_by_errno( errno_ ) );
-
-			delete ctx;
-		};
-
-		context* ctx = new context {
-			self,
-			resolve,
-			reject,
-			try_next_address,
-			has_more_addresses,
-			dest,
-			event_cb
-		};
-
-		::event_base_once(
-			self->pimpl_->event_base,
-			dest->fd,
-			EV_WRITE,
-			ctx->cb,
-			ctx,
-			nullptr );
-	} );
-#endif
 }
 
-server_socket_ptr dispatcher::listen(
-	std::uint16_t port, ip_addresses&& bind_to
-)
+q::promise< std::tuple< server_socket_ptr > >
+dispatcher::listen( std::uint16_t port, ip_addresses&& bind_to )
 {
 #ifndef QIO_USE_LIBEVENT
+	auto self = shared_from_this( );
 	auto server = server_socket::construct( port, std::move( bind_to ) );
 
-	server->attach_dispatcher( shared_from_this( ) );
+	return q::make_promise( get_queue( ), [ self, server ]( )
+	{
+		server->attach( self );
 
-	return server;
+		return server;
+	} );
 #else
 	auto dest = ip_addresses( "127.0.0.1" );
 

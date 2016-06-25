@@ -57,6 +57,7 @@ class dispatcher
 >
 , ::q::timer_dispatcher
 , public std::enable_shared_from_this< dispatcher >
+, public q::enable_queue_from_this
 {
 	typedef ::q::event_dispatcher<
 		q::arguments< dispatcher_termination >,
@@ -171,8 +172,11 @@ public:
 	 * Create a server_socket which listens to incoming connections on a
 	 * certain interface (given its ip address) and port.
 	 */
-	server_socket_ptr listen( std::uint16_t port, ip_addresses&& bind_to );
-	server_socket_ptr listen(
+	q::promise< std::tuple< server_socket_ptr > >
+	listen( std::uint16_t port, ip_addresses&& bind_to );
+
+	q::promise< std::tuple< server_socket_ptr > >
+	listen(
 		std::uint16_t port, std::string bind_to = "0.0.0.0"
 	)
 	{

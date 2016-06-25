@@ -10,35 +10,30 @@ std::atomic< std::uint16_t > ports( 1030 );
 TEST_F( connect, client_server_connrefused )
 {
 	auto dest = q::io::ip_addresses( "127.0.0.1" );
-//	auto dest = q::io::ip_addresses( "172.217.18.142" );
 
 	EVENTUALLY_EXPECT_REJECTION_WITH(
-		io_dispatcher->connect_to( dest, 80 ),
+		io_dispatcher->connect_to( dest, 1 ),
 		q::errno_connrefused_exception
 	);
-
-	q::run("hacker", queue, [ this ]( )
-	{
-		::usleep( 1000 * 1000 );
-		std::cout << "EVENTS: " << this->io_dispatcher->dump_events( ) << std::endl;
-	} );
 }
 
-TEST_F( connect, ONLY_client_server_send_data )
+TEST_F( connect, DISABLED_client_server_send_data )
 {
 	const std::string test_data = "hello world";
 
 	auto port = ports++;
 
-	auto socket_server = io_dispatcher->listen( port );
-
-	auto promise_server = socket_server->clients( ).receive( )
-	.then( [ socket_server, &test_data ]( q::io::socket_ptr client )
+	auto promise_server = io_dispatcher->listen( port )
+	.then( [ test_data ]( q::io::server_socket_ptr socket_server )
 	{
-		return client->in( ).receive( )
-		.then( [ client, &test_data ]( q::byte_block&& block )
+		return socket_server->clients( ).receive( )
+		.then( [ socket_server, &test_data ]( q::io::socket_ptr client )
 		{
-			return block.to_string( );
+			return client->in( ).receive( )
+			.then( [ client, &test_data ]( q::byte_block&& block )
+			{
+				return block.to_string( );
+			} );
 		} );
 	} )
 	.share( );
@@ -67,21 +62,19 @@ TEST_F( connect, client_server_close_client_on_destruction )
 {
 	auto port = ports++;
 
-	auto socket_server = io_dispatcher->listen( port );
-
-	keep_alive( q::make_scope( socket_server ) );
-
-	auto promise_server = socket_server->clients( ).receive( )
-	.then( [ this ]( q::io::socket_ptr client )
+	auto promise_server = io_dispatcher->listen( port )
+	.then( [ this ]( q::io::server_socket_ptr socket_server )
 	{
-		return client->in( ).receive( )
-		.then( [ ]( q::byte_block&& block )
+		return socket_server->clients( ).receive( )
+		.then( [ this, socket_server ]( q::io::socket_ptr client )
 		{
-			EXPECT_TRUE( false );
-		} )
-		.fail( EXPECT_CALL_WRAPPER(
-			[ ]( std::exception_ptr e ) { }
-		) );
+			EVENTUALLY_EXPECT_REJECTION_WITH(
+				client->in( ).receive( ),
+				q::channel_closed_exception
+			);
+
+			client->detach( );
+		} );
 	} );
 
 	auto promise_client = q::with( io_queue )

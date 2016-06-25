@@ -77,8 +77,7 @@ typename std::enable_if<
 >::type
 should_auto_start( EventDispatcher&& );
 
-template< typename EventDispatcher >
-std::false_type should_auto_start( EventDispatcher&& );
+std::false_type should_auto_start( const basic_event_dispatcher& );
 
 template< typename EventDispatcher >
 struct event_dispatcher_type_traits
@@ -87,6 +86,32 @@ struct event_dispatcher_type_traits
 		should_auto_start( std::declval< EventDispatcher >( ) )
 	) autostart;
 };
+
+template< typename EventDispatcher >
+typename std::enable_if<
+	std::is_base_of<
+		q::enable_queue_from_this,
+		typename std::decay< EventDispatcher >::type
+	>::value
+>::type
+set_event_dispatcher_queue(
+	EventDispatcher&& event_dispatcher, const queue_ptr& queue
+)
+{
+	event_dispatcher.set_queue( queue );
+}
+
+template< typename EventDispatcher >
+typename std::enable_if<
+	!std::is_base_of<
+		q::enable_queue_from_this,
+		typename std::decay< EventDispatcher >::type
+	>::value
+>::type
+set_event_dispatcher_queue(
+	EventDispatcher&& event_dispatcher, const queue_ptr& queue
+)
+{ }
 
 } // namespace detail
 
@@ -106,7 +131,8 @@ make_execution_context( Args&&... args )
 		specific_execution_context< EventDispatcher >
 	>( ed, s );
 
-//	if ( std::is_same< EventDispatcher, ::q::threadpool >::value )
+	set_event_dispatcher_queue( *ed, ec->queue( ) );
+
 	if (
 		detail::event_dispatcher_type_traits< EventDispatcher >
 		::autostart::value

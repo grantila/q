@@ -31,6 +31,11 @@ public:
 	typedef generic_promise< Shared, tuple_type > this_type;
 	typedef promise< tuple_type >                 unique_this_type;
 	typedef shared_promise< tuple_type >          shared_this_type;
+	typedef typename std::conditional<
+		Shared,
+		shared_this_type,
+		unique_this_type
+	>::type                                       promise_this_type;
 	typedef promise_state< tuple_type, Shared >   state_type;
 	typedef promise_state< tuple_type, false >    unique_state_type;
 	typedef unique_this_type                      promise_type;
@@ -185,7 +190,7 @@ public:
 		is_same_type< Logger, log_chain_generator >::value
 		and
 		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
-		this_type
+		unique_this_type
 	>::type
 	then( Logger&& logger, Queue&& queue = nullptr );
 
@@ -199,7 +204,7 @@ public:
 	template< typename AsyncTask >
 	typename std::enable_if<
 		is_same_type< AsyncTask, async_task >::value,
-		this_type
+		unique_this_type
 	>::type
 	then( AsyncTask&& task );
 
@@ -241,7 +246,7 @@ public:
 			::template is_convertible_to< argument_types >::value
 		and
 		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
-		this_type
+		promise_this_type
 	>::type
 	fail( Fn&& fn, Queue&& queue = nullptr );
 
@@ -263,7 +268,7 @@ public:
 			::template is_convertible_to< argument_types >::value
 		and
 		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
-		this_type
+		promise_this_type
 	>::type
 	fail( Fn&& fn, Queue&& queue = nullptr );
 
@@ -282,7 +287,7 @@ public:
 			::template is_convertible_to< argument_types >::value
 		and
 		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
-		this_type
+		promise_this_type
 	>::type
 	fail( Fn&& fn, Queue&& queue = nullptr );
 
@@ -303,7 +308,7 @@ public:
 			::template is_convertible_to< argument_types >::value
 		and
 		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
-		this_type
+		promise_this_type
 	>::type
 	fail( Fn&& fn, Queue&& queue = nullptr );
 
@@ -326,7 +331,7 @@ public:
 		Q_ARITY_OF( Fn ) == 0
 		and
 		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
-		unique_this_type
+		promise_this_type
 	>::type
 	finally( Fn&& fn, Queue&& queue = nullptr );
 
@@ -343,7 +348,7 @@ public:
 			::result_type::argument_types::size::value == 0
 		and
 		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
-		unique_this_type
+		promise_this_type
 	>::type
 	finally( Fn&& fn, Queue&& queue = nullptr );
 

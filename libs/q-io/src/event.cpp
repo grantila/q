@@ -45,6 +45,11 @@ dispatcher_ptr event::get_dispatcher( )
 	return pimpl_->dispatcher.lock( );
 }
 
+void event::set_pimpl( pimpl* _pimpl )
+{
+	pimpl_ = _pimpl;
+}
+
 void event::attach( const dispatcher_ptr& dispatcher )
 {
 	pimpl_->dispatcher = dispatcher;

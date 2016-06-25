@@ -23,7 +23,9 @@
 
 namespace q { namespace io {
 
-typedef std::weak_ptr< server_socket > inner_ref_type;
+typedef std::shared_ptr< server_socket::pimpl > inner_ref_type;
+
+namespace {
 
 void closer( ::uv_handle_t* handle )
 {
@@ -34,9 +36,13 @@ void closer( ::uv_handle_t* handle )
 		delete ref;
 };
 
+} // anonymous namespace
+
 server_socket::server_socket( std::uint16_t port, ip_addresses&& bind_to )
 : pimpl_( q::make_unique< pimpl >( ) )
 {
+	set_pimpl( &pimpl_->event_ );
+
 	pimpl_->port_ = port;
 	pimpl_->bind_to_ = std::move( bind_to );
 
@@ -64,10 +70,12 @@ server_socket::~server_socket( )
 			closer
 		);
 	}
-
+/*
 	auto ref = reinterpret_cast< inner_ref_type* >( pimpl_->socket_.data );
 	if ( ref )
 		delete ref;
+*/
+
 /*
 	if ( pimpl_->ev_ )
 		::event_free( pimpl_->ev_ );
@@ -87,7 +95,7 @@ q::readable< socket_ptr > server_socket::clients( )
 	return pimpl_->channel_->get_readable( );
 }
 
-void server_socket::attach_dispatcher( const dispatcher_ptr& dispatcher )
+void server_socket::sub_attach( const dispatcher_ptr& dispatcher ) noexcept
 {
 	pimpl_->dispatcher_ = dispatcher;
 
@@ -110,21 +118,15 @@ void server_socket::attach_dispatcher( const dispatcher_ptr& dispatcher )
 
 	::uv_tcp_init( pimpl_->uv_loop_, &pimpl_->socket_ );
 
-	pimpl_->socket_.data = nullptr;
-
 	::uv_tcp_bind( &pimpl_->socket_, &*addr, 0 );
 
-	::uv_stream_t* server = reinterpret_cast< ::uv_stream_t* >(
-		&pimpl_->socket_ );
+	auto ref = new inner_ref_type( pimpl_ );
 
-	auto ref = new inner_ref_type( shared_from_this( ) );
-
-	server->data = reinterpret_cast< void* >( ref );
+	pimpl_->socket_.data = reinterpret_cast< void* >( ref );
 
 	uv_connection_cb connection_callback = [ ]( ::uv_stream_t* server, int status )
 	{
-		auto ref = reinterpret_cast< inner_ref_type* >( server->data )
-			->lock( );
+		auto ref = *reinterpret_cast< inner_ref_type* >( server->data );
 
 		if ( status < 0 )
 		{
@@ -146,9 +148,9 @@ void server_socket::attach_dispatcher( const dispatcher_ptr& dispatcher )
 			return;
 		}
 
-		auto socket_pimpl = q::make_unique< socket::pimpl >( );
+		auto socket_pimpl = std::make_shared< socket::pimpl >( );
 
-		::uv_tcp_init( ref->pimpl_->uv_loop_, &socket_pimpl->socket_ );
+		::uv_tcp_init( ref->uv_loop_, &socket_pimpl->socket_ );
 
 		auto client = reinterpret_cast< ::uv_stream_t* >(
 			&socket_pimpl->socket_ );
@@ -158,7 +160,9 @@ void server_socket::attach_dispatcher( const dispatcher_ptr& dispatcher )
 			auto client_socket = socket::construct(
 				std::move( socket_pimpl ) );
 
-			auto writable = ref->pimpl_->channel_->get_writable( );
+			client_socket->attach( ref->dispatcher_ );
+
+			auto writable = ref->channel_->get_writable( );
 			writable.send( std::move( client_socket ) );
 		}
 		else
@@ -168,6 +172,9 @@ void server_socket::attach_dispatcher( const dispatcher_ptr& dispatcher )
 			::uv_close( client_handle, nullptr );
 		}
 	};
+
+	::uv_stream_t* server = reinterpret_cast< ::uv_stream_t* >(
+		&pimpl_->socket_ );
 
 	int ret = ::uv_listen( server, socket_backlog, connection_callback );
 

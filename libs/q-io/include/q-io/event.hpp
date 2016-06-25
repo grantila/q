@@ -35,6 +35,8 @@ public:
 	~event( );
 
 protected:
+	struct pimpl;
+
 	event( );
 
 	virtual void on_event_read( ) noexcept { }
@@ -45,8 +47,7 @@ protected:
 
 	dispatcher_ptr get_dispatcher( );
 
-	struct pimpl;
-	pimpl* pimpl_;
+	void set_pimpl( pimpl* );
 
 private:
 	friend class dispatcher;
@@ -58,6 +59,8 @@ private:
 
 	virtual void
 	sub_attach( const dispatcher_ptr& dispatcher ) noexcept = 0;
+
+	pimpl* pimpl_;
 };
 
 } } // namespace io, namespace q

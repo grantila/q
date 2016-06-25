@@ -33,8 +33,9 @@ class socket
 : public std::enable_shared_from_this< socket >
 , public event
 {
-	struct pimpl;
 public:
+	struct pimpl;
+
 	~socket( );
 
 	/**
@@ -65,10 +66,10 @@ public:
 	void detach( );
 
 protected:
-	static socket_ptr construct( std::unique_ptr< socket::pimpl >&& );
+	static socket_ptr construct( std::shared_ptr< socket::pimpl >&& );
 
 private:
-	socket( std::unique_ptr< socket::pimpl >&& );
+	socket( std::shared_ptr< socket::pimpl >&& );
 
 	friend class dispatcher;
 	friend class server_socket;
@@ -87,7 +88,7 @@ private:
 */
 	void close_socket( );
 
-	std::unique_ptr< pimpl > pimpl_;
+	std::shared_ptr< pimpl > pimpl_;
 };
 
 } } // namespace io, namespace q

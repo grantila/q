@@ -137,6 +137,8 @@ struct socket::pimpl
 
 struct server_socket::pimpl
 {
+	event::pimpl event_;
+
 	std::shared_ptr< q::channel< socket_ptr > > channel_;
 
 	std::uint16_t port_;
@@ -165,12 +167,14 @@ struct server_socket::pimpl
 
 struct timer_task::pimpl
 {
+	event::pimpl event_;
+
 	::uv_loop_t* loop_;
 	::uv_timer_t timer_;
 
 	std::shared_ptr< pimpl > cleanup_keepalive_ptr_;
 
-	std::shared_ptr< dispatcher::pimpl > dispatcher_pimpl_;
+	dispatcher_ptr dispatcher_;
 	std::shared_ptr< q::task > task_;
 	clock::duration duration_;
 	clock::duration repeat_;

@@ -49,11 +49,27 @@ namespace q { namespace io {
 	::uv_connect_t connect_;
 */
 
-socket::socket( std::unique_ptr< socket::pimpl >&& _pimpl )
+typedef std::shared_ptr< socket::pimpl > inner_ref_type;
+
+namespace {
+
+void closer( ::uv_handle_t* handle )
+{
+	auto socket = reinterpret_cast< ::uv_tcp_t* >( handle );
+	auto ref = reinterpret_cast< inner_ref_type* >( socket->data );
+
+	if ( ref )
+		delete ref;
+};
+
+} // anonymous namespace
+
+socket::socket( std::shared_ptr< socket::pimpl >&& _pimpl )
 : pimpl_( std::move( _pimpl ) )
 {
-	event::pimpl_ = &pimpl_->event_;
+	event::set_pimpl( &pimpl_->event_ );
 
+	pimpl_->socket_.data = nullptr;
 /*
 	pimpl_->can_read_ = false;
 	pimpl_->can_write_ = true;
@@ -65,7 +81,7 @@ socket::~socket( )
 	close_socket( );
 }
 
-socket_ptr socket::construct( std::unique_ptr< socket::pimpl >&& pimpl )
+socket_ptr socket::construct( std::shared_ptr< socket::pimpl >&& pimpl )
 {
 	return q::make_shared_using_constructor< socket >( std::move( pimpl ) );
 }
@@ -117,6 +133,8 @@ socket_event_ptr socket::socket_event_shared_from_this( )
 void socket::sub_attach( const dispatcher_ptr& dispatcher ) noexcept
 {
 	auto& dispatcher_pimpl = get_dispatcher_pimpl( );
+
+	pimpl_->socket_.data = new inner_ref_type( pimpl_ );
 
 	// TODO: Reconsider these
 	std::size_t backlog_in = 6;
@@ -360,7 +378,7 @@ void socket::close_socket( )
 	::q::io::socket_event::close_socket( );
 #else
 	auto handle = reinterpret_cast< ::uv_handle_t* >( &pimpl_->socket_ );
-	::uv_close( handle, nullptr );
+	::uv_close( handle, closer );
 #endif
 
 	if ( !!writable_in )
