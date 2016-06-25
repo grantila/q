@@ -221,7 +221,9 @@ inline typename std::enable_if<
 	is_same_type< Logger, log_chain_generator >::value
 	and
 	Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
-	typename generic_promise< Shared, std::tuple< Args... > >::this_type
+	typename generic_promise<
+		Shared, std::tuple< Args... >
+	>::promise_this_type
 >::type
 generic_promise< Shared, std::tuple< Args... > >::
 then( Logger&& logger, Queue&& queue )
@@ -238,7 +240,7 @@ then( Logger&& logger, Queue&& queue )
 
 	// queue->push( fn );
 
-	return this_type( std::move( future ) );
+	return promise_this_type( std::move( future ) );
 }
 
 
@@ -246,7 +248,9 @@ template< bool Shared, typename... Args >
 template< typename AsyncTask >
 inline typename std::enable_if<
 	is_same_type< AsyncTask, async_task >::value,
-	typename generic_promise< Shared, std::tuple< Args... > >::this_type
+	typename generic_promise<
+		Shared, std::tuple< Args... >
+	>::promise_this_type
 >::type
 generic_promise< Shared, std::tuple< Args... > >::
 then( AsyncTask&& task )
@@ -289,7 +293,7 @@ then( AsyncTask&& task )
 
 	state_->signal( )->push_synchronous( std::move( perform ) );
 
-	return std::move( deferred->get_promise( ) );
+	return deferred->template get_suitable_promise< promise_this_type >( );
 }
 
 
@@ -316,7 +320,9 @@ typename std::enable_if<
 		>::value
 	and
 	Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
-	typename generic_promise< Shared, std::tuple< Args... > >::this_type
+	typename generic_promise<
+		Shared, std::tuple< Args... >
+	>::promise_this_type
 >::type
 generic_promise< Shared, std::tuple< Args... > >::
 fail( Fn&& fn, Queue&& queue )
@@ -382,7 +388,9 @@ typename std::enable_if<
 		>::value
 	and
 	Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
-	typename generic_promise< Shared, std::tuple< Args... > >::this_type
+	typename generic_promise<
+		Shared, std::tuple< Args... >
+	>::promise_this_type
 >::type
 generic_promise< Shared, std::tuple< Args... > >::
 fail( Fn&& fn, Queue&& queue )
@@ -438,7 +446,9 @@ typename std::enable_if<
 		>::value
 	and
 	Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
-	typename generic_promise< Shared, std::tuple< Args... > >::this_type
+	typename generic_promise<
+		Shared, std::tuple< Args... >
+	>::promise_this_type
 >::type
 generic_promise< Shared, std::tuple< Args... > >::
 fail( Fn&& fn, Queue&& queue )
@@ -518,7 +528,9 @@ typename std::enable_if<
 		>::value
 	and
 	Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
-	typename generic_promise< Shared, std::tuple< Args... > >::this_type
+	typename generic_promise<
+		Shared, std::tuple< Args... >
+	>::promise_this_type
 >::type
 generic_promise< Shared, std::tuple< Args... > >::
 fail( Fn&& fn, Queue&& queue )
@@ -591,7 +603,7 @@ typename std::enable_if<
 	Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
 	typename generic_promise<
 		Shared, std::tuple< Args... >
-	>::unique_this_type
+	>::promise_this_type
 >::type
 generic_promise< Shared, std::tuple< Args... > >::
 finally( Fn&& fn, Queue&& queue )
@@ -641,7 +653,7 @@ typename std::enable_if<
 	Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
 	typename generic_promise<
 		Shared, std::tuple< Args... >
-	>::unique_this_type
+	>::promise_this_type
 >::type
 generic_promise< Shared, std::tuple< Args... > >::
 finally( Fn&& fn, Queue&& queue )
