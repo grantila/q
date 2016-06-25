@@ -52,6 +52,8 @@ map( Fn&& fn )
 
 		queue->push( [ deferred, fn, t ]( )
 		{
+			deferred->set_by_fun( fn, std::move( t ) );
+			/*
 			try
 			{
 				deferred->set_value( fn( std::move( t ) ) );
@@ -61,6 +63,7 @@ map( Fn&& fn )
 				deferred->set_exception(
 					std::current_exception( ) );
 			}
+			*/
 		} );
 	} )
 	.then( [ writable ]( ) mutable
