@@ -65,6 +65,56 @@ protected:
 	std::shared_ptr< Dispatcher > ed_;
 };
 
+namespace detail {
+
+template< typename EventDispatcher >
+typename std::enable_if<
+	std::is_same<
+		typename std::decay< EventDispatcher >::type::autostart_tag,
+		event_dispatcher_yes_tag
+	>::value,
+	std::true_type
+>::type
+should_auto_start( EventDispatcher&& );
+
+std::false_type should_auto_start( const basic_event_dispatcher& );
+
+template< typename EventDispatcher >
+struct event_dispatcher_type_traits
+{
+	typedef decltype(
+		should_auto_start( std::declval< EventDispatcher >( ) )
+	) autostart;
+};
+
+template< typename EventDispatcher >
+typename std::enable_if<
+	std::is_base_of<
+		q::enable_queue_from_this,
+		typename std::decay< EventDispatcher >::type
+	>::value
+>::type
+set_event_dispatcher_queue(
+	EventDispatcher&& event_dispatcher, const queue_ptr& queue
+)
+{
+	event_dispatcher.set_queue( queue );
+}
+
+template< typename EventDispatcher >
+typename std::enable_if<
+	!std::is_base_of<
+		q::enable_queue_from_this,
+		typename std::decay< EventDispatcher >::type
+	>::value
+>::type
+set_event_dispatcher_queue(
+	EventDispatcher&& event_dispatcher, const queue_ptr& queue
+)
+{ }
+
+} // namespace detail
+
 template<
 	typename EventDispatcher,
 	typename Scheduler = ::q::direct_scheduler,
@@ -81,7 +131,12 @@ make_execution_context( Args&&... args )
 		specific_execution_context< EventDispatcher >
 	>( ed, s );
 
-	if ( std::is_same< EventDispatcher, ::q::threadpool >::value )
+	set_event_dispatcher_queue( *ed, ec->queue( ) );
+
+	if (
+		detail::event_dispatcher_type_traits< EventDispatcher >
+			::autostart::value
+	)
 		ed->start( );
 
 	return ec;

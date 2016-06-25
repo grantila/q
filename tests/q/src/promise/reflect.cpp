@@ -65,7 +65,7 @@ TEST_F( reflect, reflect_tuple_with_zero_elements_with_exception )
 		.then( EXPECT_CALL_WRAPPER(
 		[ ]( )
 		{
-			throw Error( );
+			Q_THROW( Error( ) );
 		} ) )
 		.reflect_tuple( )
 		.then( EXPECT_CALL_WRAPPER(
@@ -88,7 +88,7 @@ TEST_F( reflect, reflect_tuple_with_one_element_with_exception )
 		[ ]( int i ) -> int
 		{
 			EXPECT_EQ( 17, i );
-			throw Error( );
+			Q_THROW( Error( ) );
 		} ) )
 		.reflect_tuple( )
 		.then( EXPECT_CALL_WRAPPER(
@@ -113,7 +113,7 @@ TEST_F( reflect, reflect_tuple_with_two_elements_with_exception )
 		{
 			EXPECT_EQ( 17, i );
 			EXPECT_FLOAT_EQ( (float)3.14, f );
-			throw Error( );
+			Q_THROW( Error( ) );
 		} ) ) )
 		.reflect_tuple( )
 		.then( EXPECT_CALL_WRAPPER(
@@ -192,7 +192,7 @@ TEST_F( reflect, reflect_with_zero_elements_with_exception )
 		.then( EXPECT_CALL_WRAPPER(
 		[ ]( )
 		{
-			throw Error( );
+			Q_THROW( Error( ) );
 		} ) )
 		.reflect( )
 		.then( EXPECT_CALL_WRAPPER(
@@ -215,7 +215,7 @@ TEST_F( reflect, reflect_with_one_element_with_exception )
 		[ ]( int i ) -> int
 		{
 			EXPECT_EQ( 17, i );
-			throw Error( );
+			Q_THROW( Error( ) );
 		} ) )
 		.reflect( )
 		.then( EXPECT_CALL_WRAPPER(
@@ -240,7 +240,7 @@ TEST_F( reflect, reflect_with_two_elements_with_exception )
 		{
 			EXPECT_EQ( 17, i );
 			EXPECT_FLOAT_EQ( (float)3.14, f );
-			throw Error( );
+			Q_THROW( Error( ) );
 		} ) ) )
 		.reflect( )
 		.then( EXPECT_CALL_WRAPPER(

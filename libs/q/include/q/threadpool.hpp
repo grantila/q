@@ -27,6 +27,8 @@ class threadpool
 , public std::enable_shared_from_this< threadpool >
 {
 public:
+	typedef event_dispatcher_yes_tag autostart_tag;
+
 	~threadpool( );
 
 	void notify( ) override;
