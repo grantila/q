@@ -190,7 +190,7 @@ public:
 		is_same_type< Logger, log_chain_generator >::value
 		and
 		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
-		unique_this_type
+		promise_this_type
 	>::type
 	then( Logger&& logger, Queue&& queue = nullptr );
 
@@ -204,7 +204,7 @@ public:
 	template< typename AsyncTask >
 	typename std::enable_if<
 		is_same_type< AsyncTask, async_task >::value,
-		unique_this_type
+		promise_this_type
 	>::type
 	then( AsyncTask&& task );
 
