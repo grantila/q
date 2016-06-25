@@ -21,21 +21,21 @@
 
 namespace q { namespace rx { namespace f {
 
-template< typename T >
-auto mul( T multiplier )
+template< typename T, typename U >
+auto mul( U multiplier )
 {
-	return [ multiplier ]( auto number ) -> T
+	return [ multiplier ]( T number )
 	{
-		return static_cast< T >( number * multiplier );
+		return number * multiplier;
 	};
 }
 
-template< typename T >
-auto div( T denominator )
+template< typename T, typename U >
+auto div( U denominator )
 {
-	return [ denominator ]( auto numerator ) -> T
+	return [ denominator ]( T numerator )
 	{
-		return static_cast< T >( numerator / denominator );
+		return numerator / denominator;
 	};
 }
 

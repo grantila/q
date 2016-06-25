@@ -15,6 +15,8 @@
 #include <string>
 #include <iostream>
 
+Q_MAKE_SIMPLE_EXCEPTION( playground_error );
+
 q::scope initialize( )
 {
 	q::settings settings;
@@ -36,7 +38,7 @@ int main( int argc, char** argv )
 		.zip( obs2, inner_product )
 */
 
-	auto dividor = q::rx::f::div( 5 );
+	auto dividor = q::rx::f::div< int >( 5 );
 
 	auto three = dividor( 15 );
 
@@ -86,13 +88,11 @@ int main( int argc, char** argv )
 	};
 
 	o_from_vector
-		//.map( q::rx::f::mul( 2 ) )
-		/*
+		.map( q::rx::f::mul< int >( 2 ) )
 		.map( [ queue ]( int i )
 		{
 			return i * 2;//q::with( queue, i * 2 );
 		} )
-		*/
 		.consume( consumer )
 		.then( consumption_complete )
 		.fail( consumption_failed )
@@ -102,6 +102,8 @@ int main( int argc, char** argv )
 		} );
 
 	bd->start( );
+
+	std::cout << "Sutting down successfully" << std::endl;
 
 	return 0;
 

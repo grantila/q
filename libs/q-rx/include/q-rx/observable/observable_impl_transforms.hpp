@@ -31,41 +31,48 @@ typename std::enable_if<
 observable< T >::
 map( Fn&& fn )
 {
-	typedef Q_RESULT_OF( Fn ) T2;
+	typedef Q_RESULT_OF( Fn ) Out;
+	typedef q::arguments< Out > out_arguments_type;
+	typedef std::tuple< Out > out_tuple_type;
+	typedef q::promise< out_tuple_type > out_promise_type;
 
-	auto queue = readable_.get_queue( );
+	auto queue = readable_->get_queue( );
 	auto next_queue = queue;
 
-	::q::channel< ::q::expect< T2 > > ch( next_queue, 1 );
+	::q::channel< out_promise_type > ch( next_queue, 1 );
 
 	auto writable = ch.get_writable( );
 
-	consume( [ queue, writable, fn ]( T t )
+	consume( [ queue, writable, fn ]( T t ) mutable
 	{
-		auto deferred = ::q::detail::defer< T2 >::construct( queue );
+		auto deferred = ::q::detail::defer< out_tuple_type >
+			::construct( queue );
 
-		;//d
+		writable.send( deferred->get_promise( ) );
 
-		try
+		queue->push( [ deferred, fn, t ]( )
 		{
-			writable.send( ::q::fulfill( fn( std::move( t ) ) ) );
-		}
-		catch( ... )
-		{
-			writable.send( ::q::refuse_current_exception< T2 >( ) );
-			writable.close( );
-		}
+			try
+			{
+				deferred->set_value( fn( std::move( t ) ) );
+			}
+			catch( ... )
+			{
+				deferred->set_exception(
+					std::current_exception( ) );
+			}
+		} );
 	} )
-	.then( [ writable ]( )
+	.then( [ writable ]( ) mutable
 	{
 		writable.close( );
 	} )
-	.fail( [ writable ]( std::exception_ptr e )
+	.fail( [ writable, queue ]( std::exception_ptr e ) mutable
 	{
-		writable.send( ::q::refuse< T2 >( std::move( e ) ) );
+		writable.send( ::q::reject< out_arguments_type >( queue, std::move( e ) ) );
 	} );
 
-	return observable< T2 >( ch.get_readable( ) );
+	return observable< Out >( ch.get_readable( ) );
 }
 
 /**
