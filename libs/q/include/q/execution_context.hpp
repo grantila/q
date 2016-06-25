@@ -87,6 +87,32 @@ struct event_dispatcher_type_traits
 	) autostart;
 };
 
+template< typename EventDispatcher >
+typename std::enable_if<
+	std::is_base_of<
+		q::enable_queue_from_this,
+		typename std::decay< EventDispatcher >::type
+	>::value
+>::type
+set_event_dispatcher_queue(
+	EventDispatcher&& event_dispatcher, const queue_ptr& queue
+)
+{
+	event_dispatcher.set_queue( queue );
+}
+
+template< typename EventDispatcher >
+typename std::enable_if<
+	!std::is_base_of<
+		q::enable_queue_from_this,
+		typename std::decay< EventDispatcher >::type
+	>::value
+>::type
+set_event_dispatcher_queue(
+	EventDispatcher&& event_dispatcher, const queue_ptr& queue
+)
+{ }
+
 } // namespace detail
 
 template<
@@ -104,6 +130,8 @@ make_execution_context( Args&&... args )
 	auto ec = q::make_shared<
 		specific_execution_context< EventDispatcher >
 	>( ed, s );
+
+	set_event_dispatcher_queue( *ed, ec->queue( ) );
 
 	if (
 		detail::event_dispatcher_type_traits< EventDispatcher >

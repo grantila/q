@@ -34,6 +34,23 @@ typedef std::function< task( void ) noexcept > task_fetcher_task;
 struct event_dispatcher_yes_tag;
 struct event_dispatcher_no_tag;
 
+class enable_queue_from_this
+{
+public:
+	queue_ptr get_queue( )
+	{
+		return queue_;
+	}
+
+	void set_queue( queue_ptr queue )
+	{
+		queue_ = queue;
+	}
+
+private:
+	queue_ptr queue_;
+};
+
 class basic_event_dispatcher
 {
 public:
