@@ -287,6 +287,11 @@ struct function_traits
 	typedef typename match::member_signature_ptr member_signature_ptr;
 
 	/**
+	 * std::function-wrapped type
+	 */
+	typedef std::function< signature >           function_type;
+
+	/**
 	 * The arity of the function, i.e. the number of arguments it expects
 	 */
 	typedef typename argument_types::size        arity;
