@@ -63,6 +63,19 @@ with( const queue_ptr& queue, Tuple&& t )
 	return deferred->get_promise( );
 }
 
+/**
+ * Specialization for promises
+ */
+template< typename Promise >
+typename std::enable_if<
+	is_promise< typename std::decay< Promise >::type >::value,
+	typename std::decay< Promise >::type
+>::type
+with( const queue_ptr& queue, Promise&& p )
+{
+	return p.use_queue( queue );
+}
+
 } // namespace q
 
 #endif // LIBQ_PROMISE_WITH_HPP

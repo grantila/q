@@ -45,3 +45,28 @@ TEST_F( with, with_two_values_tuple )
 		q::with( queue, std::make_tuple( 5, 3.14 ) ),
 		std::make_tuple( 5, 3.14 ) );
 }
+
+TEST_F( with, with_empty_unique_promise )
+{
+	EVENTUALLY_EXPECT_RESOLUTION( q::with( queue, q::with( queue ) ) );
+}
+
+TEST_F( with, with_non_empty_unique_promise )
+{
+	EVENTUALLY_EXPECT_EQ(
+		q::with( queue, q::with( queue, 5 ) ),
+		5 );
+}
+
+TEST_F( with, with_empty_shared_promise )
+{
+	EVENTUALLY_EXPECT_RESOLUTION(
+		q::with( queue, q::with( queue ).share( ) ) );
+}
+
+TEST_F( with, with_non_empty_shared_promise )
+{
+	EVENTUALLY_EXPECT_EQ(
+		q::with( queue, q::with( queue, 5 ).share( ) ),
+		5 );
+}
