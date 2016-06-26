@@ -10,9 +10,22 @@ TEST_F( expect_eq, async_integer_eq_integer )
 	EVENTUALLY_EXPECT_EQ( p, 6 );
 }
 
+TEST_F( expect_eq, async_integers_eq_integers )
+{
+	auto p = q::with( queue, 5, 6 ).share( );
+
+	EVENTUALLY_EXPECT_EQ( p, std::make_tuple( 5, 6 ) );
+}
+
 TEST_F( expect_eq, integer_eq_integer )
 {
 	EVENTUALLY_EXPECT_EQ( 6, 6 );
+}
+
+TEST_F( expect_eq, integers_eq_integers )
+{
+	EVENTUALLY_EXPECT_EQ(
+		std::make_tuple( 5, 6 ), std::make_tuple( 5, 6 ) );
 }
 
 TEST_F( expect_eq, integer_eq_async_integer )
@@ -20,6 +33,13 @@ TEST_F( expect_eq, integer_eq_async_integer )
 	auto p = q::with( queue, 6 ).share( );
 
 	EVENTUALLY_EXPECT_EQ( 6, p );
+}
+
+TEST_F( expect_eq, integers_eq_async_integers )
+{
+	auto p = q::with( queue, 5, 6 ).share( );
+
+	EVENTUALLY_EXPECT_EQ( std::make_tuple( 5, 6 ), p );
 }
 
 TEST_F( expect_eq, async_integer_eq_async_integer )
