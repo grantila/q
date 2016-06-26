@@ -34,9 +34,9 @@
 #include <q/promise/defer.hpp>
 #include <q/promise/reject.hpp>
 #include <q/promise/with.hpp>
-#include <q/promise/when.hpp>
 #include <q/promise/all.hpp>
 #include <q/promise/make.hpp>
+#include <q/promise/promisify.hpp>
 #include <q/promise/promise_impl.hpp>
 
 #include <future>
