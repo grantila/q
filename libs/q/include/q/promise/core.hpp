@@ -60,6 +60,11 @@ struct are_promises
 >
 { };
 
+template< >
+struct are_promises< >
+: std::false_type
+{ };
+
 namespace detail {
 
 template< typename... T >
