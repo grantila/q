@@ -94,7 +94,7 @@ public:
 
 	inline void set_value( const tuple_type& tuple )
 	{
-		auto value = ::q::fulfill< tuple_type >( tuple );
+		auto value = ::q::fulfill< tuple_type >( tuple_type( tuple ) );
 		promise_.set_value( std::move( value ) );
 		signal_->done( );
 	}
