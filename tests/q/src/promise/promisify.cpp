@@ -1,68 +1,74 @@
 
 #include <q-test/q-test.hpp>
+#include <q-test/expect.hpp>
 
 Q_TEST_MAKE_SCOPE( promisify );
 
-TEST_F( promisify, get_void_return_void )
+TEST_F( promisify, function_returning_void )
 {
-	auto promisified = q::promisify( queue, [ ]( )
-	{
-		EXPECT_TRUE( true );
-	} );
+	auto fn = EXPECT_CALL_WRAPPER( [ ]( ) { } );
 
-	auto promise = promisified( )
-	.then( EXPECT_CALL_WRAPPER( [ ]( )
-	{
-		EXPECT_TRUE( true );
-	} ) );
+	auto promise_fn = q::promisify( queue, fn );
 
-	run( std::move( promise ) );
+	EVENTUALLY_EXPECT_RESOLUTION( promise_fn( ) );
 }
 
-TEST_F( promisify, get_void_return_int )
+TEST_F( promisify, function_returning_int )
 {
-	auto promisified = q::promisify( queue, [ ]( )
-	{
-		return 5;
-	} );
+	auto fn = EXPECT_N_CALLS_WRAPPER( 2, [ ]( ) { return 5; } );
 
-	auto promise = promisified( )
-	.then( EXPECT_CALL_WRAPPER( [ ]( int value )
-	{
-		EXPECT_EQ( value, 5 );
-	} ) );
+	auto promise_fn = q::promisify( queue, fn );
 
-	run( std::move( promise ) );
+	EVENTUALLY_EXPECT_RESOLUTION( promise_fn( ) );
+	EVENTUALLY_EXPECT_EQ( promise_fn( ), 5 );
 }
 
-TEST_F( promisify, get_int_return_void )
+TEST_F( promisify, function_getting_int_returning_void )
 {
 	auto promisified = q::promisify( queue, [ ]( int i )
 	{
 		EXPECT_EQ( i, 5 );
 	} );
 
-	auto promise = promisified( 5 )
-	.then( EXPECT_CALL_WRAPPER( [ ]( )
-	{
-		EXPECT_TRUE( true );
-	} ) );
-
-	run( std::move( promise ) );
+	run(
+		promisified( 5 )
+		.then( EXPECT_CALL_WRAPPER( [ ]( ) { } ) )
+	);
 }
 
-TEST_F( promisify, get_int_return_int )
+TEST_F( promisify, function_getting_int_returning_int )
 {
 	auto promisified = q::promisify( queue, [ ]( int i ) -> int
 	{
 		return i * 2;
 	} );
 
-	auto promise = promisified( 5 )
-	.then( EXPECT_CALL_WRAPPER( [ ]( int value )
-	{
-		EXPECT_EQ( value, 10 );
-	} ) );
+	EVENTUALLY_EXPECT_EQ( promisified( 5 ), 10 );
+}
 
-	run( std::move( promise ) );
+TEST_F( promisify, function_returning_empty_promise )
+{
+	auto queue = this->queue;
+
+	auto fn = EXPECT_CALL_WRAPPER(
+		[ queue ]( ) { return q::with( queue ); }
+	);
+
+	auto promise_fn = q::promisify( queue, fn );
+
+	EVENTUALLY_EXPECT_RESOLUTION( promise_fn( ) );
+}
+
+TEST_F( promisify, function_returning_int_promise )
+{
+	auto queue = this->queue;
+
+	auto fn = EXPECT_N_CALLS_WRAPPER( 2,
+		[ queue ]( ) { return q::with( queue, 5 ); }
+	);
+
+	auto promise_fn = q::promisify( queue, fn );
+
+	EVENTUALLY_EXPECT_RESOLUTION( promise_fn( ) );
+	EVENTUALLY_EXPECT_EQ( promise_fn( ), 5 );
 }

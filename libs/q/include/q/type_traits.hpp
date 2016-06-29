@@ -167,6 +167,22 @@ struct tuple_convertible_to_tuple
 >
 { };
 
+template< class... T >
+struct any_type_is_a_reference
+: fold<
+	q::arguments< T... >,
+	generic_operator<
+		std::is_reference, logic_or
+	>::template fold_type,
+	std::false_type
+>
+{ };
+
+template< class... T >
+struct all_types_are_non_references
+: bool_type< !any_type_is_a_reference< T... >::value >
+{ };
+
 template< std::size_t... Indices >
 struct index_tuple
 {

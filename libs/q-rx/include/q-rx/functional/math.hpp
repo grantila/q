@@ -21,19 +21,40 @@
 
 namespace q { namespace rx { namespace f {
 
-template< typename T, typename U >
+namespace detail {
+
+struct same;
+
+template< typename Test, typename Other >
+struct same_or_specific
+{
+	typedef Test type;
+};
+
+template< typename Other >
+struct same_or_specific< same, Other >
+{
+	typedef Other type;
+};
+
+template< typename Test, typename Other >
+using same_or_specific_t = typename same_or_specific< Test, Other >::type;
+
+} // namespace detail
+
+template< typename T = detail::same, typename U >
 auto mul( U multiplier )
 {
-	return [ multiplier ]( T number )
+	return [ multiplier ]( detail::same_or_specific_t< T, U > number )
 	{
 		return number * multiplier;
 	};
 }
 
-template< typename T, typename U >
+template< typename T = detail::same, typename U >
 auto div( U denominator )
 {
-	return [ denominator ]( T numerator )
+	return [ denominator ]( detail::same_or_specific_t< T, U > numerator )
 	{
 		return numerator / denominator;
 	};

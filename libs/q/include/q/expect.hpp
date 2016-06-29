@@ -322,7 +322,7 @@ public:
 	T consume( )
 	{
 		rethrow_on_exception( );
-		return std::move( base::_consume( ) );
+		return base::_consume( );
 	}
 };
 

@@ -47,6 +47,48 @@ static constexpr std::size_t default_resume_count( std::size_t count )
 }
 
 template< typename... T >
+struct channel_traits
+{
+	typedef q::promise< std::tuple< T... > > promise_type;
+	typedef std::tuple< > promise_tuple_type;
+	typedef q::arguments< > promise_arguments_type;
+	typedef std::false_type is_shared;
+
+	typedef std::tuple< T... > outer_tuple_type;
+	typedef channel_traits< T... > type;
+	typedef std::tuple< T... > tuple_type;
+	typedef std::false_type is_promise;
+};
+
+template< typename... T >
+struct channel_traits< q::promise< std::tuple< T... > > >
+{
+	typedef q::promise< std::tuple< T... > > promise_type;
+	typedef std::tuple< T... > promise_tuple_type;
+	typedef arguments< T... > promise_arguments_type;
+	typedef std::false_type is_shared;
+
+	typedef std::tuple< promise_type > outer_tuple_type;
+	typedef channel_traits< promise_type > type;
+	typedef std::tuple< promise_type > tuple_type;
+	typedef std::true_type is_promise;
+};
+
+template< typename... T >
+struct channel_traits< q::shared_promise< std::tuple< T... > > >
+{
+	typedef q::shared_promise< std::tuple< T... > > promise_type;
+	typedef std::tuple< T... > promise_tuple_type;
+	typedef arguments< T... > promise_arguments_type;
+	typedef std::true_type is_shared;
+
+	typedef std::tuple< promise_type > outer_tuple_type;
+	typedef channel_traits< promise_type > type;
+	typedef std::tuple< promise_type > tuple_type;
+	typedef std::true_type is_promise;
+};
+
+template< typename... T >
 class shared_channel
 : public std::enable_shared_from_this< shared_channel< T... > >
 {
@@ -62,6 +104,7 @@ public:
 	)
 	: default_queue_( queue )
 	, mutex_( Q_HERE, "channel" )
+	, close_exception_( )
 	, closed_( false )
 	, paused_( false )
 	, buffer_count_( buffer_count )
@@ -73,18 +116,84 @@ public:
 		return closed_;
 	}
 
+	std::exception_ptr get_exception( )
+	{
+		Q_AUTO_UNIQUE_LOCK( mutex_ );
+
+		return close_exception_;
+	}
+
 	void close( )
+	{
+		close( std::make_exception_ptr( channel_closed_exception( ) ) );
+	}
+
+	template< typename E >
+	typename std::enable_if<
+		!std::is_same<
+			typename std::decay< E >::type,
+			std::exception_ptr
+		>::value
+	>::type
+	close( E&& e )
+	{
+		close( std::make_exception_ptr( std::forward< E >( e ) ) );
+	}
+
+	template< typename E >
+	typename std::enable_if<
+		std::is_same<
+			typename std::decay< E >::type,
+			std::exception_ptr
+		>::value
+		and
+		!channel_traits< T... >::is_promise::value
+	>::type
+	close( E&& e )
+	{
+		close_sync( std::forward< E >( e ) );
+	}
+
+	template< typename E >
+	typename std::enable_if<
+		std::is_same<
+			typename std::decay< E >::type,
+			std::exception_ptr
+		>::value
+		and
+		channel_traits< T... >::is_promise::value
+	>::type
+	close( E&& e )
+	{
+		// In case we treat async errors as closing the channel, which
+		// is the case of promise-valued channels, we defer this
+		// closing as the last thing to push on the queue.
+		// This will close the channel when that promise is awaited.
+		push_rejection( std::forward< E >( e ) );
+	}
+
+	template< typename E >
+	typename std::enable_if<
+		std::is_same<
+			typename std::decay< E >::type,
+			std::exception_ptr
+		>::value
+	>::type
+	close_sync( E&& e )
 	{
 		task notification;
 
 		{
 			Q_AUTO_UNIQUE_LOCK( mutex_ );
 
-			closed_.store( true, std::memory_order_seq_cst );
+			bool was_closed = closed_.exchange(
+				true, std::memory_order_seq_cst );
+
+			if ( !was_closed )
+				close_exception_ = std::forward< E >( e );
 
 			for ( auto& waiter : waiters_ )
-				waiter->set_exception(
-					channel_closed_exception( ) );
+				waiter->set_exception( close_exception_ );
 
 			waiters_.clear( );
 
@@ -102,7 +211,7 @@ public:
 		Q_AUTO_UNIQUE_LOCK( mutex_ );
 
 		if ( closed_.load( std::memory_order_seq_cst ) )
-			Q_THROW( channel_closed_exception( ) );
+			std::rethrow_exception( close_exception_ );
 
 		if ( waiters_.empty( ) )
 		{
@@ -128,8 +237,7 @@ public:
 		{
 			if ( closed_.load( std::memory_order_seq_cst ) )
 				return reject< arguments_type >(
-					default_queue_,
-					channel_closed_exception( ) );
+					default_queue_, close_exception_ );
 
 			auto defer = ::q::make_shared< defer_type >(
 				default_queue_ );
@@ -194,7 +302,61 @@ public:
 		return default_queue_;
 	}
 
+	// This will be called if this is a promise-valued channel with
+	// stop-on-async-errors enabled.
+	void clear( )
+	{
+		Q_AUTO_UNIQUE_LOCK( mutex_ );
+
+		while ( !queue_.empty( ) )
+			queue_.pop( );
+	}
+
 private:
+	template< typename E >
+	inline typename std::enable_if<
+		std::is_same<
+			typename std::decay< E >::type,
+			std::exception_ptr
+		>::value
+		and
+		!channel_traits< T... >::is_shared::value
+	>::type
+	push_rejection( E&& e )
+	{
+		Q_AUTO_UNIQUE_LOCK( mutex_ );
+
+		typedef typename channel_traits< T... >::promise_arguments_type
+			arguments_type;
+
+		auto promise = q::reject< arguments_type >(
+			default_queue_, std::forward< E >( e ) );
+
+		queue_.push( std::move( promise ) );
+	}
+
+	template< typename E >
+	inline typename std::enable_if<
+		std::is_same<
+			typename std::decay< E >::type,
+			std::exception_ptr
+		>::value
+		and
+		channel_traits< T... >::is_shared::value
+	>::type
+	push_rejection( E&& e )
+	{
+		Q_AUTO_UNIQUE_LOCK( mutex_ );
+
+		typedef typename channel_traits< T... >::promise_arguments_type
+			arguments_type;
+
+		auto promise = q::reject< arguments_type >(
+			default_queue_, std::forward< E >( e ) );
+
+		queue_.push( promise.share( ) );
+	}
+
 	inline void resume( )
 	{
 		if ( paused_.exchange( false ) )
@@ -210,6 +372,7 @@ private:
 	mutex mutex_;
 	std::list< std::shared_ptr< defer_type > > waiters_;
 	std::queue< tuple_type > queue_;
+	std::exception_ptr close_exception_;
 	std::atomic< bool > closed_;
 	std::atomic< bool > paused_;
 	const std::size_t buffer_count_;
@@ -246,33 +409,10 @@ protected:
 } // namespace detail
 
 template< typename... T >
-struct channel_traits
-{
-	typedef channel_traits< T... > type;
-	typedef std::tuple< T... > tuple_type;
-	typedef q::bool_type<
-		sizeof...( T ) == 1
-		and
-		q::are_promises< T... >::value
-	> is_promise;
-	typedef typename promise_if_first_and_only< T... >::type
-		promise_type;
-	typedef typename promise_if_first_and_only< T... >::tuple_type
-		promise_tuple_type;
-	typedef typename promise_if_first_and_only< T... >::arguments_type
-		promise_arguments_type;
-};
-
-template< typename... T >
 class readable
-: channel_traits< T... >
 {
 public:
-	typedef typename channel_traits< T... >::type traits;
-	typedef typename traits::tuple_type tuple_type;
-	typedef typename traits::is_promise is_promise;
-	typedef typename traits::promise_type promise_type;
-	typedef typename traits::promise_tuple_type promise_tuple_type;
+	typedef typename detail::channel_traits< T... >::type traits;
 
 	readable( ) = default;
 	readable( const readable& ) = default;
@@ -281,28 +421,40 @@ public:
 	readable& operator=( const readable& ) = default;
 	readable& operator=( readable&& ) = default;
 
-	template< typename IsPromise = is_promise >
+	template< bool IsPromise = traits::is_promise::value >
 	typename std::enable_if<
-		!IsPromise::value,
-		promise< tuple_type >
+		!IsPromise,
+		typename traits::promise_type
 	>::type
 	receive( )
 	{
 		return shared_channel_->receive( );
 	}
 
-	template< typename IsPromise = is_promise >
+	template< bool IsPromise = traits::is_promise::value >
 	typename std::enable_if<
-		IsPromise::value,
-		promise_type
+		IsPromise,
+		typename traits::promise_type
 	>::type
 	receive( )
 	{
-		return shared_channel_->receive( )
-		.then( [ ]( promise_type&& promise ) -> promise_type
+		auto shared_channel = shared_channel_;
+
+		return maybe_share( shared_channel_->receive( )
+		.then( [ shared_channel ](
+			typename traits::promise_type&& promise
+		)
 		{
-			return std::move( promise );
-		} );
+			return promise
+			.fail( [ shared_channel ]( std::exception_ptr e )
+			-> typename traits::promise_type
+			{
+				shared_channel->close_sync( e );
+				shared_channel->clear( );
+				std::rethrow_exception(
+					shared_channel->get_exception( ) );
+			} );
+		} ) );
 	}
 
 	bool is_closed( )
@@ -332,6 +484,26 @@ private:
 		std::make_shared< detail::shared_channel_owner< T... > >( ch ) )
 	{ }
 
+	template< typename Promise, bool Shared = traits::is_shared::value >
+	typename std::enable_if<
+		!Shared,
+		typename traits::promise_type
+	>::type
+	maybe_share( Promise&& promise )
+	{
+		return std::forward< Promise >( promise );
+	}
+
+	template< typename Promise, bool Shared = traits::is_shared::value >
+	typename std::enable_if<
+		Shared,
+		typename traits::promise_type
+	>::type
+	maybe_share( Promise&& promise )
+	{
+		return promise.share( );
+	}
+
 	friend class channel< T... >;
 
 	std::shared_ptr< detail::shared_channel< T... > > shared_channel_;
@@ -340,12 +512,14 @@ private:
 
 template< typename... T >
 class writable
-: channel_traits< T... >
 {
 public:
-	typedef typename channel_traits< T... >::type traits;
+	typedef typename detail::channel_traits< T... >::type traits;
 	typedef typename traits::tuple_type tuple_type;
 	typedef typename traits::is_promise is_promise;
+	typedef typename traits::promise_type promise_type;
+	typedef typename traits::promise_tuple_type promise_tuple_type;
+	typedef typename traits::outer_tuple_type outer_tuple_type;
 	typedef typename traits::promise_arguments_type promise_arguments_type;
 
 	writable( ) = default;
@@ -355,50 +529,17 @@ public:
 	writable& operator=( const writable& ) = default;
 	writable& operator=( writable&& ) = default;
 
-	template< typename... Args >
-	typename std::enable_if<
-		(
-			sizeof...( Args ) != 1
-			or
-			arguments<
-				typename arguments< Args... >::first_type
-			>::template is_convertible_to<
-				typename tuple_arguments< tuple_type >::this_type
-			>::value
-		)
-		and
-		( sizeof...( Args ) > 0 )
-		and
-		arguments<
-			Args...
-		>::template is_convertible_to<
-			typename tuple_arguments< tuple_type >::this_type
-		>::value
-	>::type
-	send( Args&&... args )
-	{
-		this->send( std::forward_as_tuple(
-			std::forward< Args >( args )... ) );
-	}
-
-	template< typename T_ = tuple_type >
-	typename std::enable_if<
-		!is_promise::value
-		and
-		is_empty_tuple< T_ >::value
-	>::type
-	send( )
-	{
-		this->send( std::make_tuple( ) );
-	}
-
+	/**
+	 * ( tuple< T... > ) ->
+	 */
 	template< typename Tuple >
 	typename std::enable_if<
 		q::is_tuple< typename std::decay< Tuple >::type >::value
 		and
-		q::tuple_convertible_to_tuple<
-			typename std::decay< Tuple >::type,
-			tuple_type
+		tuple_arguments<
+			typename std::decay< Tuple >::type
+		>::template is_convertible_to<
+			typename tuple_arguments< outer_tuple_type >::this_type
 		>::value
 	>::type
 	send( Tuple&& t )
@@ -406,20 +547,56 @@ public:
 		shared_channel_->send( std::forward< Tuple >( t ) );
 	}
 
-	template< typename... U >
+	/**
+	 * Non-promise channel
+	 * ( Args... ) -> tuple< T... >
+	 */
+	template< typename... Args >
+	typename std::enable_if<
+		arguments<
+			typename std::decay< Args >::type...
+		>::template is_convertible_to< arguments< T... > >::value
+	>::type
+	send( Args&&... args )
+	{
+		send( std::make_tuple( std::forward< Args >( args )... ) );
+	}
+
+	/**
+	 * Promise-channel:
+	 * ( Args... ) -> tuple< T... >
+	 */
+	template< typename... Args >
 	typename std::enable_if<
 		is_promise::value
 		and
-		q::arguments< U... >
+		arguments<
+			typename std::decay< Args >::type...
+		>::template is_convertible_to< promise_arguments_type >::value
+	>::type
+	send( Args&&... args )
+	{
+		send( std::make_tuple( std::forward< Args >( args )... ) );
+	}
+
+	/**
+	 * Promise-channel:
+	 * ( tuple< T... > ) -> tuple< promise< tuple< T... > > >
+	 */
+	template< typename Tuple >
+	typename std::enable_if<
+		is_promise::value
+		and
+		tuple_arguments< typename std::decay< Tuple >::type >
 			::template is_convertible_to< promise_arguments_type >
 			::value
 	>::type
-	send( U&&... args )
+	send( Tuple&& t )
 	{
-		send( q::with(
+		send( std::make_tuple( suitable_with(
 			shared_channel_->get_queue( ),
-			std::forward< U >( args )...
-		) );
+			std::forward< Tuple >( t )
+		) ) );
 	}
 
 	bool should_send( )
@@ -454,6 +631,20 @@ private:
 		std::make_shared< detail::shared_channel_owner< T... > >( ch ) )
 	{ }
 
+	template< typename Tuple, bool Shared = traits::is_shared::value >
+	typename std::enable_if< !Shared, promise_type >::type
+	suitable_with( const queue_ptr& queue, Tuple&& t )
+	{
+		return q::with( queue, std::forward< Tuple >( t ) );
+	}
+
+	template< typename Tuple, bool Shared = traits::is_shared::value >
+	typename std::enable_if< Shared, promise_type >::type
+	suitable_with( const queue_ptr& queue, Tuple&& t )
+	{
+		return q::with( queue, std::forward< Tuple >( t ) ).share( );
+	}
+
 	friend class channel< T... >;
 
 	std::shared_ptr< detail::shared_channel< T... > > shared_channel_;
@@ -464,6 +655,8 @@ template< typename... T >
 class channel
 {
 public:
+	typedef typename detail::channel_traits< T... > traits;
+
 	channel( const queue_ptr& queue, std::size_t buffer_count )
 	: channel(
 		queue,

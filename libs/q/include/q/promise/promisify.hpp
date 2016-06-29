@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Gustaf Räntilä
+ * Copyright 2016 Gustaf Räntilä
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,12 +40,16 @@ struct promisifier< Ret, ::q::arguments< Args... > >
 	static std::function< promise< tuple_type >( Args... ) >
 	promisify( queue_ptr&& queue, Fn fn )
 	{
+		typedef typename std::decay< Fn >::type DecayedFn;
+
 		return [ queue, fn ]( Args... args )
 			-> promise< tuple_type >
 		{
 			auto deferred = defer_type::construct( queue );
 
-			deferred->set_by_fun( fn, args... );
+			DecayedFn _fn = fn;
+
+			deferred->set_by_fun( std::move( _fn ), args... );
 
 			return deferred->get_promise( );
 		};

@@ -88,7 +88,14 @@ int main( int argc, char** argv )
 	};
 
 	o_from_vector
-		.map( q::rx::f::mul< int >( 2 ) )
+	/*
+		.map( [ queue ]( int i )
+		{
+			std::cout << "Input = " << i << std::endl;
+			return i;
+		} )
+		*/
+		.map( q::rx::f::mul( 2 ) )
 		.map( [ queue ]( int i )
 		{
 			return i * 2;//q::with( queue, i * 2 );

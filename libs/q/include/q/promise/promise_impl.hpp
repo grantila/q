@@ -348,7 +348,8 @@ fail( Fn&& fn, Queue&& queue )
 			}
 			catch ( ... )
 			{
-				deferred->set_exception( std::current_exception( ) );
+				deferred->set_exception(
+					std::current_exception( ) );
 				return;
 			}
 		}
@@ -362,7 +363,7 @@ fail( Fn&& fn, Queue&& queue )
 	state_->signal( )->push( std::move( perform ),
 	                         ensure( set_default_forward( queue ) ) );
 
-	return deferred->template get_suitable_promise< this_type >( );
+	return deferred->template get_suitable_promise< promise_this_type >( );
 }
 
 /**
@@ -408,10 +409,17 @@ fail( Fn&& fn, Queue&& queue )
 		if ( value.has_exception( ) )
 		{
 			// Redirect exception
-			deferred->set_by_fun(
-				std::move( tmp_fn.consume( ) ),
-				value.exception( )
-			);
+			try
+			{
+				deferred->set_by_fun(
+					std::move( tmp_fn.consume( ) ),
+					value.exception( ) );
+			}
+			catch ( ... )
+			{
+				deferred->set_exception(
+					std::current_exception( ) );
+			}
 		}
 		else
 		{
@@ -423,7 +431,7 @@ fail( Fn&& fn, Queue&& queue )
 	state_->signal( )->push( std::move( perform ),
 	                         ensure( set_default_forward( queue ) ) );
 
-	return deferred->template get_suitable_promise< Q_RESULT_OF( Fn ) >( );
+	return deferred->template get_suitable_promise< promise_this_type >( );
 }
 
 /**
@@ -503,7 +511,7 @@ fail( Fn&& fn, Queue&& queue )
 	state_->signal( )->push( std::move( perform ),
 	                         ensure( set_default_forward( queue ) ) );
 
-	return deferred->template get_suitable_promise< this_type >( );
+	return deferred->template get_suitable_promise< promise_this_type >( );
 }
 
 /**
@@ -585,7 +593,7 @@ fail( Fn&& fn, Queue&& queue )
 	state_->signal( )->push( std::move( perform ),
 	                         ensure( set_default_forward( queue ) ) );
 
-	return deferred->template get_suitable_promise< this_type >( );
+	return deferred->template get_suitable_promise< promise_this_type >( );
 }
 
 /**
@@ -635,7 +643,7 @@ finally( Fn&& fn, Queue&& queue )
 	state_->signal( )->push( std::move( perform ),
 	                         ensure( set_default_forward( queue ) ) );
 
-	return deferred->get_promise( );
+	return deferred->template get_suitable_promise< promise_this_type >( );
 }
 
 /**

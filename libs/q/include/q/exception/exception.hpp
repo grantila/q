@@ -36,7 +36,6 @@
 		{ \
 			return #Name ; \
 		} \
-	public: Name( ) { } \
 	}
 
 /**
@@ -143,12 +142,12 @@ class exception
 {
 public:
 	exception( );
-	exception( exception&& );
-	exception( const exception& );
+	exception( exception&& ) = default;
+	exception( const exception& ) = default;
 	virtual ~exception( );
 
-	exception& operator=( const exception& ) = delete;
-	exception& operator=( exception&& ) = delete;
+	exception& operator=( const exception& ) = default;
+	exception& operator=( exception&& ) = default;
 
 	template< typename T >
 	const detail::exception_info< T >* get_info( ) const
@@ -180,17 +179,16 @@ public:
 
 	template< typename T >
 	typename std::enable_if<
-		!std::is_lvalue_reference< T >::value and
 		!is_c_string< T >::value,
 		exception&
 	>::type
 	operator<<( T&& t )
 	{
-		std::shared_ptr< detail::exception_info_base > ptr(
-			new detail::exception_info< T >(
-				std::forward< T >( t ) ) );
+		typedef typename std::decay< T >::type element_type;
+		typedef detail::exception_info< element_type > derived;
 
-		add_info( std::move( ptr ) );
+		add_info( std::make_shared< derived >(
+			std::forward< T >( t ) ) );
 
 		return *this;
 	}
@@ -214,7 +212,7 @@ private:
 	infos( );
 
 	struct pimpl;
-	std::unique_ptr< pimpl > pimpl_;
+	std::shared_ptr< pimpl > pimpl_;
 };
 
 std::ostream& operator<<( std::ostream&, const exception& );
@@ -240,7 +238,7 @@ static typename std::enable_if<
 >::type
 add_exception_properties( E&& e )
 {
-	return std::move( e );
+	return e;
 }
 
 class stream_exception

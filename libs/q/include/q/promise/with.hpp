@@ -44,6 +44,38 @@ with( const queue_ptr& queue, T&&... t )
 	return deferred->get_promise( );
 }
 
+/**
+ * Specialization for tuples
+ */
+template< typename Tuple >
+typename std::enable_if<
+	is_tuple< typename std::decay< Tuple >::type >::value,
+	promise< typename std::decay< Tuple >::type >
+>::type
+with( const queue_ptr& queue, Tuple&& t )
+{
+	typedef typename tuple_arguments< typename std::decay< Tuple >::type >
+		::template apply< detail::defer >::type defer_type;
+	auto deferred = ::q::make_shared< defer_type >( queue );
+
+	deferred->set_value( std::forward< Tuple >( t ) );
+
+	return deferred->get_promise( );
+}
+
+/**
+ * Specialization for promises
+ */
+template< typename Promise >
+typename std::enable_if<
+	is_promise< typename std::decay< Promise >::type >::value,
+	typename std::decay< Promise >::type
+>::type
+with( const queue_ptr& queue, Promise&& p )
+{
+	return p.use_queue( queue );
+}
+
 } // namespace q
 
 #endif // LIBQ_PROMISE_WITH_HPP

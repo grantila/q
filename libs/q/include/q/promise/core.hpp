@@ -60,6 +60,13 @@ struct are_promises
 >
 { };
 
+template< >
+struct are_promises< >
+: std::false_type
+{ };
+
+namespace detail {
+
 template< typename... T >
 struct promise_if_first_and_only
 {
@@ -70,34 +77,24 @@ struct promise_if_first_and_only
 };
 
 template< typename... Args >
-struct promise_if_first_and_only< ::q::promise< Args... > >
+struct promise_if_first_and_only< ::q::promise< std::tuple< Args... > > >
 {
 	typedef std::true_type valid;
-	typedef promise< Args... > type;
+	typedef promise< std::tuple< Args... > > type;
 	typedef typename type::tuple_type tuple_type;
 	typedef arguments< Args... > arguments_type;
 };
 
 template< typename... Args >
-struct promise_if_first_and_only< ::q::shared_promise< Args... > >
+struct promise_if_first_and_only< ::q::shared_promise< std::tuple< Args... > > >
 {
 	typedef std::true_type valid;
-	typedef promise< Args... > type;
+	typedef promise< std::tuple< Args... > > type;
 	typedef typename type::tuple_type tuple_type;
 	typedef arguments< Args... > arguments_type;
 };
 
-// TODO: Make this exception actually chain the original exception that was thrown..
-class broken_promise_exception
-: exception
-{
-public:
-	broken_promise_exception( ) = delete;
-
-	// TODO: Something...
-	broken_promise_exception( std::exception_ptr&& e )
-	{ }
-};
+} // namespace detail
 
 class generic_combined_promise_exception
 : exception
