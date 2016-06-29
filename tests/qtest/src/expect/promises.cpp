@@ -3,7 +3,24 @@
 
 Q_TEST_MAKE_SCOPE( expect_promises );
 
-TEST_F( expect_promises, eventual_resolution )
+TEST_F( expect_promises, eventual_resolution_of_unique_void )
+{
+	EVENTUALLY_EXPECT_RESOLUTION( q::with( queue ) );
+}
+
+TEST_F( expect_promises, eventual_resolution_of_shared_void )
+{
+	auto p = q::with( queue ).share( );
+
+	EVENTUALLY_EXPECT_RESOLUTION( p );
+}
+
+TEST_F( expect_promises, eventual_resolution_of_unique_int )
+{
+	EVENTUALLY_EXPECT_RESOLUTION( q::with( queue, 6 ) );
+}
+
+TEST_F( expect_promises, eventual_resolution_of_shared_int )
 {
 	auto p = q::with( queue, 6 ).share( );
 

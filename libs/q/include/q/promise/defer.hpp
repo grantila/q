@@ -94,7 +94,7 @@ public:
 
 	inline void set_value( const tuple_type& tuple )
 	{
-		auto value = ::q::fulfill< tuple_type >( tuple );
+		auto value = ::q::fulfill< tuple_type >( tuple_type( tuple ) );
 		promise_.set_value( std::move( value ) );
 		signal_->done( );
 	}
@@ -146,9 +146,7 @@ public:
 
 	void set_current_exception( )
 	{
-		auto e = std::current_exception( );
-		promise_.set_value( ::q::refuse< tuple_type >( e ) );
-		signal_->done( );
+		set_exception( std::current_exception( ) );
 	}
 
 	/**
@@ -301,13 +299,7 @@ public:
 		}
 		catch ( ... )
 		{
-			set_exception(
-				std::make_exception_ptr(
-					broken_promise_exception(
-						std::current_exception( )
-					)
-				)
-			);
+			set_current_exception( );
 		}
 	}
 
@@ -337,13 +329,7 @@ public:
 		}
 		catch ( ... )
 		{
-			set_exception(
-				std::make_exception_ptr(
-					broken_promise_exception(
-						std::current_exception( )
-					)
-				)
-			);
+			set_current_exception( );
 		}
 	}
 

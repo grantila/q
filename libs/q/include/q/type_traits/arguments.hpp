@@ -141,6 +141,8 @@ struct arguments
 
 	typedef std::integral_constant< std::size_t, sizeof...( Args ) > size;
 
+	typedef typename bool_type< size::value == 0 >::type empty;
+
 	/**
 	 * map each argument with a type T and return a new q::arguments.
 	 *
@@ -229,6 +231,8 @@ struct arguments< >
 	typedef typename apply< std::tuple >::type tuple_type;
 
 	typedef std::integral_constant< std::size_t, 0 > size;
+
+	typedef bool_type< true >::type empty;
 
 	template< template< typename > class T >
 	struct map

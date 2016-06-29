@@ -25,6 +25,11 @@ template< bool Shared, typename... Args >
 class generic_promise< Shared, std::tuple< Args... > >
 {
 public:
+	static_assert(
+		q::all_types_are_non_references< Args... >::value,
+		"Promises of references aren't allowed"
+	);
+
 	typedef bool_type< Shared >                   shared_type;
 	typedef arguments< Args... >                  argument_types;
 	typedef std::tuple< Args... >                 tuple_type;
@@ -87,9 +92,28 @@ public:
 	/**
 	 * @return queue_ptr The current queue for this promise
 	 */
-	queue_ptr get_queue( ) noexcept
+	queue_ptr get_queue( ) const noexcept
 	{
 		return queue_;
+	}
+
+	/**
+	 * *Consumes* the promise and returns a new promise with a new default
+	 * queue. The promise on which this is called, is thereby left in an
+	 * undefined state and must not be used again, just like `then()`.
+	 */
+	template< typename Queue >
+	typename std::enable_if<
+		std::is_same<
+			typename std::decay< Queue >::type,
+			queue_ptr
+		>::value,
+		this_type
+	>::type
+	use_queue( Queue&& queue ) noexcept
+	{
+		queue_ = std::forward< Queue >( queue );
+		return this_type( std::move( *this ) );
 	}
 
 	/**

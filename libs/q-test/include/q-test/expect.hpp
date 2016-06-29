@@ -18,6 +18,7 @@
 #define LIBQ_TEST_EXPECT_HPP
 
 #include <q-test/q-test.hpp>
+#include <q-test/stringify.hpp>
 
 /**
  * Caveat; EVENTUALLY_EXPECT* does not allow two non-promises. You should use
@@ -71,55 +72,6 @@
 #define EVENTUALLY_EXPECT_UNIQUE( promise ) \
 	EVENTUALLY_EXPECT( promise ) to.be_unique( )
 
-
-namespace {
-
-static const std::string new_line = "\n";
-
-struct can_stream_value_impl
-{
-	template< typename T >
-	static std::true_type
-	test_value( typename std::decay< decltype(
-		std::declval< std::ostream& >( ) << std::declval< T >( )
-	) >::type* );
-
-	template< typename T >
-	static std::false_type
-	test_value( ... );
-
-	template< typename T >
-	struct test
-	: decltype( test_value< T >( nullptr ) )
-	{ };
-};
-
-template< typename T >
-struct can_stream_value
-: can_stream_value_impl::template test< T >
-{ };
-
-template< typename T >
-static typename std::enable_if<
-	can_stream_value< T >::value,
-	std::string
->::type try_stream_value( T&& t )
-{
-	std::stringstream ss;
-	ss << t;
-	return ss.str( );
-}
-
-template< typename T >
-static typename std::enable_if<
-	!can_stream_value< T >::value,
-	std::string
->::type try_stream_value( T&& t )
-{
-	return std::string( );
-}
-
-} // anonymous namespace
 
 namespace q { namespace test {
 
@@ -200,7 +152,8 @@ public:
 	{
 		std::string expected;
 		if ( expected_ )
-			expected = new_line + "Expected: " + expected_;
+			expected = internal::new_line +
+				"Expected: " + expected_;
 		return expected;
 	}
 
@@ -220,61 +173,25 @@ public:
 	;
 };
 
-template< typename T, typename Value, typename Parent >
-class expected_comparator_base
+template< typename Value >
+class expected_any_comparator_base
 {
-public:
-	typedef expected_comparator_base< T, Value, Parent > this_type;
-	typedef std::function< void( const T& ) > testee_type;
-	typedef ::q::promise< std::tuple< T > > promise_type;
-	typedef ::q::shared_promise< std::tuple< T > > shared_promise_type;
-
-	template< typename Promise >
-	struct is_any_promise
-	: ::q::is_promise< typename std::decay< Promise >::type >
-	{ };
+protected:
+	template< typename T > friend class expected_value;
 
 	void set_value( const std::shared_ptr< Value >& value )
 	{
 		value_ = value;
 	}
 
-#define QTEST_IMPLEMENT_COMPARISON_TEST( op ) \
-	template< typename Promise > \
-	typename std::enable_if< is_any_promise< Promise >::value >::type \
-	op( Promise&& eventual_val2 ) \
-	{ \
-		typedef typename std::decay< Promise >::type  promise_type; \
-		typedef typename promise_type::argument_types argument_types; \
-		typedef typename argument_types::first_type   arg_type; \
-\
-		auto value = value_; \
-\
-		auto expectation = eventual_val2 \
-		.then( [ value ]( const arg_type& val2 ) \
-		{ \
-			this_type::_##op< arg_type >( value, val2 ); \
-		} ); \
-\
-		await_promise( std::move( expectation ) ); \
-	} \
-\
-	template< typename U > \
-	typename std::enable_if< !is_any_promise< U >::value >::type \
-	op( U&& val2 ) \
-	{ \
-		this_type::_##op< U >( value_, val2 ); \
+	std::shared_ptr< Value > get_value( ) const
+	{
+		return value_;
 	}
 
-	QTEST_IMPLEMENT_COMPARISON_TEST( equal )
-	QTEST_IMPLEMENT_COMPARISON_TEST( not_equal )
-	QTEST_IMPLEMENT_COMPARISON_TEST( be_greater_than )
-	QTEST_IMPLEMENT_COMPARISON_TEST( be_less_than )
-
-protected:
 	::q::test::fixture& get_fixture( )
 	{
-		return value_->root( ).fixture( );
+		return get_value( )->root( ).fixture( );
 	}
 
 	void await_promise( ::q::promise< std::tuple< > >&& promise )
@@ -282,16 +199,113 @@ protected:
 		get_fixture( ).await_promise( std::move( promise ) );
 	}
 
+	void await_promise( ::q::shared_promise< std::tuple< > >&& promise )
+	{
+		get_fixture( ).await_promise( promise.unshare( ) );
+	}
+
 	std::shared_ptr< Value > value_;
 
+};
+
+template< typename Value, typename Parent, typename... T >
+class expected_comparator_base
+: public expected_any_comparator_base< Value >
+{
+public:
+	typedef expected_any_comparator_base< Value > value_base;
+	typedef expected_comparator_base< Value, Parent, T... > this_type;
+	typedef std::tuple< T... > tuple_type;
+	typedef std::function< void( const tuple_type& ) > testee_type;
+	typedef ::q::promise< tuple_type > promise_type;
+	typedef ::q::shared_promise< tuple_type > shared_promise_type;
+
+	template< typename Promise >
+	struct is_any_promise
+	: ::q::is_promise< typename std::decay< Promise >::type >
+	{ };
+
+#define QTEST_IMPLEMENT_COMPARISON_TEST( op ) \
+	template< typename Promise > \
+	typename std::enable_if< is_any_promise< Promise >::value >::type \
+	op( Promise&& eventual_val2 ) \
+	{ \
+		typedef typename std::decay< Promise >::type promise_type; \
+		typedef typename std::decay< \
+			typename promise_type::tuple_type \
+		>::type tuple_type; \
+\
+		auto value = value_base::get_value( ); \
+\
+		auto expectation = eventual_val2 \
+		.then( [ value ]( const tuple_type& val2 ) \
+		{ \
+			this_type::_##op( value, val2 ); \
+		} ); \
+\
+		value_base::await_promise( std::move( expectation ) ); \
+	} \
+\
+	template< typename U > \
+	typename std::enable_if< \
+		!is_any_promise< U >::value \
+		and \
+		!q::is_tuple< typename std::decay< U >::type >::value \
+	>::type \
+	op( U&& val2 ) \
+	{ \
+		this_type::_##op( \
+			value_base::get_value( ), \
+			std::make_tuple( std::forward< U >( val2 ) ) ); \
+	} \
+\
+	template< typename U > \
+	typename std::enable_if< \
+		!is_any_promise< U >::value \
+		and \
+		q::is_tuple< typename std::decay< U >::type >::value \
+	>::type \
+	op( U&& val2 ) \
+	{ \
+		this_type::_##op( \
+			value_base::get_value( ), std::forward< U >( val2 ) ); \
+	}
+
+	QTEST_IMPLEMENT_COMPARISON_TEST( equal )
+	QTEST_IMPLEMENT_COMPARISON_TEST( not_equal )
+	QTEST_IMPLEMENT_COMPARISON_TEST( be_greater_than )
+	QTEST_IMPLEMENT_COMPARISON_TEST( be_less_than )
+
 private:
-	template< typename U >
-	static void _equal(
+	template< typename U, std::size_t Args = sizeof...( T ) >
+	static typename std::enable_if<
+		Args == 1
+		and
+		!q::is_tuple< typename std::decay< U >::type >::value
+	>::type
+	_equal(
 		std::shared_ptr< Value > value,
 		typename std::remove_reference< U >::type val2
 	)
 	{
-		return Parent::test( value, [ value, val2 ]( T val1 )
+		_equal( value, std::make_tuple( val2 ) );
+	}
+
+	template< typename U >
+	static typename std::enable_if<
+		q::is_tuple< typename std::decay< U >::type >::value
+	>::type
+	_equal(
+		std::shared_ptr< Value > value,
+		U&& _val2
+	)
+	{
+		typename std::decay< U >::type val2 =
+			std::forward< U >( _val2 );
+
+		return Parent::test( value, [ value, val2 ](
+			const tuple_type& val1
+		)
 		{
 			if ( val1 == val2 )
 				return;
@@ -301,20 +315,45 @@ private:
 			ADD_FAILURE_AT( root.file( ), root.line( ) )
 				<< "Value of: "
 				<< root.actual_expr( ) << std::endl
-				<< "  actual: " << val2 << std::endl
+				<< "  actual: "
+				<< internal::stringify_value( val2 )
+				<< std::endl
 				<< "Expected: "
 				<< root.expected_expr( ) << std::endl
-				<< "Which is: " << val1;
+				<< "Which is: "
+				<< internal::stringify_value( val1 );
 		} );
 	}
 
-	template< typename U >
-	static void _not_equal(
+	template< typename U, std::size_t Args = sizeof...( T ) >
+	static typename std::enable_if<
+		Args == 1
+		and
+		!q::is_tuple< typename std::decay< U >::type >::value
+	>::type
+	_not_equal(
 		std::shared_ptr< Value > value,
 		typename std::remove_reference< U >::type val2
 	)
 	{
-		return Parent::test( value, [ value, val2 ]( T val1 )
+		_not_equal( value, std::make_tuple( val2 ) );
+	}
+
+	template< typename U >
+	static typename std::enable_if<
+		q::is_tuple< typename std::decay< U >::type >::value
+	>::type
+	_not_equal(
+		std::shared_ptr< Value > value,
+		U&& _val2
+	)
+	{
+		typename std::decay< U >::type val2 =
+			std::forward< U >( _val2 );
+
+		return Parent::test( value, [ value, val2 ](
+			const tuple_type& val1
+		)
 		{
 			if ( val1 != val2 )
 				return;
@@ -326,17 +365,41 @@ private:
 				<< "(" << root.val1_expr( ) << ")"
 				<< " != "
 				<< "(" << root.val2_expr( ) << ")"
-				<< ", actual: " << val1 << " vs " << val2;
+				<< ", actual: "
+				<< internal::stringify_value( val1 ) << " vs "
+				<< internal::stringify_value( val2 );
 		} );
 	}
 
-	template< typename U >
-	static void _be_greater_than(
+	template< typename U, std::size_t Args = sizeof...( T ) >
+	static typename std::enable_if<
+		Args == 1
+		and
+		!q::is_tuple< typename std::decay< U >::type >::value
+	>::type
+	_be_greater_than(
 		std::shared_ptr< Value > value,
 		typename std::remove_reference< U >::type val2
 	)
 	{
-		return Parent::test( value, [ value, val2 ]( T val1 )
+		_be_greater_than( value, std::make_tuple( val2 ) );
+	}
+
+	template< typename U, std::size_t Args = sizeof...( T ) >
+	static typename std::enable_if<
+		q::is_tuple< typename std::decay< U >::type >::value
+	>::type
+	_be_greater_than(
+		std::shared_ptr< Value > value,
+		U&& _val2
+	)
+	{
+		typename std::decay< U >::type val2 =
+			std::forward< U >( _val2 );
+
+		return Parent::test( value, [ value, val2 ](
+			const tuple_type& val1
+		)
 		{
 			if ( val1 > val2 )
 				return;
@@ -348,17 +411,41 @@ private:
 				<< "(" << root.val1_expr( ) << ")"
 				<< " > "
 				<< "(" << root.val2_expr( ) << ")"
-				<< ", actual: " << val1 << " vs " << val2;
+				<< ", actual: "
+				<< internal::stringify_value( val1 ) << " vs "
+				<< internal::stringify_value( val2 );
 		} );
 	}
 
-	template< typename U >
-	static void _be_less_than(
+	template< typename U, std::size_t Args = sizeof...( T ) >
+	static typename std::enable_if<
+		Args == 1
+		and
+		!q::is_tuple< typename std::decay< U >::type >::value
+	>::type
+	_be_less_than(
 		std::shared_ptr< Value > value,
 		typename std::remove_reference< U >::type val2
 	)
 	{
-		return Parent::test( value, [ value, val2 ]( T val1 )
+		_be_less_than( value, std::make_tuple( val2 ) );
+	}
+
+	template< typename U, std::size_t Args = sizeof...( T ) >
+	static typename std::enable_if<
+		q::is_tuple< typename std::decay< U >::type >::value
+	>::type
+	_be_less_than(
+		std::shared_ptr< Value > value,
+		U&& _val2
+	)
+	{
+		typename std::decay< U >::type val2 =
+			std::forward< U >( _val2 );
+
+		return Parent::test( value, [ value, val2 ](
+			const tuple_type& val1
+		)
 		{
 			if ( val1 < val2 )
 				return;
@@ -370,250 +457,15 @@ private:
 				<< "(" << root.val1_expr( ) << ")"
 				<< " < "
 				<< "(" << root.val2_expr( ) << ")"
-				<< ", actual: " << val1 << " vs " << val2;
+				<< ", actual: "
+				<< internal::stringify_value( val1 ) << " vs "
+				<< internal::stringify_value( val2 );
 		} );
 	}
 };
 
 template< typename T, bool IsPromise = ::q::is_promise< T >::value >
 class expected_comparator;
-
-/**
- * Non-promise
- */
-template< typename T >
-class expected_comparator< T, false >
-: public expected_comparator_base<
-	T, expected_value< T >, expected_comparator< T, false >
->
-{
-public:
-	typedef expected_comparator_base<
-		T, expected_value< T >, expected_comparator< T, false >
-	> base;
-
-	static void test(
-		std::shared_ptr< expected_value< T > > value,
-		typename base::testee_type testee
-	)
-	{
-		testee( value->get( ) );
-	}
-};
-
-/**
- * Generic promise (shared or unique)
- */
-template< typename T, typename Promise >
-class expected_promise_comparator
-: public expected_comparator_base<
-	T,
-	expected_value< Promise >,
-	expected_promise_comparator< T, Promise >
->
-{
-public:
-	typedef expected_comparator_base<
-		T,
-		expected_value< Promise >,
-		expected_promise_comparator< T, Promise >
-	> base;
-
-	expected_promise_comparator( ) { }
-
-	void be_resolved( )
-	{
-		auto value = base::value_;
-
-		auto expectation = value->get( ).unshare( ).strip( )
-		.fail( [ value ]( std::exception_ptr e )
-		{
-			auto& root = value->root( );
-
-			ADD_FAILURE_AT( root.file( ), root.line( ) )
-				<< "Expected promise to be resolved."
-				<< root.expected_explanation( )
-				<< std::endl
-				<< "But was rejected with: "
-				<< q::to_string( e );
-		} );
-
-		base::await_promise( std::move( expectation ) );
-	}
-
-	void be_rejected( )
-	{
-		auto value = base::value_;
-
-		auto expectation = value->get( )
-		.then( [ value ]( const T& t )
-		{
-			auto& root = value->root( );
-
-			std::string val;
-			if ( can_stream_value< T >::value )
-				val = "But was resolved to: " +
-					try_stream_value( t );
-			else
-				val = "But was resolved.";
-
-			ADD_FAILURE_AT( root.file( ), root.line( ) )
-				<< "Expected promise to be rejected."
-				<< root.expected_explanation( )
-				<< std::endl
-				<< val;
-		} )
-		.fail( [ ]( std::exception_ptr ) { } );
-
-		base::await_promise( std::move( expectation ) );
-	}
-
-	template< typename Error >
-	void be_rejected_with( )
-	{
-		auto value = base::value_;
-
-		auto expectation = value->get( )
-		.then( [ value ]( const T& t )
-		{
-			auto& root = value->root( );
-
-			std::string val;
-			if ( can_stream_value< T >::value )
-				val = "But was resolved to: " +
-					try_stream_value( t );
-			else
-				val = "But was resolved.";
-
-			ADD_FAILURE_AT( root.file( ), root.line( ) )
-				<< "Expected promise to be rejected."
-				<< root.expected_explanation( )
-				<< std::endl
-				<< val;
-		} )
-		.fail( [ ]( const Error& ) { } )
-		.fail( [ value ]( std::exception_ptr e )
-		{
-			auto& root = value->root( );
-
-			std::string error_name;
-			if ( root.actual_expr( ) )
-				error_name = root.actual_expr( );
-			else
-				error_name = typeid( Error ).name( );
-
-			ADD_FAILURE_AT( root.file( ), root.line( ) )
-				<< "Expected promise to be rejected with \""
-				<< error_name << "\"."
-				<< root.expected_explanation( )
-				<< std::endl
-				<< "But was rejected with: "
-				<< q::to_string( e );
-		} );
-
-		base::await_promise( std::move( expectation ) );
-	}
-
-	static void test(
-		std::shared_ptr< expected_value< Promise > > value,
-		typename base::testee_type testee
-	)
-	{
-		if ( Promise::shared_type::value )
-			test_shared( std::move( value ), std::move( testee ) );
-		else
-			test_unique( std::move( value ), std::move( testee ) );
-	}
-
-private:
-	static void test_shared(
-		std::shared_ptr< expected_value< Promise > >&& value,
-		typename base::testee_type&& testee
-	)
-	{
-		value->root( ).fixture( ).await_promise(
-			value->get( )
-			.then( [ testee ]( const T& t )
-			{
-				testee( t );
-			} )
-		);
-	}
-
-	static void test_unique(
-		std::shared_ptr< expected_value< Promise > >&& value,
-		typename base::testee_type&& testee
-	)
-	{
-		value->root( ).fixture( ).await_promise(
-			value->get( )
-			.then( [ testee ]( T&& t )
-			{
-				testee( t );
-			} )
-		);
-	}
-};
-
-/**
- * Unique promise
- */
-template< typename T >
-class expected_comparator< q::promise< std::tuple< T > >, true >
-: public expected_promise_comparator< T, q::promise< std::tuple< T > > >
-{
-public:
-	typedef q::promise< std::tuple< T > > promise_type;
-	typedef expected_comparator_base<
-		T,
-		expected_value< q::promise< std::tuple< T > > >,
-		expected_promise_comparator< T, q::promise< std::tuple< T > > >
-	> base;
-
-	expected_comparator( ) { }
-
-	void be_unique( ) { }
-
-	void be_shared( )
-	{
-		auto& root = base::value_->root( );
-		ADD_FAILURE_AT( root.file( ), root.line( ) )
-			<< "Expected promise to be shared, but is unique."
-			<< root.expected_explanation( )
-			<< std::endl;
-	}
-};
-
-/**
- * Shared promise
- */
-template< typename T >
-class expected_comparator< q::shared_promise< std::tuple< T > >, true >
-: public expected_promise_comparator< T, q::shared_promise< std::tuple< T > > >
-{
-public:
-	typedef q::shared_promise< std::tuple< T > > promise_type;
-	typedef expected_comparator_base<
-		T,
-		expected_value< q::shared_promise< std::tuple< T > > >,
-		expected_promise_comparator<
-			T, q::shared_promise< std::tuple< T > >
-		>
-	> base;
-
-	expected_comparator( ) { }
-
-	void be_unique( )
-	{
-		auto& root = base::value_->root( );
-		ADD_FAILURE_AT( root.file( ), root.line( ) )
-			<< "Expected promise to be unique, but is shared."
-			<< root.expected_explanation( )
-			<< std::endl;
-	}
-
-	void be_shared( ) { }
-};
 
 template< typename T >
 class expected_value
@@ -666,6 +518,274 @@ public:
 private:
 	expected_root root_;
 	std::unique_ptr< T > t_;
+};
+
+/**
+ * Non-promise, non-tuple
+ */
+template< typename T >
+class expected_comparator< T, false >
+: public expected_comparator_base<
+	expected_value< T >, expected_comparator< T, false >, T
+>
+{
+public:
+	typedef expected_comparator_base<
+		expected_value< T >, expected_comparator< T, false >, T
+	> base;
+
+	static void test(
+		std::shared_ptr< expected_value< T > > value,
+		typename base::testee_type testee
+	)
+	{
+		testee( value->get( ) );
+	}
+};
+
+/**
+ * Non-promise, tuple
+ */
+template< typename... T >
+class expected_comparator< std::tuple< T... >, false >
+: public expected_comparator_base<
+	expected_value< std::tuple< T... > >,
+	expected_comparator< std::tuple< T... >, false >,
+	T...
+>
+{
+public:
+	typedef expected_comparator_base<
+		expected_value< std::tuple< T... > >,
+		expected_comparator< std::tuple< T... >, false >,
+		T...
+	> base;
+
+	static void test(
+		std::shared_ptr< expected_value< std::tuple< T... > > > value,
+		typename base::testee_type testee
+	)
+	{
+		testee( value->get( ) );
+	}
+};
+
+/**
+ * Generic promise (shared or unique)
+ */
+template< typename Promise, typename... T >
+class expected_promise_comparator
+: public expected_comparator_base<
+	expected_value< Promise >,
+	expected_promise_comparator< Promise, T... >,
+	T...
+>
+{
+public:
+	typedef expected_comparator_base<
+		expected_value< Promise >,
+		expected_promise_comparator< Promise, T... >,
+		T...
+	> base;
+
+	expected_promise_comparator( ) { }
+
+	void be_resolved( )
+	{
+		auto value = base::value_;
+
+		auto expectation = value->get( ).strip( )
+		.fail( [ value ]( std::exception_ptr e )
+		{
+			auto& root = value->root( );
+
+			ADD_FAILURE_AT( root.file( ), root.line( ) )
+				<< "Expected promise to be resolved."
+				<< root.expected_explanation( )
+				<< std::endl
+				<< "But was rejected with: "
+				<< q::to_string( e );
+		} );
+
+		base::await_promise( std::move( expectation ) );
+	}
+
+	void be_rejected( )
+	{
+		auto value = this->get_value( );
+
+		auto expectation = value->get( )
+		.then( [ value ]( const std::tuple< T... >& t )
+		{
+			auto& root = value->root( );
+
+			std::string val;
+			if ( sizeof...( T ) == 0 )
+				val = "But was resolved.";
+			else
+				val = "But was resolved to: " +
+					internal::stringify_value( t );
+
+			ADD_FAILURE_AT( root.file( ), root.line( ) )
+				<< "Expected promise to be rejected."
+				<< root.expected_explanation( )
+				<< std::endl
+				<< val;
+		} )
+		.fail( [ ]( std::exception_ptr ) { } );
+
+		base::await_promise( std::move( expectation ) );
+	}
+
+	template< typename Error >
+	void be_rejected_with( )
+	{
+		auto value = this->get_value( );
+
+		auto expectation = value->get( )
+		.then( [ value ]( const std::tuple< T... >& t )
+		{
+			auto& root = value->root( );
+
+			std::string val;
+			if ( sizeof...( T ) == 0 )
+				val = "But was resolved.";
+			else
+				val = "But was resolved to: " +
+					internal::stringify_value( t );
+
+			ADD_FAILURE_AT( root.file( ), root.line( ) )
+				<< "Expected promise to be rejected."
+				<< root.expected_explanation( )
+				<< std::endl
+				<< val;
+		} )
+		.fail( [ ]( const Error& ) { } )
+		.fail( [ value ]( std::exception_ptr e )
+		{
+			auto& root = value->root( );
+
+			std::string error_name;
+			if ( root.actual_expr( ) )
+				error_name = root.actual_expr( );
+			else
+				error_name = typeid( Error ).name( );
+
+			ADD_FAILURE_AT( root.file( ), root.line( ) )
+				<< "Expected promise to be rejected with \""
+				<< error_name << "\"."
+				<< root.expected_explanation( )
+				<< std::endl
+				<< "But was rejected with: "
+				<< q::to_string( e );
+		} );
+
+		base::await_promise( std::move( expectation ) );
+	}
+
+	static void test(
+		std::shared_ptr< expected_value< Promise > > value,
+		typename base::testee_type testee
+	)
+	{
+		if ( Promise::shared_type::value )
+			test_shared( std::move( value ), std::move( testee ) );
+		else
+			test_unique( std::move( value ), std::move( testee ) );
+	}
+
+private:
+	static void test_shared(
+		std::shared_ptr< expected_value< Promise > >&& value,
+		typename base::testee_type&& testee
+	)
+	{
+		value->root( ).fixture( ).await_promise(
+			value->get( )
+			.then( [ testee ]( const std::tuple< T... >& t )
+			{
+				testee( t );
+			} )
+		);
+	}
+
+	static void test_unique(
+		std::shared_ptr< expected_value< Promise > >&& value,
+		typename base::testee_type&& testee
+	)
+	{
+		value->root( ).fixture( ).await_promise(
+			value->get( )
+			.then( [ testee ]( std::tuple< T... >&& t )
+			{
+				testee( std::move( t ) );
+			} )
+		);
+	}
+};
+
+/**
+ * Unique promise
+ */
+template< typename... T >
+class expected_comparator< q::promise< std::tuple< T... > >, true >
+: public expected_promise_comparator< q::promise< std::tuple< T... > >, T... >
+{
+public:
+	typedef q::promise< std::tuple< T... > > promise_type;
+	typedef expected_comparator_base<
+		expected_value< q::promise< std::tuple< T... > > >,
+		expected_promise_comparator<
+			q::promise< std::tuple< T... > >, T...
+		>,
+		T...
+	> base;
+
+	expected_comparator( ) { }
+
+	void be_unique( ) { }
+
+	void be_shared( )
+	{
+		auto& root = base::value_->root( );
+		ADD_FAILURE_AT( root.file( ), root.line( ) )
+			<< "Expected promise to be shared, but is unique."
+			<< root.expected_explanation( )
+			<< std::endl;
+	}
+};
+
+/**
+ * Shared promise
+ */
+template< typename... T >
+class expected_comparator< q::shared_promise< std::tuple< T... > >, true >
+: public expected_promise_comparator<
+	q::shared_promise< std::tuple< T... > >, T...
+>
+{
+public:
+	typedef q::shared_promise< std::tuple< T... > > promise_type;
+	typedef expected_comparator_base<
+		expected_value< q::shared_promise< std::tuple< T... > > >,
+		expected_promise_comparator<
+			q::shared_promise< std::tuple< T... > >, T...
+		>,
+		T...
+	> base;
+
+	expected_comparator( ) { }
+
+	void be_unique( )
+	{
+		auto& root = base::value_->root( );
+		ADD_FAILURE_AT( root.file( ), root.line( ) )
+			<< "Expected promise to be unique, but is shared."
+			<< root.expected_explanation( )
+			<< std::endl;
+	}
+
+	void be_shared( ) { }
 };
 
 } } // namespace test, namespace q
