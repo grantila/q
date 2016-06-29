@@ -36,7 +36,6 @@
 		{ \
 			return #Name ; \
 		} \
-	public: Name( ) { } \
 	}
 
 /**
