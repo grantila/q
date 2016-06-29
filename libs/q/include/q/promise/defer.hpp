@@ -146,9 +146,7 @@ public:
 
 	void set_current_exception( )
 	{
-		auto e = std::current_exception( );
-		promise_.set_value( ::q::refuse< tuple_type >( e ) );
-		signal_->done( );
+		set_exception( std::current_exception( ) );
 	}
 
 	/**
