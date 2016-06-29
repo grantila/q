@@ -25,6 +25,11 @@ template< bool Shared, typename... Args >
 class generic_promise< Shared, std::tuple< Args... > >
 {
 public:
+	static_assert(
+		q::all_types_are_non_references< Args... >::value,
+		"Promises of references aren't allowed"
+	);
+
 	typedef bool_type< Shared >                   shared_type;
 	typedef arguments< Args... >                  argument_types;
 	typedef std::tuple< Args... >                 tuple_type;
