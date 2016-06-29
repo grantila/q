@@ -72,19 +72,19 @@ struct promise_if_first_and_only
 };
 
 template< typename... Args >
-struct promise_if_first_and_only< ::q::promise< Args... > >
+struct promise_if_first_and_only< ::q::promise< std::tuple< Args... > > >
 {
 	typedef std::true_type valid;
-	typedef promise< Args... > type;
+	typedef promise< std::tuple< Args... > > type;
 	typedef typename type::tuple_type tuple_type;
 	typedef arguments< Args... > arguments_type;
 };
 
 template< typename... Args >
-struct promise_if_first_and_only< ::q::shared_promise< Args... > >
+struct promise_if_first_and_only< ::q::shared_promise< std::tuple< Args... > > >
 {
 	typedef std::true_type valid;
-	typedef promise< Args... > type;
+	typedef promise< std::tuple< Args... > > type;
 	typedef typename type::tuple_type tuple_type;
 	typedef arguments< Args... > arguments_type;
 };
