@@ -28,19 +28,9 @@ struct exception::pimpl
 };
 
 exception::exception( )
-: pimpl_( new pimpl )
+: pimpl_( std::make_shared< pimpl >( ) )
 {
 	*this << get_stacktrace( );
-}
-
-exception::exception( exception&& ref )
-: pimpl_( std::move( ref.pimpl_ ) )
-{ }
-
-exception::exception( const exception& ref )
-: pimpl_( new pimpl )
-{
-	pimpl_->infos_ = ref.pimpl_->infos_;
 }
 
 exception::~exception( )

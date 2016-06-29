@@ -142,12 +142,12 @@ class exception
 {
 public:
 	exception( );
-	exception( exception&& );
-	exception( const exception& );
+	exception( exception&& ) = default;
+	exception( const exception& ) = default;
 	virtual ~exception( );
 
-	exception& operator=( const exception& ) = delete;
-	exception& operator=( exception&& ) = delete;
+	exception& operator=( const exception& ) = default;
+	exception& operator=( exception&& ) = default;
 
 	template< typename T >
 	const detail::exception_info< T >* get_info( ) const
@@ -213,7 +213,7 @@ private:
 	infos( );
 
 	struct pimpl;
-	std::unique_ptr< pimpl > pimpl_;
+	std::shared_ptr< pimpl > pimpl_;
 };
 
 std::ostream& operator<<( std::ostream&, const exception& );
