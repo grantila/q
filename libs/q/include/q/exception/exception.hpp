@@ -179,17 +179,16 @@ public:
 
 	template< typename T >
 	typename std::enable_if<
-		!std::is_lvalue_reference< T >::value and
 		!is_c_string< T >::value,
 		exception&
 	>::type
 	operator<<( T&& t )
 	{
-		std::shared_ptr< detail::exception_info_base > ptr(
-			new detail::exception_info< T >(
-				std::forward< T >( t ) ) );
+		typedef typename std::decay< T >::type element_type;
+		typedef detail::exception_info< element_type > derived;
 
-		add_info( std::move( ptr ) );
+		add_info( std::make_shared< derived >(
+			std::forward< T >( t ) ) );
 
 		return *this;
 	}
@@ -239,7 +238,7 @@ static typename std::enable_if<
 >::type
 add_exception_properties( E&& e )
 {
-	return std::move( e );
+	return e;
 }
 
 class stream_exception
