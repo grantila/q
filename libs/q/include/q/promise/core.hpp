@@ -91,18 +91,6 @@ struct promise_if_first_and_only< ::q::shared_promise< Args... > >
 
 } // namespace detail
 
-// TODO: Make this exception actually chain the original exception that was thrown..
-class broken_promise_exception
-: exception
-{
-public:
-	broken_promise_exception( ) = delete;
-
-	// TODO: Something...
-	broken_promise_exception( std::exception_ptr&& e )
-	{ }
-};
-
 class generic_combined_promise_exception
 : exception
 {

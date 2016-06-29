@@ -299,13 +299,7 @@ public:
 		}
 		catch ( ... )
 		{
-			set_exception(
-				std::make_exception_ptr(
-					broken_promise_exception(
-						std::current_exception( )
-					)
-				)
-			);
+			set_current_exception( );
 		}
 	}
 
@@ -335,13 +329,7 @@ public:
 		}
 		catch ( ... )
 		{
-			set_exception(
-				std::make_exception_ptr(
-					broken_promise_exception(
-						std::current_exception( )
-					)
-				)
-			);
+			set_current_exception( );
 		}
 	}
 
