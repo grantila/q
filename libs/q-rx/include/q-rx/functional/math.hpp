@@ -95,7 +95,11 @@ constexpr auto inner_product( T&& t, U&& u )
 	return t * u;
 }
 
-std::ratio< 355, 113 > fast_pi;
+namespace {
+
+std::ratio< 355, 113 > fast_pi; // Exact to 7 digits (3,141592...)
+
+} // anonymous namespace
 
 namespace detail {
 
@@ -146,34 +150,80 @@ template<
 	typename T,
 	typename detail::enabled_fast_pi_type< T >::type = 0
 >
-auto fast_mul_pi( T&& t )
+typename std::decay< T >::type fast_mul_pi( T&& t )
 {
 	typedef typename std::decay< T >::type type;
+	typedef q::ptr_size_integer_t< T > ptr_size_type;
 
 	auto is_too_large =
-		static_cast< typename std::make_unsigned< type >::type >( t ) ^
+		static_cast< typename std::make_unsigned< type >::type >( t ) &
 		detail::fast_pi_order< type >;
 
-	return is_too_large
+	if ( is_too_large && sizeof( T ) < sizeof( std::intptr_t ) )
+		// Go through the native word-sized integer and then back again,
+		// to gain correctness when we'd otherwise overflow.
+		return static_cast< type >(
+			fast_mul_pi( static_cast< ptr_size_type >( t ) ) );
+
+	return !is_too_large
 		? ( t * fast_pi.num ) / fast_pi.den
 		: ( t / fast_pi.den ) * fast_pi.num;
+}
+
+template< typename T >
+typename std::enable_if<
+	std::is_integral< typename std::decay< T >::type >::value
+	and
+	sizeof( T ) == 1,
+	typename std::decay< T >::type
+>::type
+fast_mul_pi( T&& t )
+{
+	typedef typename std::decay< T >::type type;
+	typedef q::ptr_size_integer_t< T > ptr_size_type;
+
+	return static_cast< type >(
+		fast_mul_pi( static_cast< ptr_size_type >( t ) ) );
 }
 
 template<
 	typename T,
 	typename detail::enabled_fast_pi_type< T >::type = 0
 >
-auto fast_div_pi( T&& t )
+typename std::decay< T >::type fast_div_pi( T&& t )
 {
 	typedef typename std::decay< T >::type type;
+	typedef q::ptr_size_integer_t< T > ptr_size_type;
 
 	auto is_too_large =
-		static_cast< std::make_unsigned_t< type > >( t ) ^
+		static_cast< std::make_unsigned_t< type > >( t ) &
 		( detail::fast_pi_order< type > << 2 );
 
-	return is_too_large
+	if ( is_too_large && sizeof( T ) < sizeof( std::intptr_t ) )
+		// Go through the native word-sized integer and then back again,
+		// to gain correctness when we'd otherwise overflow.
+		return static_cast< type >(
+			fast_div_pi( static_cast< ptr_size_type >( t ) ) );
+
+	return !is_too_large
 		? ( t * fast_pi.den ) / fast_pi.num
 		: ( t / fast_pi.num ) * fast_pi.den;
+}
+
+template< typename T >
+typename std::enable_if<
+	std::is_integral< typename std::decay< T >::type >::value
+	and
+	sizeof( T ) == 1,
+	typename std::decay< T >::type
+>::type
+fast_div_pi( T&& t )
+{
+	typedef typename std::decay< T >::type type;
+	typedef q::ptr_size_integer_t< T > ptr_size_type;
+
+	return static_cast< type >(
+		fast_div_pi( static_cast< ptr_size_type >( t ) ) );
 }
 
 } } } // namespace f, namespace rx, namespace q

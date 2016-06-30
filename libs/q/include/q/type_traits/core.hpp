@@ -349,6 +349,29 @@ struct tuple_of< std::tuple< T... > >
 	typedef std::tuple< T... > type;
 };
 
+// Get the same kind of integer (signed/unsigned) but of ptr_size
+template<
+	typename T,
+	bool IsInteger = std::is_integral< T >::value,
+	bool IsSigned = std::is_signed< T >::value
+>
+struct ptr_size_integer;
+
+template< typename T >
+struct ptr_size_integer< T, true, false >
+{
+	typedef std::uintptr_t type;
+};
+
+template< typename T >
+struct ptr_size_integer< T, true, true >
+{
+	typedef std::intptr_t type;
+};
+
+template< typename T >
+using ptr_size_integer_t = typename ptr_size_integer< T >::type;
+
 template< typename T, typename... Args >
 std::unique_ptr< T > make_unique( Args&&... args )
 {

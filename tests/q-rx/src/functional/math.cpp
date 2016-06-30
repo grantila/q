@@ -1,11 +1,11 @@
 
-#include <q-rx/functional.hpp>
+#include "../q-rx-test.hpp"
 
-#include "q-rx-test.hpp"
+#include <q-rx/functional.hpp>
 
 static double pi = 3.14159265358979323846264338327950288;
 
-TEST( FunctionalMath, mul )
+TEST( functional_math, mul )
 {
 	auto mul_with_five = q::rx::f::mul( 5 );
 	EXPECT_EQ( 0, mul_with_five( 0 ) );
@@ -17,7 +17,7 @@ TEST( FunctionalMath, mul )
 	EXPECT_DOUBLE_EQ( twenty_pi, mul_with_pi( 20 ) );
 }
 
-TEST( FunctionalMath, div )
+TEST( functional_math, div )
 {
 	auto div_by_five = q::rx::f::div( 5 );
 	EXPECT_EQ( 3, div_by_five( 15 ) );
@@ -32,8 +32,12 @@ TEST( FunctionalMath, div )
 	EXPECT_DOUBLE_EQ( twenty_over_pi, div_by_pi( 20 ) );
 }
 
-TEST( FunctionalMath, fast_mul_pi )
+TEST( functional_math, fast_mul_pi )
 {
+	auto fiddy_pi = q::rx::f::fast_mul_pi< std::uint8_t >(
+		50 );
+	EXPECT_EQ( 157, fiddy_pi );
+
 	auto thousand_pi = q::rx::f::fast_mul_pi< std::uint16_t >(
 		1000 );
 	EXPECT_EQ( 3141, thousand_pi );
@@ -51,8 +55,12 @@ TEST( FunctionalMath, fast_mul_pi )
 	EXPECT_EQ( 3141592920, billion_pi_64 );
 }
 
-TEST( FunctionalMath, fast_div_pi )
+TEST( functional_math, fast_div_pi )
 {
+	auto hundred_over_pi = q::rx::f::fast_div_pi< std::uint8_t >(
+		100 );
+	EXPECT_EQ( 31, hundred_over_pi );
+
 	auto thousand_over_pi = q::rx::f::fast_div_pi< std::uint16_t >(
 		1000 );
 	EXPECT_EQ( 318, thousand_over_pi );

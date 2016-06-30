@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-#ifndef LIBQ_RX_UNIT_TESTS_QRXTEST_HPP
-#define LIBQ_RX_UNIT_TESTS_QRXTEST_HPP
+#ifndef LIBQ_RX_TEST_EXPECT_HPP
+#define LIBQ_RX_TEST_EXPECT_HPP
 
-#include <q-rx-test/q-rx-test.hpp>
+#define EXPECT_OBSERVABLES_EQ( expected, actual ) TODO: Implement
 
-#endif // LIBQ_RX_UNIT_TESTS_QRXTEST_HPP
+#endif // LIBQ_RX_TEST_EXPECT_HPP

@@ -96,9 +96,11 @@ protected:
 	typename std::enable_if<
 		q::is_promise< typename std::decay< Promise >::type >::value
 		and
-		!Promise::shared_type::value
+		!std::decay< Promise >::type::shared_type::value
 		and
-		!std::is_lvalue_reference< Promise >::value
+		!std::is_lvalue_reference<
+			typename std::decay< Promise >::type
+		>::value
 	>::type
 	run( Promise&& promise )
 	{
@@ -110,7 +112,7 @@ protected:
 	typename std::enable_if<
 		q::is_promise< typename std::decay< Promise >::type >::value
 		and
-		Promise::shared_type::value
+		std::decay< Promise >::type::shared_type::value
 	>::type
 	run( Promise&& promise )
 	{

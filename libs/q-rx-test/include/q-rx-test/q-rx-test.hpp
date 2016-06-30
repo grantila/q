@@ -14,9 +14,13 @@
  * limitations under the License.
  */
 
-#ifndef LIBQ_RX_UNIT_TESTS_QRXTEST_HPP
-#define LIBQ_RX_UNIT_TESTS_QRXTEST_HPP
+#ifndef LIBQ_RX_TEST_Q_RX_TEST_HPP
+#define LIBQ_RX_TEST_Q_RX_TEST_HPP
 
-#include <q-rx-test/q-rx-test.hpp>
+#include <q-test/q-test.hpp>
+#include <q-test/expect.hpp>
 
-#endif // LIBQ_RX_UNIT_TESTS_QRXTEST_HPP
+//#include <q-rx-test/fixture.hpp>
+#include <q-rx-test/expect.hpp>
+
+#endif // LIBQ_RX_TEST_Q_RX_TEST_HPP
