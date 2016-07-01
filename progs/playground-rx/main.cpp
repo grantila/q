@@ -64,7 +64,7 @@ int main( int argc, char** argv )
 	std::vector< int > vec_int{ 1, 2, 3 };
 
 	//auto o_from_vector = q::rx::observable< int >::from( vec_int, queue );
-	auto o_from_vector = q::rx::with( vec_int, queue );
+	auto o_from_vector = q::rx::with( queue, vec_int );
 
 	auto consumer = [ queue ]( int i )
 	{

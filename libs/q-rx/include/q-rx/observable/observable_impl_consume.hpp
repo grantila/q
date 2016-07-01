@@ -19,6 +19,8 @@
 
 namespace q { namespace rx {
 
+namespace { static std::atomic< int > _id( 0 ); }
+
 template< typename T >
 template< typename Fn, typename Queue >
 typename std::enable_if<
@@ -65,17 +67,21 @@ consume( Fn&& fn, Queue&& queue )
 		context->queue = ensure( std::forward< Queue >( queue ) );
 	}
 
+	int id = ++_id;
+
 	return q::make_promise_sync( context->queue,
-		[ context ]( q::resolver< > resolve, q::rejecter< > reject )
+		[ context, id ]( q::resolver< > resolve, q::rejecter< > reject )
 	{
 		context->resolver = resolve;
 		context->rejecter = reject;
 
-		context->recursive_consumer = [ context ]( )
+		context->recursive_consumer = [ context, id ]( )
 		{
+			std::cout << "--------- trying consume on " << id << std::endl;
 			auto promise = context->readable->receive(
-				[ context ]( T&& t )
+				[ context, id ]( T&& t )
 				{
+					std::cout << "--------- consume on " << id << " got " << t << std::endl;
 					( *context->fn )( std::move( t ) );
 
 					context->recursive_consumer( );
@@ -87,12 +93,14 @@ consume( Fn&& fn, Queue&& queue )
 				promise = promise.use_queue( context->queue );
 
 			promise
-			.fail( [ context ]( q::channel_closed_exception e )
+			.fail( [ context, id ]( q::channel_closed_exception e )
 			{
+				std::cout << "--------- consume on " << id << " closed/resolve" << std::endl;
 				context->resolver( );
 			} )
-			.fail( [ context ]( std::exception_ptr e )
+			.fail( [ context, id ]( std::exception_ptr e )
 			{
+				std::cout << "--------- consume on " << id << " rejected" << std::endl;
 				context->rejecter( e );
 			} );
 		};

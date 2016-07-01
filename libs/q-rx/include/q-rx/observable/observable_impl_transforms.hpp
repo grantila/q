@@ -19,6 +19,8 @@
 
 namespace q { namespace rx {
 
+namespace { static std::atomic< int > uniq_id( 0 ); }
+
 /**
  * ( In ) -> Out
  */
@@ -43,6 +45,10 @@ map( Fn&& fn )
 
 	auto writable = ch.get_writable( );
 
+	++uniq_id;
+	int id = uniq_id;
+	std::cout << "========== creating id " << id << std::endl;
+
 	consume( [ queue, writable, fn ]( T t ) mutable
 	{
 		auto deferred = ::q::detail::defer< out_tuple_type >
@@ -53,25 +59,16 @@ map( Fn&& fn )
 		queue->push( [ deferred, fn, t ]( )
 		{
 			deferred->set_by_fun( fn, std::move( t ) );
-			/*
-			try
-			{
-				deferred->set_value( fn( std::move( t ) ) );
-			}
-			catch( ... )
-			{
-				deferred->set_exception(
-					std::current_exception( ) );
-			}
-			*/
 		} );
 	} )
-	.then( [ writable ]( ) mutable
+	.then( [ writable, id ]( ) mutable
 	{
+		std::cout << "========== id " << id << " closing" << std::endl;
 		writable.close( );
 	} )
-	.fail( [ writable, queue ]( std::exception_ptr e ) mutable
+	.fail( [ writable, queue, id ]( std::exception_ptr e ) mutable
 	{
+		std::cout << "========== id " << id << " error" << std::endl;
 		writable.send( ::q::reject< out_arguments_type >( queue, std::move( e ) ) );
 	} );
 

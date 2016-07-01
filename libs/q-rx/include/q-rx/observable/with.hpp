@@ -28,44 +28,42 @@ namespace q { namespace rx {
 
 template< typename T >
 observable< T >
-with( ::q::channel< T > ch, queue_ptr queue = nullptr )
+with( ::q::channel< T > ch )
 {
-	return observable< T >::from( ch, std::move( queue ) );
+	return observable< T >::from( ch.get_queue( ), ch );
 }
 
-template< typename T, typename Queue, typename... Any >
+template< typename T >
 observable< T >
-with( std::vector< T, Any... > container, Queue&& queue )
+with( const queue_ptr& queue, ::q::channel< T > ch )
 {
-	return observable< T >::from(
-		std::move( container ),
-		std::forward< Queue >( queue )
-	);
+	return observable< T >::from( ch, queue );
 }
 
-template< typename T, typename Queue, typename... Any >
+template< typename T, typename... Any >
 observable< T >
-with( std::list< T, Any... > container, Queue&& queue )
+with( const queue_ptr& queue, std::vector< T, Any... > container )
 {
-	return observable< T >::from(
-		std::move( container ),
-		std::forward< Queue >( queue )
-	);
+	return observable< T >::from( std::move( container ), queue );
 }
 
-template< typename T, typename Queue, typename Tag >
+template< typename T, typename... Any >
+observable< T >
+with( const queue_ptr& queue, std::list< T, Any... > container )
+{
+	return observable< T >::from( std::move( container ), queue );
+}
+
+template< typename T, typename Tag >
 observable< T >
 with(
+	const queue_ptr& queue,
 	std::iterator< Tag, T > begin,
-	std::iterator< Tag, T > end,
-	Queue&& queue
+	std::iterator< Tag, T > end
 )
 {
 	return observable< T >::from(
-		std::move( begin ),
-		std::move( end ),
-		std::forward< Queue >( queue )
-	);
+		std::move( begin ), std::move( end ), queue );
 }
 
 } } // namespace rx, namespace q
