@@ -24,7 +24,7 @@
 	static thread_local std::string threadname_;
 #elif defined( LIBQ_ON_OSX )
 #elif defined( LIBQ_ON_POSIX )
-#if defined( LIBQ_ON_BSD ) || defined( LIBQ_ON_ANDROID )
+#if defined( LIBQ_ON_BSD )
 	static thread_local std::string threadname_;
 #endif
 #	include <pthread.h>
@@ -38,6 +38,11 @@
 	|| defined( LIBQ_ON_POSIX ) \
 	|| defined( LIBQ_ON_OSX )
 #	define HAS_CUSTOM_CPU_INFO
+#endif
+
+#if defined( LIBQ_ON_ANDROID )
+#	undef HAS_CUSTOM_CPU_INFO
+#	include <sys/prctl.h>
 #endif
 
 #define AT_LEAST_ONE( n ) \
@@ -81,7 +86,7 @@ namespace detail {
 
 void set_thread_name( const std::string& name )
 {
-#if defined( LIBQ_ON_BSD ) || defined( LIBQ_ON_ANDROID )
+#if defined( LIBQ_ON_BSD )
 
 	threadname_ = name;
 
@@ -137,7 +142,7 @@ void set_thread_name( const std::string& name )
 
 std::string get_thread_name( )
 {
-#if defined( LIBQ_ON_BSD ) || defined( LIBQ_ON_ANDROID )
+#if defined( LIBQ_ON_BSD )
 
 	return threadname_;
 
@@ -154,6 +159,10 @@ std::string get_thread_name( )
 
 #if defined( LIBQ_ON_OSX )
 	pthread_getname_np( tid, namebuf, PTHREAD_NAME_MAX );
+	return namebuf;
+#elif defined( LIBQ_ON_ANDROID )
+	auto pnamebuf = reinterpret_cast< unsigned long >( namebuf );
+	prctl( PR_GET_NAME, pnamebuf, 0, 0, 0 );
 	return namebuf;
 #else
 	pthread_getname_np( tid, namebuf, PTHREAD_NAME_MAX );

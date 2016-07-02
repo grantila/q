@@ -29,7 +29,8 @@ namespace detail {
 
 #if !defined( LIBQ_ON_WINDOWS ) && \
 	!defined( LIBQ_ON_LINUX ) && \
-	!defined( LIBQ_ON_OSX )
+	!defined( LIBQ_ON_OSX ) && \
+	!defined( LIBQ_ON_ANDROID )
 
 stacktrace::frame parse_stack_frame( const char* data )
 noexcept
@@ -64,13 +65,6 @@ stacktrace default_stacktrace( ) noexcept
 	::free( raw_frames );
 
 	return stacktrace( std::move( frames ) );
-}
-
-#elif defined( LIBQ_ON_ANDROID )
-
-stacktrace default_stacktrace( ) noexcept
-{
-	return stacktrace( std::vector< stacktrace::frame >( ) );
 }
 
 #endif

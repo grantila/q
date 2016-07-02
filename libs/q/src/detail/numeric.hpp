@@ -27,6 +27,13 @@
 
 namespace q { namespace detail {
 
+#ifdef LIBQ_ON_ANDROID
+int ffsll( long long int i )
+{
+	return __builtin_ffsll( i );
+}
+#endif
+
 namespace {
 
 static inline std::size_t fallback_msb( std::uint64_t num )
@@ -94,8 +101,6 @@ msb( type&& _num )
 #endif
 }
 
-#ifndef LIBQ_ON_ANDROID
-
 template< typename type, std::size_t size = sizeof( type ) >
 typename std::enable_if< size <= sizeof( long long int ), std::size_t >::type
 lsb( type&& _num )
@@ -104,8 +109,6 @@ lsb( type&& _num )
 
 	return static_cast< std::size_t >( ffsll( num ) );
 }
-
-#endif
 
 } } // namespace detail, namespace q
 
