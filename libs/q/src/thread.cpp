@@ -33,6 +33,11 @@
 #	define HAS_CUSTOM_CPU_INFO
 #endif
 
+#if defined( LIBQ_ON_ANDROID )
+#	undef HAS_CUSTOM_CPU_INFO
+#	include <sys/prctl.h>
+#endif
+
 #define AT_LEAST_ONE( n ) \
 	std::max< std::size_t >( static_cast< std::size_t >( n ), 1 )
 
@@ -139,6 +144,9 @@ std::string get_thread_name( )
 
 #if defined( LIBQ_ON_OSX )
 	pthread_getname_np( tid, namebuf, PTHREAD_NAME_MAX );
+	return namebuf;
+#elif defined( LIBQ_ON_ANDROID )
+	prctl( PR_GET_NAME, reinterpret_cast<unsigned long>(namebuf), 0, 0, 0 );
 	return namebuf;
 #elif defined( LIBQ_ON_BSD )
 	pthread_get_name_np( tid, namebuf, PTHREAD_NAME_MAX );

@@ -17,56 +17,58 @@
 #include <q/pp.hpp>
 #include <q/abi.hpp>
 
+#ifdef LIBQ_ON_ANDROID
+
 #include "stacktrace.hpp"
 
-#if !defined(LIBQ_ON_WINDOWS) && !defined(LIBQ_ON_ANDROID)
-#	include <execinfo.h>
-#endif
+#include <unwind.h>
+#include <dlfcn.h>
 
 namespace q {
 
 namespace detail {
 
-#if !defined( LIBQ_ON_WINDOWS ) && \
-	!defined( LIBQ_ON_LINUX ) && \
-	!defined( LIBQ_ON_OSX ) && \
-	!defined( LIBQ_ON_ANDROID )
-
-stacktrace::frame parse_stack_frame( const char* data )
-noexcept
-{
-	return stacktrace::frame{ 0, "", 0, data, "" };
-}
-
-#endif
-
-#if !defined(LIBQ_ON_WINDOWS) && !defined(LIBQ_ON_ANDROID)
-
 stacktrace default_stacktrace( ) noexcept
 {
 
 	static const std::size_t buflen = 128;
-	void* addresses[ buflen ];
-	std::size_t size = backtrace( addresses, buflen );
+	struct stack {
+		std::size_t size = 0;
+		void* addresses[ buflen ];
+	};
+	stack s;
 
-	char** raw_frames = backtrace_symbols( addresses, size );
+	_Unwind_Backtrace( [](struct _Unwind_Context* context, void* arg) {
+		uintptr_t pc = _Unwind_GetIP(context);
+		stack* s = static_cast<stack*>(arg);
+		if (pc)
+		{
+			if (s->size == buflen)
+				return _URC_END_OF_STACK;
+			s->addresses[s->size++] = reinterpret_cast<void*>(pc);
+		}
+		return _URC_NO_REASON;
+	}, &s );
 
 	std::vector< stacktrace::frame > frames;
-	frames.reserve( size );
+	frames.reserve( s.size );
 
-	for ( std::size_t i = 0; i < size; ++i )
+	for ( std::size_t i = 0; i < s.size; ++i )
 	{
-		auto frame = parse_stack_frame( raw_frames[ i ] );
+		stacktrace::frame frame;
+		Dl_info info;
+		if (dladdr(s.addresses[i], &info) && info.dli_sname)
+			frame.symbol = info.dli_sname;
+		frame.addr = reinterpret_cast<uint64_t>(s.addresses[i]);
 		frame.frameno = i;
-		frame.symbol = demangle_cxx( frame.symbol.c_str( ) );
 		frames.push_back( frame );
 	}
 
 	return stacktrace( std::move( frames ) );
 }
 
-#endif
-
 } // namespace detail
 
 } // namespace q
+
+#endif

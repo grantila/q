@@ -25,6 +25,13 @@
 #	include <string.h>
 #endif
 
+#ifdef LIBQ_ON_ANDROID
+int ffsll(long long int i)
+{
+	return __builtin_ffsll(i);
+}
+#endif
+
 namespace q {
 
 namespace detail {

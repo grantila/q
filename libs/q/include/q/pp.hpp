@@ -25,6 +25,9 @@
 #elif defined( __APPLE__ )
 #	define LIBQ_ON_OSX
 #	define LIBQ_ON_POSIX
+#elif defined( __ANDROID__  )
+#	define LIBQ_ON_ANDROID
+#	define LIBQ_ON_POSIX
 #elif defined( __linux__ )
 #	define LIBQ_ON_LINUX
 #	define LIBQ_ON_POSIX
