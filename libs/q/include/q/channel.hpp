@@ -329,10 +329,29 @@ private:
 		typedef typename channel_traits< T... >::promise_arguments_type
 			arguments_type;
 
-		auto promise = q::reject< arguments_type >(
-			default_queue_, std::forward< E >( e ) );
+		if ( closed_.load( std::memory_order_seq_cst ) )
+			std::rethrow_exception( close_exception_ );
 
-		queue_.push( std::move( promise ) );
+		if ( waiters_.empty( ) )
+		{
+			auto promise = q::reject< arguments_type >(
+				default_queue_, std::forward< E >( e ) );
+
+			queue_.push( std::move( promise ) );
+		}
+		else
+		{
+			bool was_closed = closed_.exchange(
+				true, std::memory_order_seq_cst );
+
+			if ( !was_closed )
+				close_exception_ = std::forward< E >( e );
+
+			auto waiter = std::move( waiters_.front( ) );
+			waiters_.pop_front( );
+
+			waiter->set_exception( close_exception_ );
+		}
 	}
 
 	template< typename E >
@@ -351,10 +370,29 @@ private:
 		typedef typename channel_traits< T... >::promise_arguments_type
 			arguments_type;
 
-		auto promise = q::reject< arguments_type >(
-			default_queue_, std::forward< E >( e ) );
+		if ( closed_.load( std::memory_order_seq_cst ) )
+			std::rethrow_exception( close_exception_ );
 
-		queue_.push( promise.share( ) );
+		if ( waiters_.empty( ) )
+		{
+			auto promise = q::reject< arguments_type >(
+				default_queue_, std::forward< E >( e ) );
+
+			queue_.push( promise.share( ) );
+		}
+		else
+		{
+			bool was_closed = closed_.exchange(
+				true, std::memory_order_seq_cst );
+
+			if ( !was_closed )
+				close_exception_ = std::forward< E >( e );
+
+			auto waiter = std::move( waiters_.front( ) );
+			waiters_.pop_front( );
+
+			waiter->set_exception( close_exception_ );
+		}
 	}
 
 	inline void resume( )
