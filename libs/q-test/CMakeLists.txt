@@ -6,4 +6,3 @@ find_source_tree( LIBQTEST_SOURCES          "Source Files"          src         
 add_library( q-test ${LIBQTEST_HEADERS} ${LIBQTEST_INTERNAL_HEADERS} ${LIBQTEST_SOURCES} )
 
 target_link_libraries( q-test q ${CXXLIB} ${GENERIC_LIB_DEPS} )
-

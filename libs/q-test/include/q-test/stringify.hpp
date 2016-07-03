@@ -19,8 +19,6 @@
 
 namespace q { namespace test { namespace internal {
 
-static const std::string new_line = "\n";
-
 struct can_stream_value_impl
 {
 	template< typename T >
@@ -125,6 +123,8 @@ struct tuple_stringifyer< std::tuple< T... > >
 : detail::tuple_stringifyer< sizeof...( T ), T... >
 { };
 
+} // namespace internal
+
 template< typename T >
 static typename std::enable_if<
 	q::is_tuple< typename std::decay< T >::type >::value,
@@ -140,7 +140,7 @@ static typename std::enable_if<
 	if ( explicit_tuple || std::tuple_size< tuple_type >::value > 1 )
 		ss << "tuple< ";
 
-	ss << tuple_stringifyer< tuple_type >
+	ss << internal::tuple_stringifyer< tuple_type >
 		::template stringify_tuple< 0 >( t );
 
 	if ( explicit_tuple || std::tuple_size< tuple_type >::value > 1 )
@@ -149,6 +149,13 @@ static typename std::enable_if<
 	return ss.str( );
 }
 
-} } } // namespace internal, namespace test, namespace q
+static const std::string new_line = ( [ ]( )
+{
+	std::stringstream ss;
+	ss << std::endl;
+	return ss.str( );
+} )( );
+
+} } // namespace test, namespace q
 
 #endif // LIBQ_TEST_STRINGIFY_HPP

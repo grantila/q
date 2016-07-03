@@ -23,6 +23,29 @@ TEST_F( promisify, function_returning_int )
 	EVENTUALLY_EXPECT_EQ( promise_fn( ), 5 );
 }
 
+TEST_F( promisify, function_getting_int_returning_void )
+{
+	auto promisified = q::promisify( queue, [ ]( int i )
+	{
+		EXPECT_EQ( i, 5 );
+	} );
+
+	run(
+		promisified( 5 )
+		.then( EXPECT_CALL_WRAPPER( [ ]( ) { } ) )
+	);
+}
+
+TEST_F( promisify, function_getting_int_returning_int )
+{
+	auto promisified = q::promisify( queue, [ ]( int i ) -> int
+	{
+		return i * 2;
+	} );
+
+	EVENTUALLY_EXPECT_EQ( promisified( 5 ), 10 );
+}
+
 TEST_F( promisify, function_returning_empty_promise )
 {
 	auto queue = this->queue;

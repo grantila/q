@@ -21,17 +21,11 @@
 #include <q-test/stringify.hpp>
 
 /**
- * Caveat; EVENTUALLY_EXPECT* does not allow two non-promises. You should use
- * gtest EXPECT_* alternatives instead. q-test does not encourage to re-invent
- * the wheel or to say that to non-promises are "eventually" available, when
- * they are instantly (synchronously) readable.
+ * The EVENTUALLY_EXPECT* macros work like the gtest EXPECT* corresondants, but
+ * allow the expected value and/or the actual value to be a promise.
  *
- * This means that in the comparison between a and b, we must allow either a
- * *or* b to be promises, or both. The first (a) will be the initial
- * construction of the expect_value, which thereby must allow promises and
- * non-promises. It must then allow the second operand (b) to be both a promise
- * and a non-promise, but not a non-promise if (a) is a non-promise. This has a
- * great impact in how the templating is implemented.
+ * The promises will be awaited and the inner values will be used for the
+ * comparison between the expected and actual values.
  */
 
 #define EVENTUALLY_EXPECT( expected, ... ) \
@@ -152,8 +146,7 @@ public:
 	{
 		std::string expected;
 		if ( expected_ )
-			expected = internal::new_line +
-				"Expected: " + expected_;
+			expected = new_line + "Expected: " + expected_;
 		return expected;
 	}
 
@@ -316,12 +309,12 @@ private:
 				<< "Value of: "
 				<< root.actual_expr( ) << std::endl
 				<< "  actual: "
-				<< internal::stringify_value( val2 )
+				<< stringify_value( val2 )
 				<< std::endl
 				<< "Expected: "
 				<< root.expected_expr( ) << std::endl
 				<< "Which is: "
-				<< internal::stringify_value( val1 );
+				<< stringify_value( val1 );
 		} );
 	}
 
@@ -366,8 +359,8 @@ private:
 				<< " != "
 				<< "(" << root.val2_expr( ) << ")"
 				<< ", actual: "
-				<< internal::stringify_value( val1 ) << " vs "
-				<< internal::stringify_value( val2 );
+				<< stringify_value( val1 ) << " vs "
+				<< stringify_value( val2 );
 		} );
 	}
 
@@ -412,8 +405,8 @@ private:
 				<< " > "
 				<< "(" << root.val2_expr( ) << ")"
 				<< ", actual: "
-				<< internal::stringify_value( val1 ) << " vs "
-				<< internal::stringify_value( val2 );
+				<< stringify_value( val1 ) << " vs "
+				<< stringify_value( val2 );
 		} );
 	}
 
@@ -458,8 +451,8 @@ private:
 				<< " < "
 				<< "(" << root.val2_expr( ) << ")"
 				<< ", actual: "
-				<< internal::stringify_value( val1 ) << " vs "
-				<< internal::stringify_value( val2 );
+				<< stringify_value( val1 ) << " vs "
+				<< stringify_value( val2 );
 		} );
 	}
 };
@@ -624,7 +617,7 @@ public:
 				val = "But was resolved.";
 			else
 				val = "But was resolved to: " +
-					internal::stringify_value( t );
+					stringify_value( t );
 
 			ADD_FAILURE_AT( root.file( ), root.line( ) )
 				<< "Expected promise to be rejected."
@@ -652,7 +645,7 @@ public:
 				val = "But was resolved.";
 			else
 				val = "But was resolved to: " +
-					internal::stringify_value( t );
+					stringify_value( t );
 
 			ADD_FAILURE_AT( root.file( ), root.line( ) )
 				<< "Expected promise to be rejected."
