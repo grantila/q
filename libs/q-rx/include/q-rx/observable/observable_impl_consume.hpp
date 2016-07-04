@@ -38,7 +38,6 @@ consume( Fn&& fn, base_options options )
 	{
 		readable_type readable;
 		std::unique_ptr< fn_type > fn;
-		std::function< void( void ) > recursive_consumer;
 		q::queue_ptr queue;
 		std::size_t max_concurrency;
 		std::atomic< std::size_t > concurrency;
@@ -57,7 +56,11 @@ consume( Fn&& fn, base_options options )
 	auto next_queue = options.get< q::defaultable< q::queue_ptr > >(
 		q::set_default( readable_->get_queue( ) ) ).value;
 	context->queue = options.get< q::queue_ptr >( next_queue );
-	context->max_concurrency = options.get< q::concurrency >( 1 );
+	auto concurrency = options.get< q::concurrency >( 1 );
+	// Ensure we don't use "infinite" concurrency, as this would loop
+	context->max_concurrency = concurrency == q::concurrency( )
+		? q::soft_cores( )
+		: static_cast< std::size_t >( concurrency );
 
 	return q::make_promise_sync( context->queue,
 		[ context ]( q::resolver< > resolve, q::rejecter< > reject )
@@ -65,28 +68,60 @@ consume( Fn&& fn, base_options options )
 		context->resolver = resolve;
 		context->rejecter = reject;
 
-		context->recursive_consumer = [ context ]( )
+		struct worker
+		{
+			std::function< void( void ) > recursive_consumer;
+			std::shared_ptr< q::detail::defer< > > defer;
+		};
+
+		auto this_worker = std::make_shared< worker >( );
+		this_worker->defer = q::detail::defer< >::construct( context->queue );
+		this_worker->recursive_consumer = [ context, this_worker ]( )
 		{
 			context->readable->receive(
-				[ context ]( T&& t )
+				[ context, this_worker ]( T&& t )
 				{
 					( *context->fn )( std::move( t ) );
 
-					context->recursive_consumer( );
+					this_worker->recursive_consumer( );
 				},
 				context->queue
 			)
-			.fail( [ context ]( q::channel_closed_exception e )
+			.then( [ this_worker ]
 			{
-				context->resolver( );
+				this_worker->recursive_consumer = nullptr;
+				this_worker->defer->set_value( );
 			} )
-			.fail( [ context ]( std::exception_ptr e )
+			.fail( [ this_worker ]( std::exception_ptr )
 			{
-				context->rejecter( e );
+				this_worker->recursive_consumer = nullptr;
+				this_worker->defer->set_value( );
 			} );
 		};
 
-		context->recursive_consumer( );
+		this_worker->recursive_consumer( );
+
+		this_worker->defer->get_promise( )
+		.then( [ context ]( )
+		{
+			std::cout
+				<< "GOT OK" << std::endl
+				<< "  Closed: " << ( context->readable->is_closed( ) ? "yes" : "no" ) << std::endl
+				<< "  Has error: " << ( context->readable->get_exception( ) ? "yes" : "no" ) << std::endl;
+			auto exception = context->readable->get_exception( );
+			if ( exception )
+				std::rethrow_exception( exception );
+
+			context->resolver( );
+		} )
+		.fail( [ context ]( q::channel_closed_exception e )
+		{
+			context->resolver( );
+		} )
+		.fail( [ context ]( std::exception_ptr e )
+		{
+			context->rejecter( e );
+		} );
 	} )
 	.use_queue( next_queue );
 }

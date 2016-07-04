@@ -111,12 +111,12 @@ public:
 	, resume_count_( std::min( resume_count, buffer_count ) )
 	{ }
 
-	bool is_closed( )
+	bool is_closed( ) const
 	{
 		return closed_;
 	}
 
-	std::exception_ptr get_exception( )
+	std::exception_ptr get_exception( ) const
 	{
 		Q_AUTO_UNIQUE_LOCK( mutex_ );
 
@@ -409,7 +409,7 @@ private:
 
 	queue_ptr default_queue_;
 	// TODO: Make this lock-free and consider other list types
-	mutex mutex_;
+	mutable mutex mutex_;
 	std::list< std::shared_ptr< defer_type > > waiters_;
 	std::queue< tuple_type > queue_;
 	std::exception_ptr close_exception_;
@@ -497,9 +497,14 @@ public:
 		} ) );
 	}
 
-	bool is_closed( )
+	bool is_closed( ) const
 	{
 		return shared_channel_->is_closed( );
+	}
+
+	std::exception_ptr get_exception( ) const
+	{
+		return shared_channel_->get_exception( );
 	}
 
 	void close( )

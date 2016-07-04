@@ -30,6 +30,10 @@ public:
 
 	virtual queue_ptr get_queue( ) const = 0;
 
+	virtual bool is_closed( ) const = 0;
+
+	virtual std::exception_ptr get_exception( ) const = 0;
+
 protected:
 	observable_readable( ) { }
 };
@@ -44,15 +48,25 @@ public:
 	{ }
 
 	q::promise< std::tuple< > >
-	receive( std::function< void( T&& ) > fn, queue_ptr queue )
+	receive( std::function< void( T&& ) > fn, queue_ptr queue ) override
 	{
 		return readable_.receive( )
 		.then( fn, std::move( queue ) );
 	}
 
-	queue_ptr get_queue( ) const
+	queue_ptr get_queue( ) const override
 	{
 		return readable_.get_queue( );
+	}
+
+	bool is_closed( ) const override
+	{
+		return readable_.is_closed( );
+	}
+
+	std::exception_ptr get_exception( ) const override
+	{
+		return readable_.get_exception( );
 	}
 
 private:
@@ -69,7 +83,7 @@ public:
 	{ }
 
 	q::promise< std::tuple< > >
-	receive( std::function< void( T&& ) > fn, queue_ptr queue )
+	receive( std::function< void( T&& ) > fn, queue_ptr queue ) override
 	{
 		return readable_.receive( )
 		.then( [ fn ]( q::expect< T >&& exp )
@@ -78,9 +92,19 @@ public:
 		}, std::move( queue ) );
 	}
 
-	queue_ptr get_queue( ) const
+	queue_ptr get_queue( ) const override
 	{
 		return readable_.get_queue( );
+	}
+
+	bool is_closed( ) const override
+	{
+		return readable_.is_closed( );
+	}
+
+	std::exception_ptr get_exception( ) const override
+	{
+		return readable_.get_exception( );
 	}
 
 private:
@@ -99,15 +123,25 @@ public:
 	{ }
 
 	q::promise< std::tuple< > >
-	receive( std::function< void( T&& ) > fn, queue_ptr queue )
+	receive( std::function< void( T&& ) > fn, queue_ptr queue ) override
 	{
 		return readable_.receive( )
 		.then( fn, std::move( queue ) );
 	}
 
-	queue_ptr get_queue( ) const
+	queue_ptr get_queue( ) const override
 	{
 		return readable_.get_queue( );
+	}
+
+	bool is_closed( ) const override
+	{
+		return readable_.is_closed( );
+	}
+
+	std::exception_ptr get_exception( ) const override
+	{
+		return readable_.get_exception( );
 	}
 
 private:
@@ -126,15 +160,25 @@ public:
 	{ }
 
 	q::promise< std::tuple< > >
-	receive( std::function< void( T&& ) > fn, queue_ptr queue )
+	receive( std::function< void( T&& ) > fn, queue_ptr queue ) override
 	{
 		return readable_.receive( )
 		.then( fn, std::move( queue ) );
 	}
 
-	queue_ptr get_queue( ) const
+	queue_ptr get_queue( ) const override
 	{
 		return readable_.get_queue( );
+	}
+
+	bool is_closed( ) const override
+	{
+		return readable_.is_closed( );
+	}
+
+	std::exception_ptr get_exception( ) const override
+	{
+		return readable_.get_exception( );
 	}
 
 private:
