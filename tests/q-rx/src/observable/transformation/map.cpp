@@ -5,8 +5,6 @@
 
 Q_TEST_MAKE_SCOPE( ob_trans_map );
 
-#define EXPECT_OBSERVABLE_EQ( expected, actual ) // TODO: Implement
-
 TEST_F( ob_trans_map, sync_and_async_int_to_int )
 {
 	std::vector< int > vec_input{ 1, 2, 3 };
@@ -15,18 +13,20 @@ TEST_F( ob_trans_map, sync_and_async_int_to_int )
 
 	int counter = 4;
 
-	auto consumer = EXPECT_N_CALLS_WRAPPER( 3, ( [ this, &counter ]( int i )
+	auto consumer = [ this, &counter ]( int i )
 	{
 		EXPECT_EQ( counter, i );
 		counter += 4;
-	} ) );
+	};
 
+/*
 	EXPECT_OBSERVABLE_EQ(
 		o_in,
 		q::rx::with( queue, std::vector< int >{ 4, 8, 12 } )
 	);
 
 	EXPECT_OBSERVABLE_EQ( ( std::vector< int >{ 4, 8, 12 } ), o_in );
+*/
 
 	run(
 		o_in
@@ -37,6 +37,6 @@ TEST_F( ob_trans_map, sync_and_async_int_to_int )
 			return i * 2;// q::with( queue, i * 2 );
 		} )
 /* */
-		.consume( consumer )
+		.consume( EXPECT_N_CALLS_WRAPPER( 3, consumer ) )
 	);
 }

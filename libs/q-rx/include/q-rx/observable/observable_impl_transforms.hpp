@@ -70,6 +70,7 @@ map( Fn&& fn )
 	{
 		std::cout << "========== id " << id << " error" << std::endl;
 		writable.send( ::q::reject< out_arguments_type >( queue, std::move( e ) ) );
+		;
 	} );
 
 	return observable< Out >( ch.get_readable( ) );
