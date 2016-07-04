@@ -99,7 +99,7 @@ public:
 		!q::is_promise< Q_RESULT_OF( Fn ) >::value,
 		observable< Q_RESULT_OF( Fn ) >
 	>::type
-	map( Fn&& fn );
+	map( Fn&& fn, base_options options = base_options( ) );
 
 	/**
 	 * ( In ) -> promise< Out >
@@ -111,23 +111,21 @@ public:
 			typename ::q::result_of< Fn >::tuple_type
 		>::type
 	>::type
-	map( Fn&& fn );
+	map( Fn&& fn, base_options options = base_options( ) );
 
 	// Consuming (instead of onNext, onError, onComplete)
 
 	/**
 	 * ( T ) -> void
 	 */
-	template< typename Fn, typename Queue = queue_ptr >
+	template< typename Fn >
 	typename std::enable_if<
 		Q_ARGUMENTS_ARE_CONVERTIBLE_FROM( Fn, T )::value
 		and
-		std::is_void< ::q::result_of< Fn > >::value
-		and
-		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
+		std::is_void< ::q::result_of< Fn > >::value,
 		::q::promise< std::tuple< > >
 	>::type
-	consume( Fn&& fn, Queue&& queue = nullptr );
+	consume( Fn&& fn, base_options options = base_options( ) );
 
 	/**
 	 * ( T ) -> promise< >
@@ -136,18 +134,18 @@ public:
 	 * when the promise is resolved. It causes proper back pressure
 	 * handling and will also stop if the promise is rejected.
 	 */
-	template< typename Fn, typename Queue = queue_ptr >
+	template< typename Fn >
 	typename std::enable_if<
-		/*Q_ARGUMENTS_ARE_CONVERTIBLE_FROM( Fn, T )::value
-		and*/
-		::q::is_promise< typename std::decay< ::q::result_of< Fn > >::type >::value
+		Q_ARGUMENTS_ARE_CONVERTIBLE_FROM( Fn, T )::value
 		and
-		::q::result_of< Fn >::argument_types::size::value == 0
+		::q::is_promise<
+			typename std::decay< ::q::result_of< Fn > >::type
+		>::value
 		and
-		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
+		::q::result_of< Fn >::argument_types::size::value == 0,
 		::q::promise< std::tuple< > >
 	>::type
-	consume( Fn&& fn, Queue&& queue = nullptr );
+	consume( Fn&& fn, base_options options = base_options( ) );
 
 	// TODO: Implemement properly, e.g. with promises
 	T onNext( );

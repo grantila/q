@@ -17,9 +17,13 @@
 #ifndef LIBQ_RX_OBSERVABLE_CORE_HPP
 #define LIBQ_RX_OBSERVABLE_CORE_HPP
 
-#include <q/channel.hpp>
-
 namespace q { namespace rx {
+
+typedef q::options<
+	queue_ptr,
+	q::defaultable< q::queue_ptr >,
+	q::concurrency
+> base_options;
 
 namespace detail {
 

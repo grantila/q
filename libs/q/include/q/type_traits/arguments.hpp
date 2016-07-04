@@ -81,17 +81,29 @@ struct arguments
 {
 	typedef arguments< Args... > this_type;
 
+	template< typename... T >
+	struct identity
+	{
+		typedef arguments< T... > type;
+	};
+
 	template< template< typename... > class T >
 	struct apply
 	{
 		typedef T< Args... > type;
 	};
 
-	template< typename... T >
-	struct identity
-	{
-		typedef arguments< T... > type;
-	};
+	typedef typename detail::variadic_rest< Args... > rest;
+
+	typedef typename rest::first_type first_type;
+	typedef typename rest::template apply_rest< identity >::type::type rest_arguments;
+
+	typedef typename apply< std::tuple >::type tuple_type;
+
+	typedef std::integral_constant< std::size_t, sizeof...( Args ) > size;
+
+	typedef typename bool_type< size::value == 0 >::type empty;
+
 
 	// TODO: Why did I write this?
 	template< template< template< typename... > class > class T >
@@ -112,6 +124,16 @@ struct arguments
 		typedef arguments< Args..., After... > type;
 	};
 
+	template< typename T, std::intptr_t Offset = 0 >
+	struct index_of
+	: public rest_arguments::template index_of< T, Offset + 1 >
+	{ };
+
+	template< std::intptr_t Offset >
+	struct index_of< first_type, Offset >
+	: public std::integral_constant< std::intptr_t, Offset >
+	{ };
+
 	/**
 	 * Given a q::arguments wrapped set of types T, checks whether the
 	 * current arguments are individually equal to their corresponding
@@ -131,17 +153,6 @@ struct arguments
 	struct is_convertible_to
 	: is_argument_same_or_convertible< this_type, T >
 	{ };
-
-	typedef typename detail::variadic_rest< Args... > rest;
-
-	typedef typename rest::first_type first_type;
-	typedef typename rest::template apply_rest< identity >::type::type rest_arguments;
-
-	typedef typename apply< std::tuple >::type tuple_type;
-
-	typedef std::integral_constant< std::size_t, sizeof...( Args ) > size;
-
-	typedef typename bool_type< size::value == 0 >::type empty;
 
 	/**
 	 * map each argument with a type T and return a new q::arguments.
@@ -206,6 +217,13 @@ struct arguments< >
 		typedef T< > type;
 	};
 
+	typedef typename apply< std::tuple >::type tuple_type;
+
+	typedef std::integral_constant< std::size_t, 0 > size;
+
+	typedef bool_type< true >::type empty;
+
+
 	template< typename... Before >
 	struct prepend
 	{
@@ -218,6 +236,11 @@ struct arguments< >
 		typedef arguments< After... > type;
 	};
 
+	template< typename T, std::intptr_t = 0 >
+	struct index_of
+	: public std::integral_constant< std::intptr_t, -1 >
+	{ };
+
 	template< typename T >
 	struct equals
 	: is_argument_same< this_type, T >
@@ -227,12 +250,6 @@ struct arguments< >
 	struct is_convertible_to
 	: is_argument_same_or_convertible< this_type, T >
 	{ };
-
-	typedef typename apply< std::tuple >::type tuple_type;
-
-	typedef std::integral_constant< std::size_t, 0 > size;
-
-	typedef bool_type< true >::type empty;
 
 	template< template< typename > class T >
 	struct map

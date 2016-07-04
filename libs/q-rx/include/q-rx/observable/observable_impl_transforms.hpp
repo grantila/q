@@ -19,8 +19,6 @@
 
 namespace q { namespace rx {
 
-namespace { static std::atomic< int > uniq_id( 0 ); }
-
 /**
  * ( In ) -> Out
  */
@@ -31,23 +29,23 @@ typename std::enable_if<
 	observable< Q_RESULT_OF( Fn ) >
 >::type
 observable< T >::
-map( Fn&& fn )
+map( Fn&& fn, base_options options )
 {
 	typedef Q_RESULT_OF( Fn ) Out;
 	typedef q::arguments< Out > out_arguments_type;
 	typedef std::tuple< Out > out_tuple_type;
 	typedef q::promise< out_tuple_type > out_promise_type;
 
-	auto queue = readable_->get_queue( );
-	auto next_queue = queue;
+	auto next_queue = options.get< q::defaultable< q::queue_ptr > >(
+		q::set_default( readable_->get_queue( ) ) ).value;
+	auto queue = options.get< q::queue_ptr >( next_queue );
+	auto concurrency = options.get< q::concurrency >( 1 );
 
-	::q::channel< out_promise_type > ch( next_queue, 1 );
+	::q::channel< out_promise_type > ch( next_queue, concurrency );
+
+	// TODO: Implement concurrency
 
 	auto writable = ch.get_writable( );
-
-	++uniq_id;
-	int id = uniq_id;
-	std::cout << "========== creating id " << id << std::endl;
 
 	consume( [ queue, writable, fn ]( T t ) mutable
 	{
@@ -61,16 +59,14 @@ map( Fn&& fn )
 			deferred->set_by_fun( fn, std::move( t ) );
 		} );
 	} )
-	.then( [ writable, id ]( ) mutable
+	.then( [ writable ]( ) mutable
 	{
-		std::cout << "========== id " << id << " closing" << std::endl;
 		writable.close( );
 	} )
-	.fail( [ writable, queue, id ]( std::exception_ptr e ) mutable
+	.fail( [ writable, queue ]( std::exception_ptr e ) mutable
 	{
-		std::cout << "========== id " << id << " error" << std::endl;
-		writable.send( ::q::reject< out_arguments_type >( queue, std::move( e ) ) );
-		;
+		writable.send( ::q::reject< out_arguments_type >(
+			queue, std::move( e ) ) );
 	} );
 
 	return observable< Out >( ch.get_readable( ) );
@@ -88,7 +84,7 @@ typename std::enable_if<
 	>::type
 >::type
 observable< T >::
-map( Fn&& fn )
+map( Fn&& fn, base_options options )
 {
 	return *this;
 }

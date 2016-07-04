@@ -330,7 +330,8 @@ private:
 			arguments_type;
 
 		if ( closed_.load( std::memory_order_seq_cst ) )
-			std::rethrow_exception( close_exception_ );
+			// Ignore this rejection/closing as we're already closed
+			return;
 
 		if ( waiters_.empty( ) )
 		{
@@ -371,7 +372,8 @@ private:
 			arguments_type;
 
 		if ( closed_.load( std::memory_order_seq_cst ) )
-			std::rethrow_exception( close_exception_ );
+			// Ignore this rejection/closing as we're already closed
+			return;
 
 		if ( waiters_.empty( ) )
 		{

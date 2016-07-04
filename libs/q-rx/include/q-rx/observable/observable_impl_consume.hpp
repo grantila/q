@@ -19,20 +19,16 @@
 
 namespace q { namespace rx {
 
-namespace { static std::atomic< int > _id( 0 ); }
-
 template< typename T >
-template< typename Fn, typename Queue >
+template< typename Fn >
 typename std::enable_if<
 	Q_ARGUMENTS_ARE_CONVERTIBLE_FROM( Fn, T )::value
 	and
-	std::is_void< ::q::result_of< Fn > >::value
-	and
-	Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
+	std::is_void< ::q::result_of< Fn > >::value,
 	::q::promise< std::tuple< > >
 >::type
 observable< T >::
-consume( Fn&& fn, Queue&& queue )
+consume( Fn&& fn, base_options options )
 {
 	typedef std::shared_ptr< detail::observable_readable< T > >
 		readable_type;
@@ -44,118 +40,24 @@ consume( Fn&& fn, Queue&& queue )
 		std::unique_ptr< fn_type > fn;
 		std::function< void( void ) > recursive_consumer;
 		q::queue_ptr queue;
-		bool set_default;
+		std::size_t max_concurrency;
+		std::atomic< std::size_t > concurrency;
 		q::resolver< > resolver;
 		q::rejecter< > rejecter;
 
 		context_type( readable_type readable )
 		: readable( readable )
-		, set_default( false )
+		, concurrency( 0 )
 		{ }
 	};
 	auto context = std::make_shared< context_type >( readable_ );
 
 	context->fn = q::make_unique< fn_type >( std::forward< Fn >( fn ) );
 
-	if ( is_set_default< Queue >::value )
-	{
-		context->queue = ensure( set_default_forward( queue ) );
-		context->set_default = true;
-	}
-	else
-	{
-		context->queue = ensure( std::forward< Queue >( queue ) );
-	}
-
-	int id = ++_id;
-
-	return q::make_promise_sync( context->queue,
-		[ context, id ]( q::resolver< > resolve, q::rejecter< > reject )
-	{
-		context->resolver = resolve;
-		context->rejecter = reject;
-
-		context->recursive_consumer = [ context, id ]( )
-		{
-			std::cout << "--------- trying consume on " << id << std::endl;
-			auto promise = context->readable->receive(
-				[ context, id ]( T&& t )
-				{
-					std::cout << "--------- consume on " << id << " got " << t << std::endl;
-					( *context->fn )( std::move( t ) );
-
-					context->recursive_consumer( );
-				},
-				context->queue
-			);
-
-			if ( context->set_default )
-				promise = promise.use_queue( context->queue );
-
-			promise
-			.fail( [ context, id ]( q::channel_closed_exception e )
-			{
-				std::cout << "--------- consume on " << id << " closed/resolve" << std::endl;
-				context->resolver( );
-			} )
-			.fail( [ context, id ]( std::exception_ptr e )
-			{
-				std::cout << "--------- consume on " << id << " rejected" << std::endl;
-				context->rejecter( e );
-			} );
-		};
-
-		context->recursive_consumer( );
-	} );
-}
-
-template< typename T >
-template< typename Fn, typename Queue >
-typename std::enable_if<
-/*	Q_ARGUMENTS_ARE_CONVERTIBLE_FROM( Fn, T )::value
-	and*/
-		::q::is_promise< typename std::decay< ::q::result_of< Fn > >::type >::value
-	and
-	::q::result_of< Fn >::argument_types::size::value == 0
-	and
-	Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
-	::q::promise< std::tuple< > >
->::type
-observable< T >::
-consume( Fn&& fn, Queue&& queue )
-{
-	typedef std::shared_ptr< detail::observable_readable< T > >
-		readable_type;
-	typedef typename std::decay< Fn >::type fn_type;
-
-	struct context_type
-	{
-		readable_type readable;
-		std::unique_ptr< fn_type > fn;
-		std::function< void( void ) > recursive_consumer;
-		q::queue_ptr queue;
-		bool set_default;
-		q::resolver< > resolver;
-		q::rejecter< > rejecter;
-
-		context_type( readable_type readable )
-		: readable( readable )
-		, set_default( false )
-		{ }
-	};
-	auto context = std::make_shared< context_type >( readable_ );
-
-	context->fn = q::make_unique< fn_type >( std::forward< Fn >( fn ) );
-
-	if ( is_set_default< Queue >::value )
-	{
-		context->queue = ensure( set_default_forward( queue ) );
-		context->set_default = true;
-	}
-	else
-	{
-		context->queue = ensure( std::forward< Queue >( queue ) );
-	}
+	auto next_queue = options.get< q::defaultable< q::queue_ptr > >(
+		q::set_default( readable_->get_queue( ) ) ).value;
+	context->queue = options.get< q::queue_ptr >( next_queue );
+	context->max_concurrency = options.get< q::concurrency >( 1 );
 
 	return q::make_promise_sync( context->queue,
 		[ context ]( q::resolver< > resolve, q::rejecter< > reject )
@@ -165,22 +67,15 @@ consume( Fn&& fn, Queue&& queue )
 
 		context->recursive_consumer = [ context ]( )
 		{
-			auto promise = context->readable->receive(
+			context->readable->receive(
 				[ context ]( T&& t )
 				{
-					return ( *context->fn )( std::move( t ) )
-					.then( [ context ]( )
-					{
-						context->recursive_consumer( );
-					} );
+					( *context->fn )( std::move( t ) );
+
+					context->recursive_consumer( );
 				},
 				context->queue
-			);
-
-			if ( context->set_default )
-				promise = promise.use_queue( context->queue );
-
-			promise
+			)
 			.fail( [ context ]( q::channel_closed_exception e )
 			{
 				context->resolver( );
@@ -192,7 +87,86 @@ consume( Fn&& fn, Queue&& queue )
 		};
 
 		context->recursive_consumer( );
-	} );
+	} )
+	.use_queue( next_queue );
+}
+
+template< typename T >
+template< typename Fn >
+typename std::enable_if<
+	Q_ARGUMENTS_ARE_CONVERTIBLE_FROM( Fn, T )::value
+	and
+	::q::is_promise<
+		typename std::decay< ::q::result_of< Fn > >::type
+	>::value
+	and
+	::q::result_of< Fn >::argument_types::size::value == 0,
+	::q::promise< std::tuple< > >
+>::type
+observable< T >::
+consume( Fn&& fn, base_options options )
+{
+	typedef std::shared_ptr< detail::observable_readable< T > >
+		readable_type;
+	typedef typename std::decay< Fn >::type fn_type;
+
+	struct context_type
+	{
+		readable_type readable;
+		std::unique_ptr< fn_type > fn;
+		std::function< void( void ) > recursive_consumer;
+		q::queue_ptr queue;
+		std::size_t max_concurrency;
+		std::atomic< std::size_t > concurrency;
+		q::resolver< > resolver;
+		q::rejecter< > rejecter;
+
+		context_type( readable_type readable )
+		: readable( readable )
+		, concurrency( 0 )
+		{ }
+	};
+	auto context = std::make_shared< context_type >( readable_ );
+
+	context->fn = q::make_unique< fn_type >( std::forward< Fn >( fn ) );
+
+	auto next_queue = options.get< q::defaultable< q::queue_ptr > >(
+		q::set_default( readable_->get_queue( ) ) ).value;
+	context->queue = options.get< q::queue_ptr >( next_queue );
+	context->max_concurrency = options.get< q::concurrency >( 1 );
+
+	return q::make_promise_sync( context->queue,
+		[ context ]( q::resolver< > resolve, q::rejecter< > reject )
+	{
+		context->resolver = resolve;
+		context->rejecter = reject;
+
+		context->recursive_consumer = [ context ]( )
+		{
+			context->readable->receive(
+				[ context ]( T&& t )
+				{
+					return ( *context->fn )( std::move( t ) )
+					.then( [ context ]( )
+					{
+						context->recursive_consumer( );
+					} );
+				},
+				context->queue
+			)
+			.fail( [ context ]( q::channel_closed_exception e )
+			{
+				context->resolver( );
+			} )
+			.fail( [ context ]( std::exception_ptr e )
+			{
+				context->rejecter( e );
+			} );
+		};
+
+		context->recursive_consumer( );
+	} )
+	.use_queue( next_queue );
 }
 
 } } // namespace rx, namespace q

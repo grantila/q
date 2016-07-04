@@ -130,6 +130,75 @@ struct merge
 	>::template apply< T >::type type;
 };
 
+
+template< typename... Args >
+struct is_all_unique;
+
+template< typename First, typename... Rest >
+struct is_all_unique< First, Rest... >
+: ::q::bool_type<
+	arguments< Rest... >
+		::template filter< same< First >::template as >
+		::type::size::value == 0
+	and
+	is_all_unique< Rest... >::value
+>
+{ };
+
+template< >
+struct is_all_unique< >
+: std::true_type
+{ };
+
+
+template< typename T, typename... Types >
+typename std::enable_if<
+	is_all_unique< Types... >::value,
+	T&
+>::type
+get_tuple_element( std::tuple< Types... >& t )
+{
+#ifdef LIBQ_WITH_CPP14
+	return std::get< T >( t );
+#else
+	typedef typename arguments< Types... >::template index_of< T > Index;
+	static_assert( Index::value != -1, "No such type in the given tuple" );
+	return std::get< Index::value >( t );
+#endif
+}
+
+template< typename T, typename... Types >
+typename std::enable_if<
+	is_all_unique< Types... >::value,
+	T&&
+>::type
+get_tuple_element( std::tuple< Types... >&& t )
+{
+#ifdef LIBQ_WITH_CPP14
+	return std::get< T >( std::move( t ) );
+#else
+	typedef typename arguments< Types... >::template index_of< T > Index;
+	static_assert( Index::value != -1, "No such type in the given tuple" );
+	return std::get< Index::value >( std::move( t ) );
+#endif
+}
+
+template< typename T, typename... Types >
+typename std::enable_if<
+	is_all_unique< Types... >::value,
+	const T&
+>::type
+get_tuple_element( const std::tuple< Types... >& t )
+{
+#ifdef LIBQ_WITH_CPP14
+	return std::get< T >( t );
+#else
+	typedef typename arguments< Types... >::template index_of< T > Index;
+	static_assert( Index::value != -1, "No such type in the given tuple" );
+	return std::get< Index::value >( t );
+#endif
+}
+
 } // namespace q
 
 #endif // LIBQ_TYPE_TRAITS_ARGUMENTS_IMPL_HPP

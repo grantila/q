@@ -20,6 +20,8 @@
 #include <q/functional.hpp>
 #include <q/promise.hpp>
 #include <q/channel.hpp>
+#include <q/options.hpp>
+#include <q/concurrency.hpp>
 
 #include <q-rx/types.hpp>
 #include <q-rx/observable/core.hpp>
