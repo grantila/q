@@ -512,6 +512,13 @@ public:
 		shared_channel_->close( );
 	}
 
+	// Existence of this equals that of the shared_channel
+	template< typename E >
+	void close( E&& e )
+	{
+		shared_channel_->close( std::forward< E >( e ) );
+	}
+
 	void add_scope_until_closed( scope&& scope )
 	{
 		shared_channel_->add_scope_until_closed( std::move( scope ) );
@@ -662,6 +669,13 @@ public:
 	void close( )
 	{
 		shared_channel_->close( );
+	}
+
+	// Existence of this equals that of the shared_channel
+	template< typename E >
+	void close( E&& e )
+	{
+		shared_channel_->close( std::forward< E >( e ) );
 	}
 
 	void add_scope_until_closed( scope&& scope )

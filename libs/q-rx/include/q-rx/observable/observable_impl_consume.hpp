@@ -41,6 +41,8 @@ consume( Fn&& fn, base_options options )
 		q::queue_ptr queue;
 		std::size_t max_concurrency;
 		std::atomic< std::size_t > concurrency;
+		std::shared_ptr< std::vector< q::promise< std::tuple< > > > >
+			concurrent_readers;
 		q::resolver< > resolver;
 		q::rejecter< > rejecter;
 
@@ -68,46 +70,82 @@ consume( Fn&& fn, base_options options )
 		context->resolver = resolve;
 		context->rejecter = reject;
 
-		struct worker
-		{
-			std::function< q::promise< std::tuple< > >( void ) > recursive_consumer;
-			std::shared_ptr< q::detail::defer< > > defer;
-		};
+		context->concurrent_readers = std::make_shared<
+			std::vector< q::promise< std::tuple< > > >
+		>( );
 
-		auto this_worker = std::make_shared< worker >( );
-		this_worker->defer = q::detail::defer< >::construct( context->queue );
-		this_worker->recursive_consumer = [ context, this_worker ]( )
+		while ( context->concurrency < context->max_concurrency )
 		{
-			return context->readable->receive(
-				[ context, this_worker ]( T&& t )
+			context->concurrency += 1;
+
+			context->concurrent_readers->push_back(
+				q::make_promise_sync(
+					context->queue,
+					[ context ]
+			( q::resolver< > resolve, q::rejecter< > reject )
+			{
+				struct worker
 				{
-					( *context->fn )( std::move( t ) );
+					std::function< void( void ) >
+						recursive_consumer;
+					q::resolver< > resolve;
+					q::rejecter< > reject;
+				};
 
-					return this_worker->recursive_consumer( );
-				},
-				context->queue
-			);
-		};
+				auto this_worker =
+					std::make_shared< worker >( );
 
-		this_worker->recursive_consumer( )
-		.then( [ this_worker ]
-		{
-			this_worker->recursive_consumer = nullptr;
-			this_worker->defer->set_value( );
-		} )
-		.fail( [ this_worker ]( std::exception_ptr )
-		{
-			this_worker->recursive_consumer = nullptr;
-			this_worker->defer->set_value( );
-		} );
+				this_worker->resolve = resolve;
+				this_worker->reject = reject;
 
-		this_worker->defer->get_promise( )
+				this_worker->recursive_consumer =
+					[ context, this_worker ]( )
+				{
+					context->readable->receive(
+						[ context ]( T&& t )
+						{
+							auto& fn = *context->fn;
+							fn( std::move( t ) );
+						},
+						context->queue
+					)
+					.then( [ this_worker ]( )
+					{
+						// No error, there might be
+						// more data to read
+						this_worker->
+							recursive_consumer( );
+					} )
+					.fail( [ this_worker ](
+						const q::channel_closed_exception&
+					)
+					{
+						// Channel closed successfully
+						this_worker->
+							recursive_consumer =
+							nullptr;
+						this_worker->resolve( );
+					} )
+					.fail( [ this_worker ](
+						std::exception_ptr e
+					)
+					{
+						// Channel closed with error
+						this_worker->
+							recursive_consumer =
+							nullptr;
+						this_worker->reject( e );
+					} );
+				};
+
+				this_worker->recursive_consumer( );
+			} ) );
+		}
+
+		q::all( *context->concurrent_readers, context->queue )
+		.strip( )
 		.then( [ context ]( )
 		{
-			std::cout
-				<< "GOT OK" << std::endl
-				<< "  Closed: " << ( context->readable->is_closed( ) ? "yes" : "no" ) << std::endl
-				<< "  Has error: " << ( context->readable->get_exception( ) ? "yes" : "no" ) << std::endl;
 			auto exception = context->readable->get_exception( );
 			if ( exception )
 				std::rethrow_exception( exception );

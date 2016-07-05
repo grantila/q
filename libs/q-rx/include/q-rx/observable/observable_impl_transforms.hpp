@@ -63,10 +63,9 @@ map( Fn&& fn, base_options options )
 	{
 		writable.close( );
 	} )
-	.fail( [ writable, queue ]( std::exception_ptr e ) mutable
+	.fail( [ writable ]( std::exception_ptr e ) mutable
 	{
-		writable.send( ::q::reject< out_arguments_type >(
-			queue, std::move( e ) ) );
+		writable.close( e );
 	} );
 
 	return observable< Out >( ch.get_readable( ) );
