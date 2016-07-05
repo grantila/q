@@ -70,7 +70,7 @@ consume( Fn&& fn, base_options options )
 
 		struct worker
 		{
-			std::function< void( void ) > recursive_consumer;
+			std::function< q::promise< std::tuple< > >( void ) > recursive_consumer;
 			std::shared_ptr< q::detail::defer< > > defer;
 		};
 
@@ -78,28 +78,28 @@ consume( Fn&& fn, base_options options )
 		this_worker->defer = q::detail::defer< >::construct( context->queue );
 		this_worker->recursive_consumer = [ context, this_worker ]( )
 		{
-			context->readable->receive(
+			return context->readable->receive(
 				[ context, this_worker ]( T&& t )
 				{
 					( *context->fn )( std::move( t ) );
 
-					this_worker->recursive_consumer( );
+					return this_worker->recursive_consumer( );
 				},
 				context->queue
-			)
-			.then( [ this_worker ]
-			{
-				this_worker->recursive_consumer = nullptr;
-				this_worker->defer->set_value( );
-			} )
-			.fail( [ this_worker ]( std::exception_ptr )
-			{
-				this_worker->recursive_consumer = nullptr;
-				this_worker->defer->set_value( );
-			} );
+			);
 		};
 
-		this_worker->recursive_consumer( );
+		this_worker->recursive_consumer( )
+		.then( [ this_worker ]
+		{
+			this_worker->recursive_consumer = nullptr;
+			this_worker->defer->set_value( );
+		} )
+		.fail( [ this_worker ]( std::exception_ptr )
+		{
+			this_worker->recursive_consumer = nullptr;
+			this_worker->defer->set_value( );
+		} );
 
 		this_worker->defer->get_promise( )
 		.then( [ context ]( )
