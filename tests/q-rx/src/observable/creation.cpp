@@ -12,6 +12,16 @@ TEST_F( observable_creation, empty )
 	run( o_empty.consume( EXPECT_NO_CALL_WRAPPER( [ ]( int ) { } ) ) );
 }
 
+TEST_F( observable_creation, error )
+{
+	auto o_error = q::rx::observable< int >::error( queue, Error( ) );
+
+	EVENTUALLY_EXPECT_REJECTION_WITH(
+		o_error.consume( EXPECT_NO_CALL_WRAPPER( [ ]( int ) { } ) ),
+		Error
+	);
+}
+
 TEST_F( observable_creation, with_vector )
 {
 	std::vector< int > vec_int{ 1, 2, 3 };

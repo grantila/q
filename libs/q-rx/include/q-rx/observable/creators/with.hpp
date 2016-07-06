@@ -14,10 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef LIBQ_RX_OBSERVABLE_WITH_HPP
-#define LIBQ_RX_OBSERVABLE_WITH_HPP
-
-#include <q/channel.hpp>
+#ifndef LIBQ_RX_OBSERVABLE_CREATORS_WITH_HPP
+#define LIBQ_RX_OBSERVABLE_CREATORS_WITH_HPP
 
 namespace q { namespace rx {
 
@@ -68,4 +66,4 @@ with(
 
 } } // namespace rx, namespace q
 
-#endif // LIBQ_RX_OBSERVABLE_WITH_HPP
+#endif // LIBQ_RX_OBSERVABLE_CREATORS_WITH_HPP

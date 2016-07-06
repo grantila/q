@@ -23,8 +23,20 @@ template< typename T >
 class observable
 {
 public:
+	/**********************************************************************
+	 * Creators
+	 *********************************************************************/
+
+	/************************************************
+	 * Creators: default constructor
+	 ***********************************************/
+
 	observable( )
 	{ }
+
+	/************************************************
+	 * Creators: from q::channel
+	 ***********************************************/
 
 	observable( q::readable< T >&& readable )
 	: readable_( std::make_shared<
@@ -66,11 +78,37 @@ public:
 	: observable( channel.get_readable( ) )
 	{ }
 
-	// Construction methods
+	/************************************************
+	 * Creators: Empty
+	 ***********************************************/
 
 	static observable< T > empty( const q::queue_ptr& queue );
 
+	/************************************************
+	 * Creators: Never
+	 ***********************************************/
+
 	static observable< T > never( const q::queue_ptr& queue );
+
+	/************************************************
+	 * Creators: Error ("Throw" in ReactiveX)
+	 ***********************************************/
+
+	static observable< T > error(
+		const q::queue_ptr& queue, std::exception_ptr exception );
+
+	template< typename Exception >
+	static typename std::enable_if<
+		!std::is_same<
+			typename std::decay< Exception >::type,
+			std::exception_ptr
+		>::value,
+		observable< T >
+	>::type error( const q::queue_ptr& queue, Exception&& exception );
+
+	/************************************************
+	 * Creators: From
+	 ***********************************************/
 
 	static observable< T > from( q::channel< T > channel );
 
@@ -89,7 +127,14 @@ public:
 		Queue&& queue
 	);
 
-	// Transformation operators
+
+	/**********************************************************************
+	 * Transformers
+	 *********************************************************************/
+
+	/************************************************
+	 * Transformers: Map
+	 ***********************************************/
 
 	/**
 	 * ( In ) -> Out
@@ -113,7 +158,17 @@ public:
 	>::type
 	map( Fn&& fn, base_options options = base_options( ) );
 
-	// Consuming (instead of onNext, onError, onComplete)
+
+	/**********************************************************************
+	 * Consumers
+	 *
+	 * These are used instead of the ReactiveX default consumers (onNext,
+	 * onError, onComplete) to form a nicer interface.
+	 *********************************************************************/
+
+	/***********************************************
+	 * Consumers: Consume (not in ReactiveX)
+	 ***********************************************/
 
 	/**
 	 * ( T ) -> void

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef LIBQ_RX_OBSERVABLE_OBSERVABLE_IMPL_TRANSFORMS_HPP
-#define LIBQ_RX_OBSERVABLE_OBSERVABLE_IMPL_TRANSFORMS_HPP
+#ifndef LIBQ_RX_OBSERVABLE_TRANSFORMERS_MAP_HPP
+#define LIBQ_RX_OBSERVABLE_TRANSFORMERS_MAP_HPP
 
 namespace q { namespace rx {
 
@@ -32,7 +32,6 @@ observable< T >::
 map( Fn&& fn, base_options options )
 {
 	typedef Q_RESULT_OF( Fn ) Out;
-	typedef q::arguments< Out > out_arguments_type;
 	typedef std::tuple< Out > out_tuple_type;
 	typedef q::promise< out_tuple_type > out_promise_type;
 
@@ -90,4 +89,4 @@ map( Fn&& fn, base_options options )
 
 } } // namespace rx, namespace q
 
-#endif // LIBQ_RX_OBSERVABLE_OBSERVABLE_IMPL_TRANSFORMS_HPP
+#endif // LIBQ_RX_OBSERVABLE_TRANSFORMERS_MAP_HPP

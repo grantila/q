@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef LIBQ_RX_OBSERVABLE_OBSERVABLE_IMPL_CONSUME_HPP
-#define LIBQ_RX_OBSERVABLE_OBSERVABLE_IMPL_CONSUME_HPP
+#ifndef LIBQ_RX_OBSERVABLE_CONSUMERS_CONSUME_HPP
+#define LIBQ_RX_OBSERVABLE_CONSUMERS_CONSUME_HPP
 
 namespace q { namespace rx {
 
@@ -63,6 +63,8 @@ consume( Fn&& fn, base_options options )
 	context->max_concurrency = concurrency == q::concurrency( )
 		? q::soft_cores( )
 		: static_cast< std::size_t >( concurrency );
+	if ( context->max_concurrency == 0 )
+		context->max_concurrency = 1;
 
 	return q::make_promise_sync( context->queue,
 		[ context ]( q::resolver< > resolve, q::rejecter< > reject )
@@ -150,14 +152,26 @@ consume( Fn&& fn, base_options options )
 			if ( exception )
 				std::rethrow_exception( exception );
 
+			// This should likely never happen
 			context->resolver( );
 		} )
 		.fail( [ context ]( q::channel_closed_exception e )
 		{
 			context->resolver( );
 		} )
+		.fail( [ context ](
+			const q::combined_promise_exception< void >& e
+		)
+		{
+			if ( e.exceptions( ).empty( ) )
+				// This should never happen
+				context->rejecter( e );
+			else
+				context->rejecter( e.exceptions( )[ 0 ] );
+		} )
 		.fail( [ context ]( std::exception_ptr e )
 		{
+			// This should never happen
 			context->rejecter( e );
 		} );
 	} )
@@ -244,4 +258,4 @@ consume( Fn&& fn, base_options options )
 
 } } // namespace rx, namespace q
 
-#endif // LIBQ_RX_OBSERVABLE_OBSERVABLE_IMPL_CONSUME_HPP
+#endif // LIBQ_RX_OBSERVABLE_CONSUMERS_CONSUME_HPP

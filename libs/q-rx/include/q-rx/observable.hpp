@@ -28,9 +28,15 @@
 #include <q-rx/observable/observable_readable.hpp>
 #include <q-rx/observable/observable.hpp>
 #include <q-rx/observable/observable_impl.hpp>
-#include <q-rx/observable/observable_impl_from.hpp>
-#include <q-rx/observable/observable_impl_consume.hpp>
-#include <q-rx/observable/observable_impl_transforms.hpp>
-#include <q-rx/observable/with.hpp>
+
+#include <q-rx/observable/creators/empty.hpp>
+#include <q-rx/observable/creators/never.hpp>
+#include <q-rx/observable/creators/error.hpp>
+#include <q-rx/observable/creators/from.hpp>
+#include <q-rx/observable/creators/with.hpp>
+
+#include <q-rx/observable/transformers/map.hpp>
+
+#include <q-rx/observable/consumers/consume.hpp>
 
 #endif // LIBQ_RX_OBSERVABLE_HPP

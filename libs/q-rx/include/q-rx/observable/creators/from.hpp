@@ -14,30 +14,14 @@
  * limitations under the License.
  */
 
-#ifndef LIBQ_RX_OBSERVABLE_OBSERVABLE_IMPL_FROM_HPP
-#define LIBQ_RX_OBSERVABLE_OBSERVABLE_IMPL_FROM_HPP
-
-#include <q/channel.hpp>
+#ifndef LIBQ_RX_OBSERVABLE_CREATORS_FROM_HPP
+#define LIBQ_RX_OBSERVABLE_CREATORS_FROM_HPP
 
 namespace q { namespace rx {
 
 template< typename T >
-inline observable< T > observable< T >::empty( const q::queue_ptr& queue )
-{
-	q::channel< T > channel_( queue, 0 );
-	channel_.get_writable( ).close( );
-	return observable< T >( channel_ );
-}
-
-template< typename T >
-inline observable< T > observable< T >::never( const q::queue_ptr& queue )
-{
-	auto channel_ = q::channel< T >( queue, 1 );
-	return observable< T >( channel_ );
-}
-
-template< typename T >
-inline observable< T > observable< T >::from( q::channel< T > channel )
+inline observable< T > observable< T >::
+from( q::channel< T > channel )
 {
 	return observable< T >( channel );
 }
@@ -69,9 +53,9 @@ from(
 	Queue&& queue
 )
 {
-	;
+	throw "not implemented yet";
 }
 
 } } // namespace rx, namespace q
 
-#endif // LIBQ_RX_OBSERVABLE_OBSERVABLE_IMPL_FROM_HPP
+#endif // LIBQ_RX_OBSERVABLE_CREATORS_FROM_HPP
