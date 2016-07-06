@@ -1,8 +1,6 @@
 
 #include "../q-rx-test.hpp"
 
-#include <q-rx/functional.hpp>
-
 static double pi = 3.14159265358979323846264338327950288;
 
 TEST( functional_math, mul )

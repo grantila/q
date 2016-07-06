@@ -1,8 +1,6 @@
 
 #include "../../q-rx-test.hpp"
 
-#include <q-rx/functional.hpp>
-
 Q_TEST_MAKE_SCOPE( ob_trans_map );
 
 struct S

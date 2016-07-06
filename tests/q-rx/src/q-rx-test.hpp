@@ -19,4 +19,6 @@
 
 #include <q-rx-test/q-rx-test.hpp>
 
+#include <q-rx/functional.hpp>
+
 #endif // LIBQ_RX_UNIT_TESTS_QRXTEST_HPP
