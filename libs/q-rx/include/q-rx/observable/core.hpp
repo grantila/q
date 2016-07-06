@@ -25,6 +25,33 @@ typedef q::options<
 	q::concurrency
 > base_options;
 
+class backlog
+{
+public:
+	backlog( std::size_t value = 1 )
+	: value_( value )
+	{ }
+
+	std::size_t get( ) const
+	{
+		return value_;
+	}
+
+	operator std::size_t( ) const
+	{
+		return value_;
+	}
+
+private:
+	std::size_t value_;
+};
+
+typedef q::options<
+	queue_ptr,
+	q::defaultable< q::queue_ptr >,
+	backlog
+> create_options;
+
 namespace detail {
 
 template< typename T, std::size_t Size = std::tuple_size< T >::value >

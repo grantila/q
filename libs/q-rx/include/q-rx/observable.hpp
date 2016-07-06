@@ -29,6 +29,7 @@
 #include <q-rx/observable/observable.hpp>
 #include <q-rx/observable/observable_impl.hpp>
 
+#include <q-rx/observable/creators/create.hpp>
 #include <q-rx/observable/creators/empty.hpp>
 #include <q-rx/observable/creators/never.hpp>
 #include <q-rx/observable/creators/error.hpp>

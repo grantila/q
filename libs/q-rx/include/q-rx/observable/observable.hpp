@@ -107,6 +107,33 @@ public:
 	>::type error( const q::queue_ptr& queue, Exception&& exception );
 
 	/************************************************
+	 * Creators: Create
+	 ***********************************************/
+
+	class observer
+	{
+	public:
+		observer( ) = default;
+		observer( observer&& ) = default;
+		observer( const observer& ) = default;
+		observer( q::writable< T > writable );
+
+		void onNext( T&& t );
+		void onNext( const T& t );
+		void onCompleted( );
+		template< typename Error >
+		void onError( Error&& error );
+
+	private:
+		q::writable< T > writable_;
+	};
+
+	static observable< T > create(
+		std::function< void( observer ) > fn,
+		create_options options
+	);
+
+	/************************************************
 	 * Creators: From
 	 ***********************************************/
 
