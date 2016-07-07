@@ -134,6 +134,15 @@ public:
 	);
 
 	/************************************************
+	 * Creators: Defer
+	 ***********************************************/
+
+	// TODO: Consider subscribing of observables, potentially with another
+	//       class, subscribable_observable.
+	//       In q-rx, all observables buffer data, so the concept of
+	//       subscribing doesn't apply the same way.
+
+	/************************************************
 	 * Creators: From
 	 ***********************************************/
 
@@ -153,6 +162,27 @@ public:
 		std::iterator< Tag, T > end,
 		Queue&& queue
 	);
+
+	/************************************************
+	 * Creators: Interval
+	 ***********************************************/
+
+	// TODO: Implement (requires an io-dispatcher, or at least timer
+	//       dispatch support)
+
+	/************************************************
+	 * Creators: Just
+	 ***********************************************/
+
+	template< typename... U >
+	static typename std::enable_if<
+		q::is_all_same<
+			T,
+			typename std::decay< U >::type...
+		>::value,
+		observable< T >
+	>::type
+	just( const queue_ptr& queue, U&&... values );
 
 
 	/**********************************************************************

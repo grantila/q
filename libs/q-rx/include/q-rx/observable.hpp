@@ -33,6 +33,7 @@
 #include <q-rx/observable/creators/empty.hpp>
 #include <q-rx/observable/creators/never.hpp>
 #include <q-rx/observable/creators/error.hpp>
+#include <q-rx/observable/creators/just.hpp>
 #include <q-rx/observable/creators/from.hpp>
 #include <q-rx/observable/creators/with.hpp>
 
