@@ -78,3 +78,22 @@ TEST_F( ob_create_range, int_non_empty_with_backlog )
 
 	run( o_range.consume( consumer ) );
 }
+
+TEST_F( ob_create_range, iterator_non_empty_with_backlog )
+{
+	std::vector< std::string > strings{ "a", "b", "c" };
+	typedef std::vector< std::string >::iterator iter_type;
+
+	auto o_range = q::rx::observable< iter_type >::range(
+		strings.begin( ), 3, { queue, q::rx::backlog( 2 ) } );
+
+	int counter = 0;
+
+	auto consumer = [ &strings, &counter ]( iter_type value )
+	{
+		EXPECT_EQ( *value, strings[ counter ] );
+		++counter;
+	};
+
+	run( o_range.consume( EXPECT_N_CALLS_WRAPPER( 3, consumer ) ) );
+}
