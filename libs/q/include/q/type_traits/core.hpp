@@ -43,6 +43,18 @@ typename std::remove_reference< T >::type identity_fn_noref( T&& );
 } // namespace detail
 
 /**
+ * Provides a functional operator which expands ::type from a meta-function
+ */
+template< template< typename > class T >
+struct functional_type
+{
+	template< typename U >
+	struct of
+	: T< U >::type
+	{ };
+};
+
+/**
  * q::bool_type is std::true_type if value is true, otherwise q::bool_type is
  * std::false_type.
  */

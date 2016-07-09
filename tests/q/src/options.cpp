@@ -60,3 +60,26 @@ TEST( options, two_types )
 	EXPECT_TRUE( opts2.has< q::concurrency >( ) );
 	EXPECT_FALSE( opts2.has< q::queue_ptr >( ) );
 }
+
+TEST( options, required_type )
+{
+	typedef q::options< q::concurrency, q::required< q::queue_ptr > >
+		options;
+
+	auto fun = [ ]( options opts ) { return opts; };
+
+	/*
+	// Shouldn't compile
+	auto fun_opts2 = fun( { } );
+	EXPECT_TRUE( false );
+	/* */
+
+	auto fun_opts3 = fun( { q::queue_ptr( ) } );
+	EXPECT_FALSE( fun_opts3.has< q::concurrency >( ) );
+	EXPECT_TRUE( fun_opts3.has< q::queue_ptr >( ) );
+
+	auto fun_opts4 = fun( { q::queue_ptr( ), q::concurrency( 4 ) } );
+	EXPECT_TRUE( fun_opts4.has< q::concurrency >( ) );
+	EXPECT_TRUE( fun_opts4.has< q::queue_ptr >( ) );
+	EXPECT_EQ( fun_opts4.get< q::concurrency >( ).get( ), 4 );
+}

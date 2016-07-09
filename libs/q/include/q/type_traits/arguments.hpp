@@ -102,7 +102,13 @@ struct arguments
 
 	typedef std::integral_constant< std::size_t, sizeof...( Args ) > size;
 
-	typedef typename bool_type< size::value == 0 >::type empty;
+	typedef std::false_type empty;
+
+	typedef bool_type<
+		size::value == 1
+		and
+		std::is_void< first_type >::value
+	> empty_or_void;
 
 
 	// TODO: Why did I write this?
@@ -132,6 +138,11 @@ struct arguments
 	template< std::intptr_t Offset >
 	struct index_of< first_type, Offset >
 	: public std::integral_constant< std::intptr_t, Offset >
+	{ };
+
+	template< typename T >
+	struct has
+	: bool_type< index_of< T >::value != -1 >
 	{ };
 
 	/**
@@ -168,7 +179,7 @@ struct arguments
 	template< template< typename > class T >
 	struct map
 	{
-		typedef arguments< T< Args >... > type;
+		typedef arguments< typename T< Args >::type... > type;
 	};
 
 	/**
@@ -221,7 +232,9 @@ struct arguments< >
 
 	typedef std::integral_constant< std::size_t, 0 > size;
 
-	typedef bool_type< true >::type empty;
+	typedef std::true_type empty;
+
+	typedef std::true_type empty_or_void;
 
 
 	template< typename... Before >
@@ -239,6 +252,11 @@ struct arguments< >
 	template< typename T, std::intptr_t = 0 >
 	struct index_of
 	: public std::integral_constant< std::intptr_t, -1 >
+	{ };
+
+	template< typename T >
+	struct has
+	: std::false_type
 	{ };
 
 	template< typename T >
@@ -262,6 +280,16 @@ struct arguments< >
 	{
 		typedef arguments< > type;
 	};
+
+	template< typename Arguments >
+	struct contains_all
+	: Arguments::empty
+	{ };
+
+	template< typename... T >
+	struct contains
+	: contains_all< arguments< T... > >
+	{ };
 };
 
 namespace detail {

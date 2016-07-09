@@ -21,6 +21,43 @@
 
 namespace q {
 
+template< typename T >
+struct required
+{
+	typedef T type;
+};
+
+namespace detail {
+
+template< typename T >
+struct _is_required
+: std::false_type
+{ };
+
+template< typename T >
+struct _is_required< ::q::required< T > >
+: std::true_type
+{ };
+
+} // namespace detail
+
+template< typename T >
+struct is_required
+: detail::_is_required< typename std::decay< T >::type >
+{ };
+
+template< typename T >
+struct strip_required
+{
+	typedef T type;
+};
+
+template< typename T >
+struct strip_required< required< T > >
+{
+	typedef T type;
+};
+
 namespace detail {
 
 template< typename T >
@@ -122,26 +159,39 @@ struct options< >
 
 } // namespace detail
 
-
 template< typename... T >
 class options
-: public detail::options< T... >
+: public detail::options< typename strip_required< T >::type... >
 {
 public:
+	typedef arguments< typename strip_required< T >::type... >
+		stripped_arguments;
+	typedef typename arguments< T... >
+		::template filter< is_required >::type
+		::template map< strip_required >::type
+		::template map< std::decay >::type
+		required_arguments;
+
 	static_assert(
-		is_all_unique< T... >::value,
+		is_all_unique< typename strip_required< T >::type... >::value,
 		"option types must be unique"
 	);
 
 	template< typename... Args >
 	options( Args&&... args )
-	: detail::options< T... >(
+	: detail::options< typename strip_required< T >::type... >(
 		std::make_tuple( std::forward< Args >( args )... ) )
-	{ }
+	{
+		static_assert(
+			arguments< typename std::decay< Args >::type... >
+			::template contains_all< required_arguments >::value,
+			"All required options not provided"
+		);
+	}
 
 	template< typename U >
 	typename std::enable_if<
-		arguments< T... >::template index_of< U >::value != -1,
+		stripped_arguments::template index_of< U >::value != -1,
 		bool
 	>::type
 	has( ) const
@@ -152,7 +202,7 @@ public:
 
 	template< typename U >
 	typename std::enable_if<
-		arguments< T... >::template index_of< U >::value != -1,
+		stripped_arguments::template index_of< U >::value != -1,
 		U
 	>::type
 	get( ) const
@@ -163,7 +213,7 @@ public:
 
 	template< typename U >
 	typename std::enable_if<
-		arguments< T... >::template index_of< U >::value != -1,
+		stripped_arguments::template index_of< U >::value != -1,
 		U
 	>::type
 	get( )
@@ -174,7 +224,7 @@ public:
 
 	template< typename U >
 	typename std::enable_if<
-		arguments< T... >::template index_of< U >::value != -1,
+		stripped_arguments::template index_of< U >::value != -1,
 		U
 	>::type
 	get( U _default ) const
@@ -187,7 +237,7 @@ public:
 
 	template< typename U >
 	typename std::enable_if<
-		arguments< T... >::template index_of< U >::value != -1,
+		stripped_arguments::template index_of< U >::value != -1,
 		U
 	>::type
 	get( U _default )
@@ -200,7 +250,7 @@ public:
 
 	template< typename U >
 	typename std::enable_if<
-		arguments< T... >::template index_of< U >::value != -1,
+		stripped_arguments::template index_of< U >::value != -1,
 		U
 	>::type
 	move( )
@@ -211,7 +261,7 @@ public:
 
 	template< typename U >
 	typename std::enable_if<
-		arguments< T... >::template index_of< U >::value != -1,
+		stripped_arguments::template index_of< U >::value != -1,
 		U
 	>::type
 	move( U _default )
