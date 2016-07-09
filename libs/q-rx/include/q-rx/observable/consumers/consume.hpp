@@ -103,12 +103,9 @@ consume( Fn&& fn, base_options options )
 				this_worker->recursive_consumer =
 					[ context, this_worker ]( )
 				{
+					auto fn = *context->fn;
 					context->readable->receive(
-						[ context ]( T&& t )
-						{
-							auto& fn = *context->fn;
-							fn( std::move( t ) );
-						},
+						fn,
 						context->queue
 					)
 					.then( [ this_worker ]( )

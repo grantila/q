@@ -21,6 +21,11 @@ namespace q { namespace rx {
 
 typedef q::options<
 	queue_ptr,
+	q::defaultable< q::queue_ptr >
+> queue_options;
+
+typedef q::options<
+	queue_ptr,
 	q::defaultable< q::queue_ptr >,
 	q::concurrency
 > base_options;
@@ -47,7 +52,7 @@ private:
 };
 
 typedef q::options<
-	queue_ptr,
+	q::required< queue_ptr >,
 	q::defaultable< q::queue_ptr >,
 	backlog
 > create_options;

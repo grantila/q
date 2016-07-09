@@ -19,9 +19,41 @@
 
 namespace q { namespace rx {
 
+namespace detail {
+
+template< typename T >
+struct observable_types
+{
+	typedef q::expect< T > expect_type;
+	typedef q::channel< T > channel_type;
+	typedef q::readable< T > readable_type;
+	typedef q::writable< T > writable_type;
+	typedef std::tuple< T > tuple_type;
+};
+
+template< >
+struct observable_types< void >
+{
+	typedef q::expect< void > expect_type;
+	typedef q::channel< > channel_type;
+	typedef q::readable< > readable_type;
+	typedef q::writable< > writable_type;
+	typedef std::tuple< > tuple_type;
+};
+
+} // namespace detail
+
 template< typename T >
 class observable
+: detail::observable_types< T >
 {
+	typedef detail::observable_types< T > base_types;
+	typedef typename base_types::expect_type expect_type;
+	typedef typename base_types::channel_type channel_type;
+	typedef typename base_types::readable_type readable_type;
+	typedef typename base_types::writable_type writable_type;
+	typedef typename base_types::tuple_type tuple_type;
+
 public:
 	/**********************************************************************
 	 * Creators
@@ -38,43 +70,43 @@ public:
 	 * Creators: from q::channel
 	 ***********************************************/
 
-	observable( q::readable< T >&& readable )
+	observable( readable_type&& readable )
 	: readable_( std::make_shared<
 		detail::observable_readable_direct< T >
 	>( std::move( readable ) ) )
 	{ }
 
-	observable( q::channel< T > channel )
+	observable( channel_type channel )
 	: observable( channel.get_readable( ) )
 	{ }
 
-	observable( q::readable< q::expect< T > >&& readable )
+	observable( q::readable< expect_type >&& readable )
 	: readable_( std::make_shared<
 		detail::observable_readable_expect< T >
 	>( std::move( readable ) ) )
 	{ }
 
-	observable( q::channel< q::expect< T > > channel )
+	observable( q::channel< expect_type > channel )
 	: observable( channel.get_readable( ) )
 	{ }
 
-	observable( q::readable< q::promise< std::tuple< T > > >&& readable )
+	observable( q::readable< q::promise< tuple_type > >&& readable )
 	: readable_( std::make_shared<
 		detail::observable_readable_promise< T >
 	>( std::move( readable ) ) )
 	{ }
 
-	observable( q::channel< q::promise< std::tuple< T > > > channel )
+	observable( q::channel< q::promise< tuple_type > > channel )
 	: observable( channel.get_readable( ) )
 	{ }
 
-	observable( q::readable< q::shared_promise< std::tuple< T > > >&& readable )
+	observable( q::readable< q::shared_promise< tuple_type > >&& readable )
 	: readable_( std::make_shared<
 		detail::observable_readable_shared_promise< T >
 	>( std::move( readable ) ) )
 	{ }
 
-	observable( q::channel< q::shared_promise< std::tuple< T > > > channel )
+	observable( q::channel< q::shared_promise< tuple_type > > channel )
 	: observable( channel.get_readable( ) )
 	{ }
 
@@ -118,11 +150,11 @@ public:
 		observer( const observer& ) = default;
 		observer( q::writable< T > writable );
 
-		void onNext( T&& t );
-		void onNext( const T& t );
-		void onCompleted( );
+		void on_next( T&& t );
+		void on_next( const T& t );
+		void on_completed( );
 		template< typename Error >
-		void onError( Error&& error );
+		void on_error( Error&& error );
 
 	private:
 		q::writable< T > writable_;
@@ -156,10 +188,14 @@ public:
 	>::type
 	from( U&& container, Queue&& queue = nullptr );
 
-	template< typename Queue, typename Tag >
-	static observable< T > from(
-		std::iterator< Tag, T > begin,
-		std::iterator< Tag, T > end,
+	template< typename Queue, typename Tag, typename U = T >
+	static typename std::enable_if<
+		!std::is_void< U >::value,
+		observable< T >
+	>::type
+	from(
+		std::iterator< Tag, U > begin,
+		std::iterator< Tag, U > end,
 		Queue&& queue
 	);
 
@@ -183,6 +219,29 @@ public:
 		observable< T >
 	>::type
 	just( const queue_ptr& queue, U&&... values );
+
+	/************************************************
+	 * Creators: Range
+	 ***********************************************/
+
+	/**
+	 * This range allows any kind of T that can be advanced with the
+	 * postfix ++ operator. In other words, this works with numeric data
+	 * types just as well as iterators.
+	 */
+	template< typename U = T >
+	static typename std::enable_if<
+		!std::is_void< U >::value,
+		observable< T >
+	>::type
+	range( U&& start, std::size_t count, create_options options );
+
+	template< typename U = T >
+	static typename std::enable_if<
+		std::is_void< U >::value,
+		observable< T >
+	>::type
+	range( std::size_t count, create_options options );
 
 
 	/**********************************************************************
@@ -280,7 +339,6 @@ private:
 		return readable_->get_queue( );
 	}
 
-//	q::readable< T > readable_;
 	std::shared_ptr< detail::observable_readable< T > > readable_;
 };
 

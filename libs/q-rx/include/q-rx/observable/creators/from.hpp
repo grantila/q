@@ -29,8 +29,7 @@ from( q::channel< T > channel )
 template< typename T >
 template< typename U, typename Queue >
 inline typename std::enable_if<
-	std::is_same< std::vector< T >, typename std::decay< U >::type >::value
-	,
+	std::is_same< std::vector< T >, typename std::decay< U >::type >::value,
 	observable< T >
 >::type
 observable< T >::
@@ -44,12 +43,15 @@ from( U&& container, Queue&& queue )
 }
 
 template< typename T >
-template< typename Queue, typename Tag >
-observable< T >
+template< typename Queue, typename Tag, typename U >
+typename std::enable_if<
+	!std::is_void< U >::value,
+	observable< T >
+>::type
 observable< T >::
 from(
-	std::iterator< Tag, T > begin,
-	std::iterator< Tag, T > end,
+	std::iterator< Tag, U > begin,
+	std::iterator< Tag, U > end,
 	Queue&& queue
 )
 {

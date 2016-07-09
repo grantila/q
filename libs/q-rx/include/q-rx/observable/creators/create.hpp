@@ -23,10 +23,9 @@ template< typename T >
 inline observable< T > observable< T >::
 create( std::function< void( observer ) > fn, create_options options )
 {
-
 	auto next_queue = options.get< q::defaultable< q::queue_ptr > >(
 		q::set_default( q::queue_ptr( ) ) ).value;
-	auto queue = options.get< q::queue_ptr >( next_queue );
+	auto queue = options.get< q::queue_ptr >( );
 	auto backlog_size = options.get< backlog >( 1 );
 
 	if ( !next_queue )
@@ -48,7 +47,7 @@ create( std::function< void( observer ) > fn, create_options options )
 		}
 		catch ( ... )
 		{
-			obs.onError( std::current_exception( ) );
+			obs.on_error( std::current_exception( ) );
 		}
 	} );
 
@@ -61,26 +60,26 @@ inline observable< T >::observer::observer( q::writable< T > writable )
 { }
 
 template< typename T >
-inline void observable< T >::observer::onNext( T&& t )
+inline void observable< T >::observer::on_next( T&& t )
 {
 	writable_.send( std::move( t ) );
 }
 
 template< typename T >
-inline void observable< T >::observer::onNext( const T& t )
+inline void observable< T >::observer::on_next( const T& t )
 {
 	writable_.send( t );
 }
 
 template< typename T >
-inline void observable< T >::observer::onCompleted( )
+inline void observable< T >::observer::on_completed( )
 {
 	writable_.close( );
 }
 
 template< typename T >
 template< typename Error >
-inline void observable< T >::observer::onError( Error&& error )
+inline void observable< T >::observer::on_error( Error&& error )
 {
 	writable_.close( std::forward< Error >( error ) );
 }

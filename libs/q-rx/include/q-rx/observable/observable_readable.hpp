@@ -20,13 +20,40 @@
 namespace q { namespace rx { namespace detail {
 
 template< typename T >
+struct observable_readable_traits
+{
+	typedef std::function< void( T&& ) > receiver_type;
+	typedef q::readable< T > readable_type;
+	typedef q::readable< q::expect< T > > readable_expect_type;
+	typedef q::readable< q::promise< std::tuple< T > > >
+		readable_promise_type;
+	typedef q::readable< q::shared_promise< std::tuple< T > > >
+		readable_shared_promise_type;
+};
+
+template< >
+struct observable_readable_traits< void >
+{
+	typedef std::function< void( ) > receiver_type;
+	typedef q::readable< > readable_type;
+	typedef q::readable< q::expect< void > > readable_expect_type;
+	typedef q::readable< q::promise< std::tuple< > > >
+		readable_promise_type;
+	typedef q::readable< q::shared_promise< std::tuple< > > >
+		readable_shared_promise_type;
+};
+
+template< typename T >
 class observable_readable
 {
 public:
+	typedef typename observable_readable_traits< T >::receiver_type
+		receive_type;
+
 	virtual ~observable_readable( ) { }
 
 	virtual q::promise< std::tuple< > >
-	receive( std::function< void( T&& ) > fn, queue_ptr queue ) = 0;
+	receive( receive_type fn, queue_ptr queue ) = 0;
 
 	virtual queue_ptr get_queue( ) const = 0;
 
@@ -43,12 +70,17 @@ class observable_readable_direct
 : public observable_readable< T >
 {
 public:
-	observable_readable_direct( q::readable< T >&& readable )
+	typedef typename observable_readable_traits< T >::receiver_type
+		receive_type;
+	typedef typename observable_readable_traits< T >::readable_type
+		readable_type;
+
+	observable_readable_direct( readable_type&& readable )
 	: readable_( readable )
 	{ }
 
 	q::promise< std::tuple< > >
-	receive( std::function< void( T&& ) > fn, queue_ptr queue ) override
+	receive( receive_type fn, queue_ptr queue ) override
 	{
 		return readable_.receive( )
 		.then( fn, std::move( queue ) );
@@ -70,7 +102,7 @@ public:
 	}
 
 private:
-	q::readable< T > readable_;
+	readable_type readable_;
 };
 
 template< typename T >
@@ -78,12 +110,17 @@ class observable_readable_expect
 : public observable_readable< T >
 {
 public:
-	observable_readable_expect( q::readable< q::expect< T > >&& readable )
+	typedef typename observable_readable_traits< T >::receiver_type
+		receive_type;
+	typedef typename observable_readable_traits< T >::readable_expect_type
+		readable_expect_type;
+
+	observable_readable_expect( readable_expect_type&& readable )
 	: readable_( readable )
 	{ }
 
 	q::promise< std::tuple< > >
-	receive( std::function< void( T&& ) > fn, queue_ptr queue ) override
+	receive( receive_type fn, queue_ptr queue ) override
 	{
 		return readable_.receive( )
 		.then( [ fn ]( q::expect< T >&& exp )
@@ -108,7 +145,7 @@ public:
 	}
 
 private:
-	q::readable< q::expect< T > > readable_;
+	readable_expect_type readable_;
 };
 
 template< typename T >
@@ -116,14 +153,17 @@ class observable_readable_promise
 : public observable_readable< T >
 {
 public:
-	observable_readable_promise(
-		q::readable< q::promise< std::tuple< T > > >&& readable
-	)
+	typedef typename observable_readable_traits< T >::receiver_type
+		receive_type;
+	typedef typename observable_readable_traits< T >::readable_promise_type
+		readable_promise_type;
+
+	observable_readable_promise( readable_promise_type&& readable )
 	: readable_( readable )
 	{ }
 
 	q::promise< std::tuple< > >
-	receive( std::function< void( T&& ) > fn, queue_ptr queue ) override
+	receive( receive_type fn, queue_ptr queue ) override
 	{
 		return readable_.receive( )
 		.then( fn, std::move( queue ) );
@@ -145,7 +185,7 @@ public:
 	}
 
 private:
-	q::readable< q::promise< std::tuple< T > > > readable_;
+	readable_promise_type readable_;
 };
 
 template< typename T >
@@ -153,14 +193,19 @@ class observable_readable_shared_promise
 : public observable_readable< T >
 {
 public:
+	typedef typename observable_readable_traits< T >::receiver_type
+		receive_type;
+	typedef typename observable_readable_traits< T >
+		::readable_shared_promise_type readable_shared_promise_type;
+
 	observable_readable_shared_promise(
-		q::readable< q::shared_promise< std::tuple< T > > >&& readable
+		readable_shared_promise_type&& readable
 	)
 	: readable_( readable )
 	{ }
 
 	q::promise< std::tuple< > >
-	receive( std::function< void( T&& ) > fn, queue_ptr queue ) override
+	receive( receive_type fn, queue_ptr queue ) override
 	{
 		return readable_.receive( )
 		.then( fn, std::move( queue ) );
@@ -182,7 +227,7 @@ public:
 	}
 
 private:
-	q::readable< q::shared_promise< std::tuple< T > > > readable_;
+	readable_shared_promise_type readable_;
 };
 
 } } } // namespace detail, namespace rx, namespace q
