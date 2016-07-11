@@ -90,7 +90,6 @@ range( std::size_t count, create_options options )
 	if ( !next_queue )
 		next_queue = queue;
 
-
 	channel_type channel_( queue, backlog_size );
 	writable_type writable = channel_.get_writable( );
 

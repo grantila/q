@@ -243,6 +243,33 @@ public:
 	>::type
 	range( std::size_t count, create_options options );
 
+	/************************************************
+	 * Creators: Start
+	 ***********************************************/
+
+	template< typename Fn >
+	static typename std::enable_if<
+		!q::is_promise< Q_RESULT_OF( Fn ) >::value
+		and
+		std::is_same< Q_RESULT_OF( Fn ), T >::value,
+		observable< T >
+	>::type
+	start( Fn&& fn, queue_options options );
+
+	template< typename Fn >
+	static typename std::enable_if<
+		q::is_promise< Q_RESULT_OF( Fn ) >::value
+		and
+		q::result_of< Fn >::argument_types
+		::template is_convertible_to< q::arguments< T > >::value,
+		observable< T >
+	>::type
+	start( Fn&& fn, queue_options options );
+
+	/************************************************
+	 * Creators: Timer
+	 ***********************************************/
+
 
 	/**********************************************************************
 	 * Transformers
