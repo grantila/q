@@ -64,7 +64,7 @@ noexcept
 #else // not _WIN32
 
 	silly_function( );
-	Dl_info info;
+	Dl_info info = { 0 };
 	dladdr( __builtin_return_address( 0 ), &info);
 	snprintf( filename, PATH_MAX, "%s", info.dli_fname );
 #endif
