@@ -110,6 +110,26 @@ struct merge
 	>::template apply< T >::type type;
 };
 
+
+template< typename... Args >
+struct are_all_unique;
+
+template< typename First, typename... Rest >
+struct are_all_unique< First, Rest... >
+: ::q::bool_type<
+	arguments< Rest... >
+		::template filter< same< First >::template as >::type
+		::empty::value
+	and
+	are_all_unique< Rest... >::value
+>
+{ };
+
+template< >
+struct are_all_unique< >
+: std::true_type
+{ };
+
 } // namespace q
 
 #endif // LIBQ_TYPE_TRAITS_ARGUMENTS_IMPL_HPP
