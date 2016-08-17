@@ -45,6 +45,18 @@ typename std::remove_reference< T >::type identity_fn_noref( T&& );
 } // namespace detail
 
 /**
+ * Provides a functional operator which expands ::type from a meta-function
+ */
+template< template< typename > class T >
+struct functional_type
+{
+	template< typename U >
+	struct of
+	: T< U >::type
+	{ };
+};
+
+/**
  * q::bool_type is std::true_type if value is true, otherwise q::bool_type is
  * std::false_type.
  */
@@ -103,6 +115,18 @@ struct is_same_type
 	>::type
 >
 { };
+
+/**
+ * Composable is_same_type
+ */
+template< typename A >
+struct same
+{
+	template< typename B >
+	struct as
+	: is_same_type< A, B >
+	{ };
+};
 
 template< typename... T >
 struct is_tuple
