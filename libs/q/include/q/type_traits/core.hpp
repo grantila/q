@@ -32,6 +32,8 @@ namespace q {
 template< typename T > void ignore_result( T&& ) { }
 template< typename T > void ignore_parameter( T&& ) { }
 
+struct void_t { };
+
 namespace detail {
 
 template< typename T >
