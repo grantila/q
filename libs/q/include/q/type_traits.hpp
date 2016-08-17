@@ -122,8 +122,10 @@ struct satisfies_all
  */
 template< typename Tuple >
 struct tuple_arguments
-: public detail::tuple_arguments< Tuple >
-{ };
+: public detail::tuple_arguments< Tuple > // TODO: Remove
+{
+	typedef typename detail::tuple_arguments< Tuple >::type type;
+};
 
 /**
  * Exposes the arguments from a @c std::tuple wrapped in a @c q::arguments,
