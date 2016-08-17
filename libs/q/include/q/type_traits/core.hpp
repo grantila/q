@@ -399,7 +399,11 @@ template< typename T >
 using ptr_size_integer_t = typename ptr_size_integer< T >::type;
 
 template< typename T, typename... Args >
-std::unique_ptr< T > make_unique( Args&&... args )
+typename std::enable_if<
+	!std::is_array< T >::value,
+	std::unique_ptr< T >
+>::type
+make_unique( Args&&... args )
 {
 #ifdef LIBQ_WITH_CPP14
 	return std::make_unique< T >( std::forward< Args >( args )... );
@@ -407,6 +411,22 @@ std::unique_ptr< T > make_unique( Args&&... args )
 	return std::unique_ptr< T >( new T( std::forward< Args >( args )... ) );
 #endif
 }
+
+template< typename T >
+typename std::enable_if<
+	std::is_array< T >::value,
+	std::unique_ptr< T >
+>::type
+make_unique( std::size_t size )
+{
+#if __cplusplus >= 201402L
+	return std::make_unique< T >( size );
+#else
+	typedef typename std::remove_extent< T >::type U;
+	return std::unique_ptr< T >( new U[ size ] );
+#endif
+}
+
 
 } // namespace q
 
