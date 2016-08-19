@@ -40,6 +40,21 @@ public:
 		std::memset( bytes, 0, byte_size::value );
 	}
 
+	template< std::size_t index >
+	void set( bool value = true )
+	{
+		static_assert( index < Bits, "Bit is out of range" );
+
+		constexpr std::size_t byte_index = index / 8;
+		constexpr std::size_t bit_index = 7 - ( index - byte_index * 8 );
+		constexpr std::uint8_t bit_byte = std::uint8_t( 1 ) << bit_index;
+
+		if ( value )
+			bytes[ byte_index ] |= bit_byte;
+		else
+			bytes[ byte_index ] &= ~bit_byte;
+	}
+
 	void set( std::size_t index, bool value = true )
 	{
 		if ( index + 1 > Bits )
@@ -55,12 +70,30 @@ public:
 			bytes[ byte_index ] &= ~bit_byte;
 	}
 
+	template< std::size_t index >
+	void unset( )
+	{
+		set< index >( false );
+	}
+
 	void unset( std::size_t index )
 	{
 		if ( index + 1 > Bits )
 			throw std::out_of_range( "Bit is out of range" );
 
 		set( index, false );
+	}
+
+	template< std::size_t index >
+	bool is_set( ) const
+	{
+		static_assert( index < Bits, "Bit is out of range" );
+
+		constexpr std::size_t byte_index = index / 8;
+		constexpr std::size_t bit_index = 7 - ( index - byte_index * 8 );
+		constexpr std::uint8_t bit_byte = std::uint8_t( 1 ) << bit_index;
+
+		return bytes[ byte_index ] & bit_byte;
 	}
 
 	bool is_set( std::size_t index ) const
@@ -99,7 +132,8 @@ public:
 	>::type
 	set_by_type( bool value = true )
 	{
-		this->set( args::template index_of< First >::value, value );
+		typedef typename args::template index_of< First > index;
+		this->template set< index::value >( value );
 		set_by_type< Rest... >( value );
 	}
 
@@ -109,7 +143,8 @@ public:
 	>::type
 	set_by_type( bool value = true )
 	{
-		this->set( args::template index_of< First >::value, value );
+		typedef typename args::template index_of< First > index;
+		this->template set< index::value >( value );
 	}
 
 	template< typename... U >
@@ -127,7 +162,8 @@ public:
 	>::type
 	unset_by_type( )
 	{
-		this->unset( args::template index_of< First >::value );
+		typedef typename args::template index_of< First > index;
+		this->template unset< index::value >( );
 		unset_by_type< Rest... >( );
 	}
 
@@ -137,7 +173,8 @@ public:
 	>::type
 	unset_by_type( )
 	{
-		this->unset( args::template index_of< First >::value );
+		typedef typename args::template index_of< First > index;
+		this->template unset< index::value >( );
 	}
 
 	template< typename... U >
@@ -154,7 +191,8 @@ public:
 	>::type
 	is_set_by_type( ) const
 	{
-		return this->is_set( args::template index_of< U >::value );
+		typedef typename args::template index_of< U > index;
+		return this->template is_set< index::value >( );
 	}
 };
 

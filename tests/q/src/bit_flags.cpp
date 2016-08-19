@@ -98,6 +98,41 @@ TEST( bit_flags, nine_bits )
 	EXPECT_THROW( flags.is_set( 9 ), std::out_of_range );
 }
 
+
+TEST( bit_flags, compile_time_nine_bits )
+{
+	typedef q::bit_flags< 9 > flags_type;
+
+	flags_type flags;
+
+	EXPECT_FALSE( flags.is_set< 0 >( ) );
+	EXPECT_FALSE( flags.is_set< 1 >( ) );
+	EXPECT_FALSE( flags.is_set< 2 >( ) );
+	EXPECT_FALSE( flags.is_set< 3 >( ) );
+	EXPECT_FALSE( flags.is_set< 4 >( ) );
+	EXPECT_FALSE( flags.is_set< 5 >( ) );
+	EXPECT_FALSE( flags.is_set< 6 >( ) );
+	EXPECT_FALSE( flags.is_set< 7 >( ) );
+	EXPECT_FALSE( flags.is_set< 8 >( ) );
+	flags.set< 0 >( );
+	EXPECT_TRUE( flags.is_set< 0 >( ) );
+	flags.unset< 0 >( );
+	EXPECT_FALSE( flags.is_set< 0 >( ) );
+	flags.set< 7 >( );
+	EXPECT_TRUE( flags.is_set< 7 >( ) );
+	flags.unset< 7 >( );
+	EXPECT_FALSE( flags.is_set< 7 >( ) );
+	flags.set< 8 >( );
+	EXPECT_TRUE( flags.is_set< 8 >( ) );
+	flags.unset< 8 >( );
+	EXPECT_FALSE( flags.is_set< 8 >( ) );
+
+	EXPECT_THROW( flags.set( 9 ), std::out_of_range );
+	EXPECT_THROW( flags.set( 9, false ), std::out_of_range );
+	EXPECT_THROW( flags.unset( 9 ), std::out_of_range );
+	EXPECT_THROW( flags.is_set( 9 ), std::out_of_range );
+}
+
 TEST( bit_flags, empty_types )
 {
 	typedef q::bit_flags_of_types< > flags_type;
