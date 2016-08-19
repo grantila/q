@@ -101,18 +101,16 @@ struct is_move_constructible< void >
  * Generic version of a fold used to check if a certain type checker applies to
  * all types in the pack T.
  */
-template< template< typename > class Operator, typename Nil, typename... T >
+template< template< typename > class Operator, typename... T >
 struct satisfies_all
 : fold<
 	q::arguments< T... >,
 	generic_operator<
 		Operator, logic_and
 	>::template fold_type,
-	Nil
+	std::true_type
 >
 { };
-
-
 
 
 
