@@ -103,12 +103,12 @@ public:
 	typename std::enable_if<
 		(
 			q::arguments< Args... >::size::value != 1
-			||
+			or
 			!q::is_tuple<
 				typename std::decay< Args >::type...
 			>::value
 		)
-		&&
+		and
 		::q::is_argument_same_or_convertible<
 			q::arguments< Args... >,
 			q::arguments< T... >
@@ -154,9 +154,11 @@ public:
 	 */
 	template< typename Fn, typename... Args >
 	typename std::enable_if<
-		sizeof...( T ) == 0 &&
-		Q_RESULT_OF_AS_ARGUMENT( Fn )::size::value == 0 &&
-		Q_ARGUMENTS_ARE_CONVERTIBLE_FROM( Fn, Args... )::value
+		sizeof...( T ) == 0
+		and
+		Q_RESULT_OF_AS_ARGUMENT( Fn )::empty_or_voidish::value
+		and
+		Q_ARGUMENTS_ARE_CONVERTIBLE_FROM_INCL_VOID( Fn, Args... )::value
 	>::type
 	set_by_fun( Fn&& fn, Args&&... args )
 	{
@@ -180,12 +182,12 @@ public:
 	template< typename Fn, typename... Args >
 	typename std::enable_if<
 		( sizeof...( T ) > 0 )
-		&&
+		and
 		Q_RESULT_OF_AS_ARGUMENT( Fn )::template equals<
 			::q::arguments< T... >
 		>::value
-		&&
-		Q_ARGUMENTS_ARE_CONVERTIBLE_FROM( Fn, Args... )::value
+		and
+		Q_ARGUMENTS_ARE_CONVERTIBLE_FROM_INCL_VOID( Fn, Args... )::value
 	>::type
 	set_by_fun( Fn&& fn, Args&&... args )
 	{
@@ -210,14 +212,15 @@ public:
 	template< typename Fn, typename Args >
 	typename std::enable_if<
 		sizeof...( T ) == 0
-		&&
-		Q_RESULT_OF_AS_ARGUMENT( Fn )::size::value == 0
-		&&
+		and
+		Q_RESULT_OF_AS_ARGUMENT( Fn )::empty_or_voidish::value
+		and
 		::q::is_tuple< Args >::value
-		&&
-		::q::tuple_arguments< Args >::template is_convertible_to<
-			Q_ARGUMENTS_OF( Fn )
-		>::value
+		and
+		::q::tuple_arguments< Args >
+			::template is_convertible_to<
+				Q_ARGUMENTS_OF( Fn )
+			>::value
 	>::type
 	set_by_fun( Fn&& fn, Args&& args )
 	{
@@ -241,16 +244,17 @@ public:
 	template< typename Fn, typename Args >
 	typename std::enable_if<
 		( sizeof...( T ) > 0 )
-		&&
+		and
 		Q_RESULT_OF_AS_ARGUMENT( Fn )::template equals<
 			::q::arguments< T... >
 		>::value
-		&&
+		and
 		::q::is_tuple< Args >::value
-		&&
-		::q::tuple_arguments< Args >::template is_convertible_to<
-			Q_ARGUMENTS_OF( Fn )
-		>::value
+		and
+		::q::tuple_arguments< Args >
+			::template is_convertible_to_incl_void<
+				Q_ARGUMENTS_OF( Fn )
+			>::value
 	>::type
 	set_by_fun( Fn&& fn, Args&& args )
 	{
@@ -277,13 +281,15 @@ public:
 	template< typename Fn, typename... Args >
 	typename std::enable_if<
 		Q_ARITY_OF( Fn ) == sizeof...( Args )
-		&&
+		and
 		(
 			Q_ARITY_OF( Fn ) != 1
-			||
-			Q_ARGUMENTS_ARE_CONVERTIBLE_FROM( Fn, Args... )::value
+			or
+			Q_ARGUMENTS_ARE_CONVERTIBLE_FROM_INCL_VOID(
+				Fn, Args...
+			)::value
 		)
-		&&
+		and
 		::q::is_promise< Q_RESULT_OF( Fn ) >::value
 	>::type
 	set_by_fun( Fn&& fn, Args&&... args )
@@ -304,16 +310,50 @@ public:
 	}
 
 	/**
+	 * Sets the promise (i.e. value or exception) by a function.
+	 *
+	 * inner promise = fn( ), { Args == std::tuple< > }
+	 */
+	template< typename Fn, typename... Args >
+	typename std::enable_if<
+		arguments<
+			typename std::decay< Args >::type...
+		>::template equals< q::arguments< std::tuple< > > >::value
+		and
+		Q_ARITY_OF( Fn ) == 0
+		and
+		::q::is_promise< Q_RESULT_OF( Fn ) >::value
+	>::type
+	set_by_fun( Fn&& fn, Args&&... args )
+	{
+		try
+		{
+			satisfy( fn( ) );
+		}
+		catch ( ... )
+		{
+			set_current_exception( );
+		}
+	}
+
+	/**
 	 * inner promise = fn( tuple< args >... )
 	 */
 	template< typename Fn, typename Args >
 	typename std::enable_if<
 		is_tuple< Args >::value
-		&&
-		tuple_arguments< Args >::template is_convertible_to<
+		and
+		tuple_arguments<
+			typename std::decay< Args >::type
+		>::template is_convertible_to_incl_void<
 			Q_ARGUMENTS_OF( Fn )
 		>::value
-		&&
+		and
+		!std::is_same<
+			typename std::decay< first_argument_of< Fn > >::type,
+			void_t
+		>::value
+		and
 		::q::is_promise< Q_RESULT_OF( Fn ) >::value
 	>::type
 	set_by_fun( Fn&& fn, Args&& args )
@@ -331,6 +371,60 @@ public:
 		{
 			set_current_exception( );
 		}
+	}
+
+	/**
+	 * fn( tuple< > ) = fn( tuple< void_t > )
+	 */
+	template< typename Fn, typename Args >
+	typename std::enable_if<
+		is_tuple< Args >::value
+		and
+		tuple_arguments<
+			typename std::decay< Args >::type
+		>::empty_or_void::value
+		and
+		arguments_of< Fn >::size::value == 1
+		and
+		std::is_same<
+			typename std::decay< first_argument_of< Fn > >::type,
+			std::tuple< void_t >
+		>::value
+	>::type
+	set_by_fun( Fn&& fn, Args&& args )
+	{
+		set_by_fun(
+			std::forward< Fn >( fn ),
+			std::make_tuple( void_t( ) )
+		);
+	}
+
+	/**
+	 * fn( tuple< > ) -> fn( void_t )
+	 */
+	template< typename Fn, typename Args >
+	typename std::enable_if<
+		is_tuple< Args >::value
+		and
+		tuple_arguments<
+			typename std::decay< Args >::type
+		>::empty_or_voidish::value
+		and
+		!std::is_same<
+			typename std::decay< Args >::type,
+			void_t
+		>::value
+		and
+		arguments_of< Fn >::size::value == 1
+		and
+		std::is_same<
+			typename std::decay< first_argument_of< Fn > >::type,
+			void_t
+		>::value
+	>::type
+	set_by_fun( Fn&& fn, Args&& args )
+	{
+		set_by_fun( std::forward< Fn >( fn ), void_t( ) );
 	}
 
 	void satisfy( promise_type&& promise )
@@ -379,7 +473,8 @@ public:
 
 	template< typename Promise >
 	typename std::enable_if<
-		Promise::shared_type::value &&
+		Promise::shared_type::value
+		and
 		std::is_same<
 			tuple_type,
 			typename Promise::tuple_type
@@ -393,7 +488,8 @@ public:
 
 	template< typename Promise >
 	typename std::enable_if<
-		!Promise::shared_type::value &&
+		!Promise::shared_type::value
+		and
 		std::is_same<
 			tuple_type,
 			typename Promise::tuple_type
@@ -405,7 +501,8 @@ public:
 		return get_promise( );
 	}
 
-	static std::shared_ptr< defer< T... > > construct( const queue_ptr& queue )
+	static std::shared_ptr< defer< T... > >
+	construct( const queue_ptr& queue )
 	{
 		typedef typename state_data_type::future_type future_type;
 

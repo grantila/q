@@ -51,6 +51,21 @@ struct is_argument_same_or_convertible
 >
 { };
 
+template< typename A, typename B >
+struct is_argument_same_or_convertible_incl_void
+: bool_type<
+	( A::empty_or_voidish::value and B::empty_or_voidish::value )
+	or
+	two_fold<
+		A,
+		B,
+		q::logic_and,
+		std::true_type,
+		q::is_convertible_to, std::false_type
+	>::value
+>
+{ };
+
 template< typename Superset, typename Subset >
 struct argument_contains_all
 : fold<
@@ -97,28 +112,28 @@ struct merge
 
 
 template< typename... Args >
-struct is_all_unique;
+struct are_all_unique;
 
 template< typename First, typename... Rest >
-struct is_all_unique< First, Rest... >
+struct are_all_unique< First, Rest... >
 : ::q::bool_type<
 	arguments< Rest... >
-		::template filter< same< First >::template as >
-		::type::size::value == 0
+		::template filter< same< First >::template as >::type
+		::empty::value
 	and
-	is_all_unique< Rest... >::value
+	are_all_unique< Rest... >::value
 >
 { };
 
 template< >
-struct is_all_unique< >
+struct are_all_unique< >
 : std::true_type
 { };
 
 
 template< typename T, typename... Types >
 typename std::enable_if<
-	is_all_unique< Types... >::value,
+	are_all_unique< Types... >::value,
 	T&
 >::type
 get_tuple_element( std::tuple< Types... >& t )
@@ -134,7 +149,7 @@ get_tuple_element( std::tuple< Types... >& t )
 
 template< typename T, typename... Types >
 typename std::enable_if<
-	is_all_unique< Types... >::value,
+	are_all_unique< Types... >::value,
 	T&&
 >::type
 get_tuple_element( std::tuple< Types... >&& t )
@@ -150,7 +165,7 @@ get_tuple_element( std::tuple< Types... >&& t )
 
 template< typename T, typename... Types >
 typename std::enable_if<
-	is_all_unique< Types... >::value,
+	are_all_unique< Types... >::value,
 	const T&
 >::type
 get_tuple_element( const std::tuple< Types... >& t )

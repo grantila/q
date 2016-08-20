@@ -23,6 +23,27 @@ TEST( options, zero_types )
 	unused( opts );
 }
 
+TEST( options, one_type )
+{
+	typedef q::options< q::concurrency > options;
+
+	auto fun = [ ]( options opts = options( ) ) { return opts; };
+
+	auto fun_opts1 = fun( );
+	EXPECT_FALSE( fun_opts1.has< q::concurrency >( ) );
+	EXPECT_EQ(
+		fun_opts1.get< q::concurrency >( ).get( ),
+		q::concurrency( q::concurrency::infinity ).get( )
+	);
+
+	auto fun_opts2 = fun( { q::concurrency( 4 ) } );
+	EXPECT_TRUE( fun_opts2.has< q::concurrency >( ) );
+	EXPECT_EQ(
+		fun_opts2.get< q::concurrency >( ).get( ),
+		q::concurrency( 4 ).get( )
+	);
+}
+
 TEST( options, two_types )
 {
 	typedef q::options< q::concurrency, q::queue_ptr > options;
@@ -70,16 +91,16 @@ TEST( options, required_type )
 
 	/*
 	// Shouldn't compile
-	auto fun_opts2 = fun( { } );
+	auto fun_opts_invalid = fun( { } );
 	EXPECT_TRUE( false );
 	/* */
 
-	auto fun_opts3 = fun( { q::queue_ptr( ) } );
-	EXPECT_FALSE( fun_opts3.has< q::concurrency >( ) );
-	EXPECT_TRUE( fun_opts3.has< q::queue_ptr >( ) );
+	auto fun_opts1 = fun( { q::queue_ptr( ) } );
+	EXPECT_FALSE( fun_opts1.has< q::concurrency >( ) );
+	EXPECT_TRUE( fun_opts1.has< q::queue_ptr >( ) );
 
-	auto fun_opts4 = fun( { q::queue_ptr( ), q::concurrency( 4 ) } );
-	EXPECT_TRUE( fun_opts4.has< q::concurrency >( ) );
-	EXPECT_TRUE( fun_opts4.has< q::queue_ptr >( ) );
-	EXPECT_EQ( fun_opts4.get< q::concurrency >( ).get( ), 4 );
+	auto fun_opts2 = fun( { q::queue_ptr( ), q::concurrency( 4 ) } );
+	EXPECT_TRUE( fun_opts2.has< q::concurrency >( ) );
+	EXPECT_TRUE( fun_opts2.has< q::queue_ptr >( ) );
+	EXPECT_EQ( fun_opts2.get< q::concurrency >( ).get( ), 4 );
 }

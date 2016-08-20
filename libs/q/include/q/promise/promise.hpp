@@ -56,7 +56,7 @@ public:
 
 	template< typename... T >
 	struct is_valid_arguments
-	: ::q::is_argument_same_or_convertible<
+	: ::q::is_argument_same_or_convertible_incl_void<
 		arguments< T... >,
 		argument_types
 	>
@@ -64,7 +64,7 @@ public:
 
 	template< typename... T >
 	struct is_valid_arguments< arguments< T... > >
-	: ::q::is_argument_same_or_convertible<
+	: ::q::is_argument_same_or_convertible_incl_void<
 		arguments< T... >,
 		argument_types
 	>
@@ -160,8 +160,11 @@ public:
 		and
 		Q_FIRST_ARGUMENT_IS_TUPLE( Fn )
 		and
-		::q::is_argument_same_or_convertible<
-			arguments< tuple_type >, Q_ARGUMENTS_OF( Fn )
+		::q::is_argument_same_or_convertible_incl_void<
+			arguments< Args... >,
+			typename tuple_arguments<
+				Q_ARGUMENTS_OF( Fn )::first_type
+			>::type
 		>::value
 		and
 		!is_promise< Q_RESULT_OF( Fn ) >::value
@@ -198,8 +201,11 @@ public:
 		and
 		Q_FIRST_ARGUMENT_IS_TUPLE( Fn )
 		and
-		::q::is_argument_same_or_convertible<
-			arguments< tuple_type >, Q_ARGUMENTS_OF( Fn )
+		::q::is_argument_same_or_convertible_incl_void<
+			argument_types,
+			typename tuple_arguments<
+				Q_ARGUMENTS_OF( Fn )::first_type
+			>::type
 		>::value
 		and
 		is_promise< Q_RESULT_OF( Fn ) >::value

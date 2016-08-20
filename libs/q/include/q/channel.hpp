@@ -111,6 +111,11 @@ public:
 	, resume_count_( std::min( resume_count, buffer_count ) )
 	{ }
 
+	std::size_t buffer_count( ) const
+	{
+		return buffer_count_;
+	}
+
 	bool is_closed( ) const
 	{
 		return closed_;
@@ -280,6 +285,11 @@ public:
 		Q_AUTO_UNIQUE_LOCK( mutex_ );
 
 		resume_notification_ = fn;
+	}
+
+	void unset_resume_notification( )
+	{
+		set_resume_notification( task( ) );
 	}
 
 	/**
@@ -497,6 +507,11 @@ public:
 		} ) );
 	}
 
+	std::size_t buffer_count( ) const
+	{
+		return shared_channel_->buffer_count( );
+	}
+
 	bool is_closed( ) const
 	{
 		return shared_channel_->is_closed( );
@@ -527,6 +542,21 @@ public:
 	queue_ptr get_queue( ) const
 	{
 		return shared_channel_->get_queue( );
+	}
+
+	/**
+	 * Clears this channel from any queued values. The channel can still be
+	 * used for future values.
+	 *
+	 * NOTE: This will not trigger back pressure notifications! Use `clear`
+	 *       with caution, as you can easily end up with a stuck channel.
+	 *       Most likely you do not want to use this function to begin
+	 *       with, as it is a grand anti-pattern, only useful in rare
+	 *       situations.
+	 */
+	void clear( )
+	{
+		shared_channel_->clear( );
 	}
 
 private:
@@ -600,6 +630,28 @@ public:
 	}
 
 	/**
+	 * ( tuple< void_t > ) -> tuple< > (stripped from void_t)
+	 */
+	template< typename Tuple >
+	typename std::enable_if<
+		q::is_tuple< typename std::decay< Tuple >::type >::value
+		and
+		std::is_same<
+			typename std::decay< Tuple >::type,
+			std::tuple< void_t >
+		>::value
+		and
+		std::is_same<
+			outer_tuple_type,
+			std::tuple< >
+		>::value
+	>::type
+	send( Tuple&& t )
+	{
+		send( std::make_tuple( ) );
+	}
+
+	/**
 	 * Non-promise channel
 	 * ( Args... ) -> tuple< T... >
 	 */
@@ -607,7 +659,9 @@ public:
 	typename std::enable_if<
 		arguments<
 			typename std::decay< Args >::type...
-		>::template is_convertible_to< arguments< T... > >::value
+		>::template is_convertible_to_incl_void<
+			arguments< T... >
+		>::value
 	>::type
 	send( Args&&... args )
 	{
@@ -624,11 +678,37 @@ public:
 		and
 		arguments<
 			typename std::decay< Args >::type...
-		>::template is_convertible_to< promise_arguments_type >::value
+		>::template is_convertible_to_incl_void<
+			promise_arguments_type
+		>::value
 	>::type
 	send( Args&&... args )
 	{
 		send( std::make_tuple( std::forward< Args >( args )... ) );
+	}
+
+	/**
+	 * Promise-channel:
+	 * ( tuple< void_t > ) -> tuple< >
+	 * (stripped from void_t)
+	 */
+	template< typename Tuple >
+	typename std::enable_if<
+		is_promise::value
+		and
+		std::is_same<
+			typename std::decay< Tuple >::type,
+			std::tuple< void_t >
+		>::value
+		and
+		std::is_same<
+			promise_arguments_type,
+			q::arguments< >
+		>::value
+	>::type
+	send( Tuple&& t )
+	{
+		send( std::make_tuple( ) );
 	}
 
 	/**
@@ -661,9 +741,19 @@ public:
 		shared_channel_->set_resume_notification( std::move( fn ) );
 	}
 
+	void unset_resume_notification( )
+	{
+		shared_channel_->unset_resume_notification( );
+	}
+
 	bool is_closed( )
 	{
 		return shared_channel_->is_closed( );
+	}
+
+	std::exception_ptr get_exception( ) const
+	{
+		return shared_channel_->get_exception( );
 	}
 
 	void close( )

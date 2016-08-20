@@ -51,6 +51,9 @@ struct is_argument_same;
 template< typename From, typename To >
 struct is_argument_same_or_convertible;
 
+template< typename From, typename To >
+struct is_argument_same_or_convertible_incl_void;
+
 /**
  * Determines if the type T exists as any of the types in the q::arguments
  * Arguments.
@@ -96,7 +99,8 @@ struct arguments
 	typedef typename detail::variadic_rest< Args... > rest;
 
 	typedef typename rest::first_type first_type;
-	typedef typename rest::template apply_rest< identity >::type::type rest_arguments;
+	typedef typename rest::template apply_rest< identity >::type::type
+		rest_arguments;
 
 	typedef typename apply< std::tuple >::type tuple_type;
 
@@ -110,6 +114,18 @@ struct arguments
 		std::is_void< first_type >::value
 	> empty_or_void;
 
+	typedef bool_type<
+		size::value == 1
+		and
+		(
+			std::is_void< first_type >::value
+			or
+			std::is_same<
+				typename std::decay< first_type >::type,
+				void_t
+			>::value
+		)
+	> empty_or_voidish;
 
 	// TODO: Why did I write this?
 	template< template< template< typename... > class > class T >
@@ -163,6 +179,11 @@ struct arguments
 	template< typename T >
 	struct is_convertible_to
 	: is_argument_same_or_convertible< this_type, T >
+	{ };
+
+	template< typename T >
+	struct is_convertible_to_incl_void
+	: is_argument_same_or_convertible_incl_void< this_type, T >
 	{ };
 
 	/**
@@ -235,6 +256,7 @@ struct arguments< >
 	typedef std::true_type empty;
 
 	typedef std::true_type empty_or_void;
+	typedef std::true_type empty_or_voidish;
 
 
 	template< typename... Before >
@@ -269,6 +291,11 @@ struct arguments< >
 	: is_argument_same_or_convertible< this_type, T >
 	{ };
 
+	template< typename T >
+	struct is_convertible_to_incl_void
+	: is_argument_same_or_convertible_incl_void< this_type, T >
+	{ };
+
 	template< template< typename > class T >
 	struct map
 	{
@@ -296,23 +323,34 @@ namespace detail {
 
 template< typename T >
 struct tuple_arguments
-: public arguments< T >
-{ };
+: public arguments< T > // TODO: Remove
+{
+	typedef arguments< T > type;
+};
 
 template< >
 struct tuple_arguments< void >
-: public arguments< >
+: public arguments< > // TODO: Remove
+{
+	typedef arguments< > type;
+};
+
+template< typename... Args >
+struct tuple_arguments< const std::tuple< Args... >& >
+: public tuple_arguments< std::tuple< Args... > >
 { };
 
 template< typename... Args >
-struct tuple_arguments< std::tuple< Args... >& >
+struct tuple_arguments< std::tuple< Args... >&& >
 : public tuple_arguments< std::tuple< Args... > >
 { };
 
 template< typename... Args >
 struct tuple_arguments< std::tuple< Args... > >
-: public arguments< Args... >
-{ };
+: public arguments< Args... > // TODO: Remove
+{
+	typedef arguments< Args... > type;
+};
 
 template< template< typename... > class Predicate, size_t, typename... >
 struct is_one_argument_and

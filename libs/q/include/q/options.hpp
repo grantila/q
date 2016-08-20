@@ -18,6 +18,7 @@
 #define LIBQ_OPTIONS_HPP
 
 #include <q/type_traits.hpp>
+#include <q/bit_flags.hpp>
 
 namespace q {
 
@@ -66,40 +67,35 @@ struct single_option
 	typedef single_option< T > this_type;
 
 	single_option( )
-	: set_( false )
 	{ }
 
 	template<
 		typename Tuple,
 		typename std::enable_if<
-			tuple_arguments< Tuple >
+			tuple_arguments< typename std::decay< Tuple >::type >
 				::template index_of< T >::value != -1
 		>::type* = nullptr
 	>
 	single_option( Tuple&& tuple )
-	: set_( true )
-	, val_( std::move( get_tuple_element< T >( tuple ) ) )
+	: val_( std::move( get_tuple_element< T >( tuple ) ) )
 	{ }
 
 	template<
 		typename Tuple,
 		typename std::enable_if<
-			tuple_arguments< Tuple >
+			tuple_arguments< typename std::decay< Tuple >::type >
 				::template index_of< T >::value == -1
 		>::type* = nullptr
 	>
 	single_option( Tuple&& tuple )
-	: set_( false )
 	{ }
 
 	single_option( T&& t )
-	: set_( true )
-	, val_( std::move( t ) )
+	: val_( std::move( t ) )
 	{ }
 
 	single_option( const T& t )
-	: set_( true )
-	, val_( t )
+	: val_( t )
 	{ }
 
 	single_option( this_type&& ref ) = default;
@@ -107,11 +103,6 @@ struct single_option
 
 	this_type& operator=( this_type&& ) = default;
 	this_type& operator=( const this_type& ) = default;
-
-	bool has( ) const
-	{
-		return set_;
-	}
 
 	const T& get( ) const
 	{
@@ -124,7 +115,6 @@ struct single_option
 	}
 
 private:
-	bool set_;
 	T val_;
 };
 
@@ -137,7 +127,7 @@ struct options< First, Rest... >
 : detail::single_option< First >
 , options< Rest... >
 {
-	typedef options< First, Rest... > this_type;
+	typedef options<  First, Rest... > this_type;
 
 	template< typename Tuple >
 	options( Tuple&& tuple )
@@ -172,8 +162,11 @@ public:
 		::template map< std::decay >::type
 		required_arguments;
 
+	typedef bit_flags_of_types< typename strip_required< T >::type... >
+		bit_flags_type;
+
 	static_assert(
-		is_all_unique< typename strip_required< T >::type... >::value,
+		are_all_unique< typename strip_required< T >::type... >::value,
 		"option types must be unique"
 	);
 
@@ -187,6 +180,8 @@ public:
 			::template contains_all< required_arguments >::value,
 			"All required options not provided"
 		);
+
+		set_.template set_by_type< Args... >( );
 	}
 
 	template< typename U >
@@ -196,8 +191,7 @@ public:
 	>::type
 	has( ) const
 	{
-		typedef detail::single_option< U > base_type;
-		return static_cast< const base_type& >( *this ).has( );
+		return set_.template is_set_by_type< U >( );
 	}
 
 	template< typename U >
@@ -230,7 +224,7 @@ public:
 	get( U _default ) const
 	{
 		typedef detail::single_option< U > base_type;
-		return static_cast< const base_type& >( *this ).has( )
+		return has< U >( )
 			?  static_cast< const base_type& >( *this ).get( )
 			: _default;
 	}
@@ -243,7 +237,7 @@ public:
 	get( U _default )
 	{
 		typedef detail::single_option< U > base_type;
-		return static_cast< base_type& >( *this ).has( )
+		return has< U >( )
 			? static_cast< base_type& >( *this ).get( )
 			: _default;
 	}
@@ -267,10 +261,13 @@ public:
 	move( U _default )
 	{
 		typedef detail::single_option< U > base_type;
-		return static_cast< base_type& >( *this ).has( )
+		return has< U >( )
 			? static_cast< base_type& >( *this ).move( )
 			: _default;
 	}
+
+private:
+	bit_flags_type set_;
 };
 
 } // namespace q

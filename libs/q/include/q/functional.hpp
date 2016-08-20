@@ -69,6 +69,12 @@
 		Q_ARGUMENTS_OF( Fn ) \
 	>
 
+#define Q_ARGUMENTS_ARE_CONVERTIBLE_FROM_INCL_VOID( Fn, ... ) \
+	::q::is_argument_same_or_convertible_incl_void< \
+		::q::arguments< __VA_ARGS__ >, \
+		Q_ARGUMENTS_OF( Fn ) \
+	>
+
 #define Q_MEMBERCLASS_OF( Fn ) \
 	typename ::q::function_traits< Fn >::memberclass_type
 
@@ -375,6 +381,27 @@ noexcept( noexcept( fn( std::forward< Args >( args )... ) ) )
 	return fn( std::forward< Args >( args )... );
 }
 
+template< typename Fn >
+typename std::enable_if<
+	Q_IS_FUNCTION( Fn )::value
+	and
+	Q_ARGUMENTS_ARE_CONVERTIBLE_FROM( Fn, void_t )::value
+	and
+	(
+		!Q_IS_MEMBERFUNCTION( Fn )::value
+		or
+		Q_FUNCTIONTRAITS( Fn )::using_call_operator::value
+	),
+	Q_RESULT_OF( Fn )
+>::type
+call_with_args( Fn&& fn )
+#ifndef LIBQ_WITH_BROKEN_NOEXCEPT
+noexcept( noexcept( fn( void_t( ) ) ) )
+#endif
+{
+	return fn( void_t( ) );
+}
+
 template< typename Fn, typename Class, typename... Args >
 typename std::enable_if<
 	Q_IS_MEMBERFUNCTION( Fn )::value &&
@@ -482,13 +509,29 @@ noexcept( noexcept(
 }
 
 template< typename Fn >
-Q_RESULT_OF( Fn )
+typename std::enable_if<
+	!Q_ARGUMENTS_ARE_CONVERTIBLE_FROM( Fn, void_t )::value,
+	Q_RESULT_OF( Fn )
+>::type
 call_with_args_by_tuple( Fn&& fn, const std::tuple< >& tuple )
 #ifndef LIBQ_WITH_BROKEN_NOEXCEPT
 noexcept( noexcept( fn( ) ) )
 #endif
 {
 	return fn( );
+}
+
+template< typename Fn >
+typename std::enable_if<
+	Q_ARGUMENTS_ARE_CONVERTIBLE_FROM( Fn, void_t )::value,
+	Q_RESULT_OF( Fn )
+>::type
+call_with_args_by_tuple( Fn&& fn, const std::tuple< >& tuple )
+#ifndef LIBQ_WITH_BROKEN_NOEXCEPT
+noexcept( noexcept( fn( void_t( ) ) ) )
+#endif
+{
+	return fn( void_t( ) );
 }
 
 template< typename Fn, typename InnerFn, typename... Args >

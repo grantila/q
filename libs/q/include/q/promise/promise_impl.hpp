@@ -84,9 +84,11 @@ typename std::enable_if<
 	and
 	Q_FIRST_ARGUMENT_IS_TUPLE( Fn )
 	and
-	::q::is_argument_same_or_convertible<
-		arguments< std::tuple< Args... > >,
-		Q_ARGUMENTS_OF( Fn )
+	::q::is_argument_same_or_convertible_incl_void<
+		arguments< Args... >,
+		typename tuple_arguments<
+			Q_ARGUMENTS_OF( Fn )::first_type
+		>::type
 	>::value
 	and
 	!is_promise< Q_RESULT_OF( Fn ) >::value
@@ -112,7 +114,8 @@ then( Fn&& fn, Queue&& queue )
 			// Redirect exception
 			deferred->set_exception( value.exception( ) );
 		else
-			deferred->set_by_fun( tmp_fn.consume( ), value.consume( ) );
+			deferred->set_by_fun(
+				tmp_fn.consume( ), value.consume( ) );
 	};
 
 	state_->signal( )->push( std::move( perform ),
@@ -178,9 +181,11 @@ typename std::enable_if<
 	and
 	Q_FIRST_ARGUMENT_IS_TUPLE( Fn )
 	and
-	::q::is_argument_same_or_convertible<
-		arguments< std::tuple< Args... > >,
-		Q_ARGUMENTS_OF( Fn )
+	::q::is_argument_same_or_convertible_incl_void<
+		arguments< Args... >,
+		typename tuple_arguments<
+			Q_ARGUMENTS_OF( Fn )::first_type
+		>::type
 	>::value
 	and
 	is_promise< Q_RESULT_OF( Fn ) >::value
@@ -206,7 +211,8 @@ then( Fn&& fn, Queue&& queue )
 			// Redirect exception
 	 		deferred->set_exception( value.exception( ) );
 	 	else
-			deferred->set_by_fun( tmp_fn.consume( ), value.consume( ) );
+			deferred->set_by_fun(
+				tmp_fn.consume( ), value.consume( ) );
 	};
 
 	state_->signal( )->push( std::move( perform ),
