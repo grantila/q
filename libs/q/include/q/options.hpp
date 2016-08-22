@@ -181,7 +181,9 @@ public:
 			"All required options not provided"
 		);
 
-		set_.template set_by_type< Args... >( );
+		set_.template set_by_type<
+			typename std::decay< Args >::type...
+		>( );
 	}
 
 	template< typename U >
