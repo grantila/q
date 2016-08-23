@@ -31,6 +31,32 @@
 #define Q_MOVE_TEMPORARILY_COPYABLE( value ) \
 	::q::make_temporarily_copyable( std::move( value ) )
 
+#ifndef LIBQ_WITH_CPP14
+	/**
+	 * Make a variable "movable" into a lambda.
+	 * NOTE: This will move the variable internally, so it must not be used
+	 * again, except with a Q_MOVABLE_MOVE or a Q_MOVABLE_CONSUME!
+	 */
+#	define Q_MAKE_MOVABLE( x ) \
+		auto __movable_##x = Q_TEMPORARILY_COPYABLE( x )
+
+	/**
+	 * Moves the variable into a lambda. Use this in the capture list.
+	 */
+#	define Q_MOVABLE_MOVE( x ) __movable_##x
+
+	/**
+	 * Moves the variable back from its internal wrapper, into a new
+	 * variable or in a function argument.
+	 */
+#	define Q_MOVABLE_CONSUME( x ) ( std::move( __movable_##x.consume( ) ) )
+#else
+#	define Q_MAKE_MOVABLE( x )
+#	define Q_MOVABLE_MOVE( x ) x{ std::move( x ) }
+#	define Q_MOVABLE_CONSUME( x ) ( std::move( x ) )
+#endif
+
+
 namespace q {
 
 template<

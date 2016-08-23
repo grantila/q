@@ -247,7 +247,6 @@ std::shared_ptr< thread< Q_RESULT_OF( Fn ) > >
 run( std::string name, const queue_ptr& queue, Fn&& fn, Args&&... args )
 {
 	return thread< Q_RESULT_OF( Fn ) >::construct(
-	//return q::make_shared< thread< Q_RESULT_OF( Fn ) > >(
 		std::move( name ),
 		queue,
 		std::forward< Fn >( fn ),

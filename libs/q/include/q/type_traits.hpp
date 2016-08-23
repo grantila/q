@@ -113,6 +113,31 @@ struct satisfies_all
 { };
 
 
+namespace detail {
+
+template< typename T, typename... Args >
+struct are_all_same
+: fold<
+	q::arguments< Args... >,
+	generic_operator<
+		same< T >::template as, logic_and
+	>::template fold_type,
+std::true_type
+>
+{ };
+
+} // namespace detail
+
+// Ensures are types are equal
+template< typename... Args >
+struct are_all_same
+: detail::are_all_same< Args... >
+{ };
+
+template< >
+struct are_all_same< >
+: std::true_type
+{ };
 
 /**
  * Same as q::arguments but specialized for tuples, to create a generic

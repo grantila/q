@@ -34,6 +34,18 @@ template< typename T > void ignore_parameter( T&& ) { }
 
 struct void_t { };
 
+template< typename T >
+struct objectify
+{
+	typedef T type;
+};
+
+template< >
+struct objectify< void >
+{
+	typedef void_t type;
+};
+
 namespace detail {
 
 template< typename T >
