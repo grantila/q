@@ -203,18 +203,6 @@ struct any_type_is_a_reference
 >
 { };
 
-// Ensures T is the same as all Args
-template< typename T, typename... Args >
-struct is_all_same
-: fold<
-	q::arguments< Args... >,
-	generic_operator<
-		same< T >::template as, logic_and
-	>::template fold_type,
-	std::true_type
->
-{ };
-
 template< class... T >
 struct all_types_are_non_references
 : bool_type< !any_type_is_a_reference< T... >::value >
