@@ -253,6 +253,25 @@ consume( Fn&& fn, base_options options )
 	.use_queue( next_queue );
 }
 
+template< typename T >
+template< typename Fn >
+typename std::enable_if<
+	Q_ARGUMENTS_ARE( Fn, void_t )::value
+	and
+	std::is_same< T, void >::value,
+	::q::promise< std::tuple< > >
+>::type
+observable< T >::
+consume( Fn&& fn, base_options options )
+{
+	Q_MAKE_MOVABLE( fn );
+
+	return consume( [ Q_MOVABLE_MOVE( fn ) ]( ) mutable
+	{
+		Q_MOVABLE_GET( fn )( void_t( ) );
+	}, options );
+}
+
 } } // namespace rx, namespace q
 
 #endif // LIBQ_RX_OBSERVABLE_CONSUMERS_CONSUME_HPP

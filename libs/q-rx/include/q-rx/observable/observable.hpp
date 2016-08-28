@@ -345,6 +345,18 @@ public:
 	>::type
 	consume( Fn&& fn, base_options options = base_options( ) );
 
+	/**
+	 * ( void_t ) -> *
+	 */
+	template< typename Fn >
+	typename std::enable_if<
+		Q_ARGUMENTS_ARE( Fn, void_t )::value
+		and
+		std::is_same< T, void >::value,
+		::q::promise< std::tuple< > >
+	>::type
+	consume( Fn&& fn, base_options options = base_options( ) );
+
 	// TODO: Implemement properly, e.g. with promises
 	T onNext( );
 	std::exception_ptr onError( );
