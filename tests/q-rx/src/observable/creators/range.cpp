@@ -17,6 +17,14 @@ TEST_F( ob_create_range, void_non_empty )
 	run( o_range.consume( EXPECT_N_CALLS_WRAPPER( 3, [ ]( ) { } ) ) );
 }
 
+TEST_F( ob_create_range, void_non_empty_as_void_t )
+{
+	auto o_range = q::rx::observable< void >::range(
+		q::void_t( ), 3, { queue } );
+
+	run( o_range.consume( EXPECT_N_CALLS_WRAPPER( 3, [ ]( ) { } ) ) );
+}
+
 TEST_F( ob_create_range, void_empty_with_backlog )
 {
 	auto o_range = q::rx::observable< void >::range(
