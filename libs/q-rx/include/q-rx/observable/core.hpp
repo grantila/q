@@ -57,6 +57,11 @@ typedef q::options<
 	backlog
 > create_options;
 
+typedef q::options<
+	q::defaultable< q::queue_ptr >,
+	backlog
+> combine_options;
+
 namespace detail {
 
 template< typename T, std::size_t Size = std::tuple_size< T >::value >

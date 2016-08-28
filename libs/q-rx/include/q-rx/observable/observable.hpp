@@ -256,6 +256,29 @@ public:
 	range( V&& start, std::size_t count, create_options options );
 
 	/************************************************
+	 * Creators: Repeat
+	 * This is a "create" operator according to the
+	 * ReactiveX spec, but is really a "combining"
+	 * operator as it operates in existing
+	 * observables.
+	 ***********************************************/
+
+	/**
+	 * Inifinite repetition of upstream observable, stopping only on closed
+	 * downstream observable
+	 */
+	observable< T > repeat( combine_options options = combine_options( ) );
+
+	/**
+	 * A limit of zero equals infinite repetition (although stopping on
+	 * closed downstream observable)
+	 */
+	observable< T > repeat(
+		std::size_t limit,
+		combine_options options = combine_options( )
+	);
+
+	/************************************************
 	 * Creators: Start
 	 ***********************************************/
 

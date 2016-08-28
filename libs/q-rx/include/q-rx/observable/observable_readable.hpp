@@ -57,6 +57,8 @@ public:
 
 	virtual queue_ptr get_queue( ) const = 0;
 
+	virtual std::size_t backlog( ) const = 0;
+
 	virtual bool is_closed( ) const = 0;
 
 	virtual std::exception_ptr get_exception( ) const = 0;
@@ -89,6 +91,11 @@ public:
 	queue_ptr get_queue( ) const override
 	{
 		return readable_.get_queue( );
+	}
+
+	std::size_t backlog( ) const override
+	{
+		return readable_.buffer_count( );
 	}
 
 	bool is_closed( ) const override
@@ -134,6 +141,11 @@ public:
 		return readable_.get_queue( );
 	}
 
+	std::size_t backlog( ) const override
+	{
+		return readable_.buffer_count( );
+	}
+
 	bool is_closed( ) const override
 	{
 		return readable_.is_closed( );
@@ -172,6 +184,11 @@ public:
 	queue_ptr get_queue( ) const override
 	{
 		return readable_.get_queue( );
+	}
+
+	std::size_t backlog( ) const override
+	{
+		return readable_.buffer_count( );
 	}
 
 	bool is_closed( ) const override
@@ -214,6 +231,11 @@ public:
 	queue_ptr get_queue( ) const override
 	{
 		return readable_.get_queue( );
+	}
+
+	std::size_t backlog( ) const override
+	{
+		return readable_.buffer_count( );
 	}
 
 	bool is_closed( ) const override
