@@ -53,6 +53,7 @@ class observable
 	typedef typename base_types::readable_type readable_type;
 	typedef typename base_types::writable_type writable_type;
 	typedef typename base_types::tuple_type tuple_type;
+	typedef typename q::objectify< T >::type void_safe_type;
 
 public:
 	/**********************************************************************
@@ -212,7 +213,7 @@ public:
 
 	template< typename... U >
 	static typename std::enable_if<
-		q::is_all_same<
+		q::are_all_same<
 			T,
 			typename std::decay< U >::type...
 		>::value,

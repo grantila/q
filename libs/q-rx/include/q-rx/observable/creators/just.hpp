@@ -37,7 +37,7 @@ static void append_writable( q::writable< T >& w, First&& first, Rest&&... rest 
 template< typename T >
 template< typename... U >
 typename std::enable_if<
-	q::is_all_same<
+	q::are_all_same<
 		T,
 		typename std::decay< U >::type...
 	>::value,
