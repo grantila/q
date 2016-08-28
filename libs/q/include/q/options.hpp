@@ -170,7 +170,23 @@ public:
 		"option types must be unique"
 	);
 
-	template< typename... Args >
+	/**
+	 * Generic constructor for any type of input, as long as the input
+	 * types match the options' types.
+	 */
+	template<
+		typename... Args,
+		typename = typename std::enable_if<
+			argument_contains_all<
+				arguments<
+					typename strip_required< T >::type...
+				>,
+				arguments<
+					typename std::decay< Args >::type...
+				>
+			>::value
+		>::type
+	>
 	options( Args&&... args )
 	: detail::options< typename strip_required< T >::type... >(
 		std::make_tuple( std::forward< Args >( args )... ) )
@@ -185,6 +201,9 @@ public:
 			typename std::decay< Args >::type...
 		>( );
 	}
+
+	options( options< T... >&& ) = default;
+	options( const options< T... >& ) = default;
 
 	template< typename U >
 	typename std::enable_if<
