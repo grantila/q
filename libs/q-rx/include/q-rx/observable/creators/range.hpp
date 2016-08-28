@@ -22,7 +22,9 @@ namespace q { namespace rx {
 template< typename T >
 template< typename U >
 typename std::enable_if<
-	!std::is_void< U >::value,
+	!std::is_void< U >::value
+	and
+	!std::is_same< void_t, typename std::decay< U >::type >::value,
 	observable< T >
 >::type
 observable< T >::
@@ -126,6 +128,20 @@ range( std::size_t count, create_options options )
 	writable.close( );
 
 	return observable< T >( channel_ );
+}
+
+template< typename T >
+template< typename V, typename U >
+typename std::enable_if<
+	std::is_void< U >::value
+	and
+	std::is_same< void_t, typename std::decay< V >::type >::value,
+	observable< T >
+>::type
+observable< T >::
+range( V&& start, std::size_t count, create_options options )
+{
+	return range( count, options );
 }
 
 } } // namespace rx, namespace q

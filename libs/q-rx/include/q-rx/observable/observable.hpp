@@ -232,7 +232,9 @@ public:
 	 */
 	template< typename U = T >
 	static typename std::enable_if<
-		!std::is_void< U >::value,
+		!std::is_void< U >::value
+		and
+		!std::is_same< void_t, typename std::decay< U >::type >::value,
 		observable< T >
 	>::type
 	range( U&& start, std::size_t count, create_options options );
@@ -243,6 +245,15 @@ public:
 		observable< T >
 	>::type
 	range( std::size_t count, create_options options );
+
+	template< typename V, typename U = T >
+	static typename std::enable_if<
+		std::is_void< U >::value
+		and
+		std::is_same< void_t, typename std::decay< V >::type >::value,
+		observable< T >
+	>::type
+	range( V&& start, std::size_t count, create_options options );
 
 	/************************************************
 	 * Creators: Start
