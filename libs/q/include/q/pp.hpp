@@ -60,6 +60,9 @@
 #	define LIBQ_WITH_CPP14
 #endif
 
+#define LIBQ_JOIN_( a, b ) a ## b
+#define LIBQ_JOIN( a, b ) LIBQ_JOIN_( a, b )
+
 #define LIBQ_LINE __LINE__
 #define LIBQ_FILE __FILE__
 #ifdef LIBQ_ON_WINDOWS
