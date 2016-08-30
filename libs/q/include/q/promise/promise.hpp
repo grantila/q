@@ -383,6 +383,19 @@ public:
 	finally( Fn&& fn, Queue&& queue = nullptr );
 
 	/**
+	 * When the promise is resolved, execution is stopped for a certain
+	 * duration, and continues (resolves) when this duration has passed,
+	 * forwarding the value to the resulting promise.
+	 * The backend timer used, will be the one implicitly bound to the
+	 * current queue (or by the options provided queue).
+	 */
+	promise_this_type
+	delay(
+		timer::duration_type duration,
+		queue_options options = queue_options( )
+	);
+
+	/**
 	 * Converts this promise of tuple of T (or T...) into a promise of
 	 * @c q::expect of tuple of T (or T...).
 	 *
