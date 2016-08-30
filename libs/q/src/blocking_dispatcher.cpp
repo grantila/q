@@ -1,6 +1,7 @@
 
 #include <q/blocking_dispatcher.hpp>
 #include <q/mutex.hpp>
+#include <q/time_set.hpp>
 
 #include <queue>
 
@@ -28,6 +29,7 @@ struct blocking_dispatcher::pimpl
 	bool running_;
 	bool stop_asap_;
 	task_fetcher_task task_fetcher_;
+	time_set< task > timer_tasks_;
 };
 
 blocking_dispatcher::blocking_dispatcher(
@@ -59,28 +61,62 @@ void blocking_dispatcher::start( )
 	pimpl_->running_ = true;
 	pimpl_->started_ = true;
 
+	auto duration_max = timer::duration_type::max( );
+
 	do
 	{
 		if ( pimpl_->stop_asap_ )
 			break;
 
-		task _task = pimpl_->task_fetcher_
+		if ( pimpl_->timer_tasks_
+			.exists_before_or_at( )
+		)
+		{
+			auto task = pimpl_->timer_tasks_.pop( );
+
+			if ( task )
+			{
+				Q_AUTO_UNIQUE_UNLOCK( lock );
+
+				task( );
+
+				continue;
+			}
+		}
+
+		timer_task _task = pimpl_->task_fetcher_
 			? pimpl_->task_fetcher_( )
 			: task( );
 
 		if ( !pimpl_->running_ && !_task )
 			break;
 
-		if ( _task )
+		if ( _task.is_timed( ) )
+		{
+			// We just add the timed task and re-iterate.
+			// This handling needs a complete overhaul. TODO
+			pimpl_->timer_tasks_.push(
+				std::move( _task.wait_until ),
+				std::move( _task.task ) );
+
+			continue;
+		}
+		else if ( _task )
 		{
 			Q_AUTO_UNIQUE_UNLOCK( lock );
 
-			_task( );
+			_task.task( );
 		}
 
 		if ( !_task )
 		{
-			pimpl_->cond_.wait( lock );
+			auto next = pimpl_->timer_tasks_.next_time( );
+
+			if ( _task.is_timed( ) && next != duration_max )
+				pimpl_->cond_.wait_for(
+					lock, next );
+			else
+				pimpl_->cond_.wait( lock );
 		}
 	}
 	while ( true );

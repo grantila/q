@@ -63,7 +63,7 @@ protected:
 
 private:
 	void poke( );
-	task next_task( );
+	timer_task next_task( );
 
 	struct pimpl;
 	std::unique_ptr< pimpl > pimpl_;
@@ -98,7 +98,7 @@ protected:
 
 private:
 	void poke( );
-	task next_task( );
+	timer_task next_task( );
 
 	struct pimpl;
 	std::unique_ptr< pimpl > pimpl_;

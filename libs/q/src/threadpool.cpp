@@ -16,6 +16,7 @@
 
 #include <q/threadpool.hpp>
 #include <q/mutex.hpp>
+#include <q/time_set.hpp>
 
 #include <thread>
 #include <queue>
@@ -69,6 +70,7 @@ struct threadpool::pimpl
 	bool                              running_;
 	bool                              stop_asap_;
 	task_fetcher_task                 task_fetcher_;
+	time_set< task >                  timer_tasks_;
 };
 
 threadpool::threadpool( const std::string& name,
@@ -121,12 +123,14 @@ void threadpool::start( )
 	auto terminated = std::make_shared< std::atomic< size_t > >( 0 );
 	auto num_threads = pimpl_->num_threads_;
 
+	auto duration_max = timer::duration_type::max( );
+
 	for ( std::size_t index = 0; index < num_threads; ++index )
 	{
 		auto thread_name = make_thread_name(
 			pimpl_->name_, index + 1, pimpl_->num_threads_ );
 
-		auto fn = [ _this, index ]( ) -> void
+		auto fn = [ _this, index, duration_max ]( ) -> void
 		{
 			auto& pimpl_ = _this->pimpl_;
 
@@ -150,22 +154,63 @@ void threadpool::start( )
 				if ( pimpl_->stop_asap_ )
 					break;
 
-				task _task = pimpl_->task_fetcher_
+				if ( pimpl_->timer_tasks_
+					.exists_before_or_at( )
+				)
+				{
+					auto task = pimpl_->timer_tasks_.pop( );
+
+					if ( task )
+					{
+						Q_AUTO_UNIQUE_UNLOCK( lock );
+
+						invoker( std::move( task ) );
+
+						continue;
+					}
+				}
+
+				timer_task _task = pimpl_->task_fetcher_
 					? pimpl_->task_fetcher_( )
 					: task( );
 
 				if ( !pimpl_->running_ && !_task )
 					break;
 
-				if ( _task )
+				if ( _task.is_timed( ) )
+				{
+					// We just add the timed task and re-
+					// iterate.
+					// This handling of timed tasks is
+					// highly inefficient and needs to be
+					// entirely redesigned. TODO
+					pimpl_->timer_tasks_.push(
+						std::move( _task.wait_until ),
+						std::move( _task.task ) );
+
+					continue;
+				}
+				else if ( _task )
 				{
 					Q_AUTO_UNIQUE_UNLOCK( lock );
 
-					invoker( std::move( _task ) );
+					invoker( std::move( _task.task ) );
 				}
 
 				if ( pimpl_->running_ && !_task )
-					pimpl_->cond_.wait( lock );
+				{
+					auto next = pimpl_->timer_tasks_
+						.next_time( );
+
+					if (
+						_task.is_timed( ) &&
+						next != duration_max
+					)
+						pimpl_->cond_.wait_for(
+							lock, next );
+					else
+						pimpl_->cond_.wait( lock );
+				}
 			}
 			while ( true );
 

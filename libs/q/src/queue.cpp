@@ -18,17 +18,12 @@
 #include <q/mutex.hpp>
 #include <q/memory.hpp>
 #include <q/exception.hpp>
-#include <q/static_atomic.hpp>
 
 #include <queue>
-#include <atomic>
-
-// TODO: REMOVE
-#include <iostream>
 
 namespace q {
 
-// TODO: Consider using a bemaphore instead, and then preferably a non-locking
+// TODO: Consider using a semaphore instead, and then preferably a non-locking
 // queue altogether. The only thing necessary is that two push-calls from the
 // same thread must follow order.
 struct queue::pimpl
@@ -42,6 +37,7 @@ struct queue::pimpl
 	mutex mutex_;
 	queue::notify_type notify_;
 	std::queue< task > queue_;
+	std::queue< timer_task > timer_task_queue_;
 };
 
 queue_ptr queue::construct( priority_t priority )
@@ -74,6 +70,23 @@ void queue::push( task&& task )
 		notifyer( );
 }
 
+void queue::push( task&& task, timer::point_type wait_until )
+{
+	notify_type notifyer;
+
+	{
+		Q_AUTO_UNIQUE_LOCK( pimpl_->mutex_, Q_HERE, "queue::push(2)" );
+
+		timer_task tt( std::move( task ), std::move( wait_until ) );
+		pimpl_->timer_task_queue_.push( tt );
+
+		notifyer = pimpl_->notify_;
+	}
+
+	if ( notifyer )
+		notifyer( );
+}
+
 priority_t queue::priority( ) const
 {
 	return pimpl_->priority_;
@@ -88,17 +101,26 @@ void queue::set_consumer( queue::notify_type fn )
 
 bool queue::empty( )
 {
-	return pimpl_->queue_.empty( );
+	return pimpl_->queue_.empty( ) && pimpl_->timer_task_queue_.empty( );
 }
 
-task queue::pop( )
+timer_task queue::pop( )
 {
 	Q_AUTO_UNIQUE_LOCK( pimpl_->mutex_, Q_HERE, "queue::pop" );
+
+	if ( !pimpl_->timer_task_queue_.empty( ) )
+	{
+		timer_task task = std::move( pimpl_->timer_task_queue_.front( ) );
+
+		pimpl_->timer_task_queue_.pop( );
+
+		return task;
+	}
 
 	if ( pimpl_->queue_.empty( ) )
 		return task( );
 
-	task task = std::move( pimpl_->queue_.front( ) );
+	timer_task task = std::move( pimpl_->queue_.front( ) );
 
 	pimpl_->queue_.pop( );
 
