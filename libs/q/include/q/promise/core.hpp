@@ -229,6 +229,11 @@ struct merge_promise_arguments< >
 : q::arguments< >
 { };
 
+typedef options<
+	queue_ptr,
+	defaultable< queue_ptr >
+> queue_options;
+
 }
 
 #endif // LIBQ_PROMISE_CORE_HPP
