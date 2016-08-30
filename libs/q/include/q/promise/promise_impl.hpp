@@ -288,7 +288,7 @@ then( AsyncTask&& task )
 				}
 				else
 				{
-					deferred->set_value(
+					deferred->set_expect(
 						Q_MOVABLE_CONSUME( value ) );
 				}
 			};
