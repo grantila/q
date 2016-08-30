@@ -51,6 +51,9 @@ struct is_argument_same;
 template< typename From, typename To >
 struct is_argument_same_or_convertible;
 
+template< typename From, typename To >
+struct is_argument_same_or_convertible_incl_void;
+
 /**
  * Determines if the type T exists as any of the types in the q::arguments
  * Arguments.
@@ -81,17 +84,48 @@ struct arguments
 {
 	typedef arguments< Args... > this_type;
 
+	template< typename... T >
+	struct identity
+	{
+		typedef arguments< T... > type;
+	};
+
 	template< template< typename... > class T >
 	struct apply
 	{
 		typedef T< Args... > type;
 	};
 
-	template< typename... T >
-	struct identity
-	{
-		typedef arguments< T... > type;
-	};
+	typedef typename detail::variadic_rest< Args... > rest;
+
+	typedef typename rest::first_type first_type;
+	typedef typename rest::template apply_rest< identity >::type::type
+		rest_arguments;
+
+	typedef typename apply< std::tuple >::type tuple_type;
+
+	typedef std::integral_constant< std::size_t, sizeof...( Args ) > size;
+
+	typedef std::false_type empty;
+
+	typedef bool_type<
+		size::value == 1
+		and
+		std::is_void< first_type >::value
+	> empty_or_void;
+
+	typedef bool_type<
+		size::value == 1
+		and
+		(
+			std::is_void< first_type >::value
+			or
+			std::is_same<
+				typename std::decay< first_type >::type,
+				void_t
+			>::value
+		)
+	> empty_or_voidish;
 
 	// TODO: Why did I write this?
 	template< template< template< typename... > class > class T >
@@ -111,6 +145,21 @@ struct arguments
 	{
 		typedef arguments< Args..., After... > type;
 	};
+
+	template< typename T, std::intptr_t Offset = 0 >
+	struct index_of
+	: public rest_arguments::template index_of< T, Offset + 1 >
+	{ };
+
+	template< std::intptr_t Offset >
+	struct index_of< first_type, Offset >
+	: public std::integral_constant< std::intptr_t, Offset >
+	{ };
+
+	template< typename T >
+	struct has
+	: bool_type< index_of< T >::value != -1 >
+	{ };
 
 	/**
 	 * Given a q::arguments wrapped set of types T, checks whether the
@@ -132,16 +181,10 @@ struct arguments
 	: is_argument_same_or_convertible< this_type, T >
 	{ };
 
-	typedef typename detail::variadic_rest< Args... > rest;
-
-	typedef typename rest::first_type first_type;
-	typedef typename rest::template apply_rest< identity >::type::type rest_arguments;
-
-	typedef typename apply< std::tuple >::type tuple_type;
-
-	typedef std::integral_constant< std::size_t, sizeof...( Args ) > size;
-
-	typedef typename bool_type< size::value == 0 >::type empty;
+	template< typename T >
+	struct is_convertible_to_incl_void
+	: is_argument_same_or_convertible_incl_void< this_type, T >
+	{ };
 
 	/**
 	 * map each argument with a type T and return a new q::arguments.
@@ -157,7 +200,7 @@ struct arguments
 	template< template< typename > class T >
 	struct map
 	{
-		typedef arguments< T< Args >... > type;
+		typedef arguments< typename T< Args >::type... > type;
 	};
 
 	/**
@@ -206,6 +249,16 @@ struct arguments< >
 		typedef T< > type;
 	};
 
+	typedef typename apply< std::tuple >::type tuple_type;
+
+	typedef std::integral_constant< std::size_t, 0 > size;
+
+	typedef std::true_type empty;
+
+	typedef std::true_type empty_or_void;
+	typedef std::true_type empty_or_voidish;
+
+
 	template< typename... Before >
 	struct prepend
 	{
@@ -218,6 +271,16 @@ struct arguments< >
 		typedef arguments< After... > type;
 	};
 
+	template< typename T, std::intptr_t = 0 >
+	struct index_of
+	: public std::integral_constant< std::intptr_t, -1 >
+	{ };
+
+	template< typename T >
+	struct has
+	: std::false_type
+	{ };
+
 	template< typename T >
 	struct equals
 	: is_argument_same< this_type, T >
@@ -228,11 +291,10 @@ struct arguments< >
 	: is_argument_same_or_convertible< this_type, T >
 	{ };
 
-	typedef typename apply< std::tuple >::type tuple_type;
-
-	typedef std::integral_constant< std::size_t, 0 > size;
-
-	typedef bool_type< true >::type empty;
+	template< typename T >
+	struct is_convertible_to_incl_void
+	: is_argument_same_or_convertible_incl_void< this_type, T >
+	{ };
 
 	template< template< typename > class T >
 	struct map
@@ -245,29 +307,50 @@ struct arguments< >
 	{
 		typedef arguments< > type;
 	};
+
+	template< typename Arguments >
+	struct contains_all
+	: Arguments::empty
+	{ };
+
+	template< typename... T >
+	struct contains
+	: contains_all< arguments< T... > >
+	{ };
 };
 
 namespace detail {
 
 template< typename T >
 struct tuple_arguments
-: public arguments< T >
-{ };
+: public arguments< T > // TODO: Remove
+{
+	typedef arguments< T > type;
+};
 
 template< >
 struct tuple_arguments< void >
-: public arguments< >
+: public arguments< > // TODO: Remove
+{
+	typedef arguments< > type;
+};
+
+template< typename... Args >
+struct tuple_arguments< const std::tuple< Args... >& >
+: public tuple_arguments< std::tuple< Args... > >
 { };
 
 template< typename... Args >
-struct tuple_arguments< std::tuple< Args... >& >
+struct tuple_arguments< std::tuple< Args... >&& >
 : public tuple_arguments< std::tuple< Args... > >
 { };
 
 template< typename... Args >
 struct tuple_arguments< std::tuple< Args... > >
-: public arguments< Args... >
-{ };
+: public arguments< Args... > // TODO: Remove
+{
+	typedef arguments< Args... > type;
+};
 
 template< template< typename... > class Predicate, size_t, typename... >
 struct is_one_argument_and

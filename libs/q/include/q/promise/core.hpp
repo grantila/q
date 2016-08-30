@@ -97,7 +97,7 @@ struct promise_if_first_and_only< ::q::shared_promise< std::tuple< Args... > > >
 } // namespace detail
 
 class generic_combined_promise_exception
-: exception
+: public exception
 {
 public:
 	generic_combined_promise_exception( ) = default;
@@ -119,7 +119,7 @@ private:
 
 template< typename T >
 class combined_promise_exception
-: generic_combined_promise_exception
+: public generic_combined_promise_exception
 {
 public:
 	typedef std::vector< expect< T > > exception_type;

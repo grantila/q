@@ -23,6 +23,28 @@ TEST_F( then, values_to_value )
 	);
 }
 
+TEST_F( then, void_as_void_t )
+{
+	run(
+		q::with( queue )
+		.then( EXPECT_CALL_WRAPPER(
+		[ ]( q::void_t )
+		{
+		} ) )
+	);
+}
+
+TEST_F( then, void_as_void_t_ref_ref )
+{
+	run(
+		q::with( queue )
+		.then( EXPECT_CALL_WRAPPER(
+		[ ]( q::void_t&& )
+		{
+		} ) )
+	);
+}
+
 TEST_F( then, tuple_to_value )
 {
 	int i = 17;

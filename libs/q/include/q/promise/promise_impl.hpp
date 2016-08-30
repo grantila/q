@@ -46,17 +46,18 @@ then( Fn&& fn, Queue&& queue )
 		is_set_default< Queue >::value
 		? ensure( set_default_get( queue ) )
 		: get_queue( ) );
-	auto tmp_fn = Q_TEMPORARILY_COPYABLE( fn );
+	Q_MAKE_MOVABLE( fn );
 	auto state = state_;
 
-	auto perform = [ deferred, tmp_fn, state ]( ) mutable
+	auto perform = [ deferred, Q_MOVABLE_MOVE( fn ), state ]( ) mutable
 	{
 		auto value = state->consume( );
 		if ( value.has_exception( ) )
 			// Redirect exception
 			deferred->set_exception( value.exception( ) );
 		else
-			deferred->set_by_fun( tmp_fn.consume( ), value.consume( ) );
+			deferred->set_by_fun(
+				Q_MOVABLE_CONSUME( fn ), value.consume( ) );
 	};
 
 	state_->signal( )->push( std::move( perform ),
@@ -84,9 +85,11 @@ typename std::enable_if<
 	and
 	Q_FIRST_ARGUMENT_IS_TUPLE( Fn )
 	and
-	::q::is_argument_same_or_convertible<
-		arguments< std::tuple< Args... > >,
-		Q_ARGUMENTS_OF( Fn )
+	::q::is_argument_same_or_convertible_incl_void<
+		arguments< Args... >,
+		typename tuple_arguments<
+			Q_ARGUMENTS_OF( Fn )::first_type
+		>::type
 	>::value
 	and
 	!is_promise< Q_RESULT_OF( Fn ) >::value
@@ -102,17 +105,18 @@ then( Fn&& fn, Queue&& queue )
 	      is_set_default< Queue >::value
 	      ? ensure( set_default_get( queue ) )
 	      : get_queue( ) );
-	auto tmp_fn = Q_TEMPORARILY_COPYABLE( fn );
+	Q_MAKE_MOVABLE( fn );
 	auto state = state_;
 
-	auto perform = [ deferred, tmp_fn, state ]( ) mutable
+	auto perform = [ deferred, Q_MOVABLE_MOVE( fn ), state ]( ) mutable
 	{
 		auto value = state->consume( );
 		if ( value.has_exception( ) )
 			// Redirect exception
 			deferred->set_exception( value.exception( ) );
 		else
-			deferred->set_by_fun( tmp_fn.consume( ), value.consume( ) );
+			deferred->set_by_fun(
+				Q_MOVABLE_CONSUME( fn ), value.consume( ) );
 	};
 
 	state_->signal( )->push( std::move( perform ),
@@ -148,10 +152,10 @@ then( Fn&& fn, Queue&& queue )
 	      is_set_default< Queue >::value
 	      ? ensure( set_default_get( queue ) )
 	      : get_queue( ) );
-	auto tmp_fn = Q_TEMPORARILY_COPYABLE( fn );
+	Q_MAKE_MOVABLE( fn );
 	auto state = state_;
 
-	auto perform = [ deferred, tmp_fn, state ]( ) mutable
+	auto perform = [ deferred, Q_MOVABLE_MOVE( fn ), state ]( ) mutable
 	{
 		auto value = state->consume( );
 		if ( value.has_exception( ) )
@@ -159,7 +163,7 @@ then( Fn&& fn, Queue&& queue )
 	 		deferred->set_exception( value.exception( ) );
 	 	else
 			deferred->set_by_fun(
-				tmp_fn.consume( ), value.consume( ) );
+				Q_MOVABLE_CONSUME( fn ), value.consume( ) );
 	};
 
 	state_->signal( )->push( std::move( perform ),
@@ -178,9 +182,11 @@ typename std::enable_if<
 	and
 	Q_FIRST_ARGUMENT_IS_TUPLE( Fn )
 	and
-	::q::is_argument_same_or_convertible<
-		arguments< std::tuple< Args... > >,
-		Q_ARGUMENTS_OF( Fn )
+	::q::is_argument_same_or_convertible_incl_void<
+		arguments< Args... >,
+		typename tuple_arguments<
+			Q_ARGUMENTS_OF( Fn )::first_type
+		>::type
 	>::value
 	and
 	is_promise< Q_RESULT_OF( Fn ) >::value
@@ -196,17 +202,18 @@ then( Fn&& fn, Queue&& queue )
 	      is_set_default< Queue >::value
 	      ? ensure( set_default_get( queue ) )
 	      : get_queue( ) );
-	auto tmp_fn = Q_TEMPORARILY_COPYABLE( fn );
+	Q_MAKE_MOVABLE( fn );
 	auto state = state_;
 
-	auto perform = [ deferred, tmp_fn, state ]( ) mutable
+	auto perform = [ deferred, Q_MOVABLE_MOVE( fn ), state ]( ) mutable
 	{
 		auto value = state->consume( );
 		if ( value.has_exception( ) )
 			// Redirect exception
 	 		deferred->set_exception( value.exception( ) );
 	 	else
-			deferred->set_by_fun( tmp_fn.consume( ), value.consume( ) );
+			deferred->set_by_fun(
+				Q_MOVABLE_CONSUME( fn ), value.consume( ) );
 	};
 
 	state_->signal( )->push( std::move( perform ),
@@ -228,11 +235,11 @@ inline typename std::enable_if<
 generic_promise< Shared, std::tuple< Args... > >::
 then( Logger&& logger, Queue&& queue )
 {
-	auto tmp_logger = Q_TEMPORARILY_COPYABLE( logger );
+	Q_MAKE_MOVABLE( logger );
 
-	auto fn = [ tmp_logger ]( tuple_type args ) -> void
+	auto fn = [ Q_MOVABLE_MOVE( logger ) ]( tuple_type args ) -> void
 	{
-		call_with_args_by_tuple( tmp_logger.consume( ), args );
+		call_with_args_by_tuple( Q_MOVABLE_CONSUME( logger ), args );
 	};
 	std::packaged_task< void( void ) > task; // TODO: REDO
 
@@ -258,9 +265,9 @@ then( AsyncTask&& task )
 	auto deferred = detail::defer< std::tuple< Args... > >::construct(
 		queue_ );
 	auto state = state_;
-	auto tmp_task = Q_TEMPORARILY_COPYABLE( task );
+	Q_MAKE_MOVABLE( task );
 
-	auto perform = [ tmp_task, deferred, state ]( ) mutable
+	auto perform = [ Q_MOVABLE_MOVE( task ), deferred, state ]( ) mutable
 	{
 		auto value = state->consume( );
 
@@ -270,9 +277,8 @@ then( AsyncTask&& task )
 		}
 		else
 		{
-			auto tmp_value = Q_TEMPORARILY_COPYABLE( value );
-			auto task( std::move( tmp_task.consume( ) ) );
-			auto runner = [ tmp_value, deferred ]
+			Q_MAKE_MOVABLE( value );
+			auto runner = [ Q_MOVABLE_MOVE( value ), deferred ]
 				( q::expect< > expect ) mutable noexcept
 			{
 				if ( expect.has_exception( ) )
@@ -282,12 +288,12 @@ then( AsyncTask&& task )
 				}
 				else
 				{
-					auto value = tmp_value.consume( );
-					deferred->set_value( value.consume( ) );
+					deferred->set_value(
+						Q_MOVABLE_CONSUME( value ) );
 				}
 			};
 
-			task.run( runner );
+			Q_MOVABLE_CONSUME( task ).run( runner );
 		}
 	};
 
@@ -331,10 +337,10 @@ fail( Fn&& fn, Queue&& queue )
 	    is_set_default< Queue >::value
 	    ? ensure( set_default_get( queue ) )
 	    : get_queue( ) );
-	auto tmp_fn = Q_TEMPORARILY_COPYABLE( fn );
+	Q_MAKE_MOVABLE( fn );
 	auto state = state_;
 
-	auto perform = [ deferred, tmp_fn, state ]( ) mutable
+	auto perform = [ deferred, Q_MOVABLE_MOVE( fn ), state ]( ) mutable
 	{
 		auto value = state->consume( );
 		if ( value.has_exception( ) )
@@ -343,7 +349,7 @@ fail( Fn&& fn, Queue&& queue )
 			try
 			{
 				deferred->set_by_fun(
-					std::move( tmp_fn.consume( ) ),
+					Q_MOVABLE_CONSUME( fn ),
 					value.exception( ) );
 			}
 			catch ( ... )
@@ -400,10 +406,10 @@ fail( Fn&& fn, Queue&& queue )
 	       is_set_default< Queue >::value
 	       ? ensure( set_default_get( queue ) )
 	       : get_queue( ) );
-	auto tmp_fn = Q_TEMPORARILY_COPYABLE( fn );
+	Q_MAKE_MOVABLE( fn );
 	auto state = state_;
 
-	auto perform = [ deferred, tmp_fn, state ]( ) mutable
+	auto perform = [ deferred, Q_MOVABLE_MOVE( fn ), state ]( ) mutable
 	{
 		auto value = state->consume( );
 		if ( value.has_exception( ) )
@@ -412,7 +418,7 @@ fail( Fn&& fn, Queue&& queue )
 			try
 			{
 				deferred->set_by_fun(
-					std::move( tmp_fn.consume( ) ),
+					Q_MOVABLE_CONSUME( fn ),
 					value.exception( ) );
 			}
 			catch ( ... )
@@ -465,13 +471,13 @@ fail( Fn&& fn, Queue&& queue )
 	       is_set_default< Queue >::value
 	       ? ensure( set_default_get( queue ) )
 	       : get_queue( ) );
-	auto tmp_fn = Q_TEMPORARILY_COPYABLE( fn );
+	Q_MAKE_MOVABLE( fn );
 	auto state = state_;
 
 	typedef typename std::decay< Q_FIRST_ARGUMENT_OF( Fn ) >::type
 		exception_type;
 
-	auto perform = [ deferred, tmp_fn, state ]( ) mutable
+	auto perform = [ deferred, Q_MOVABLE_MOVE( fn ), state ]( ) mutable
 	{
 		auto value = state->consume( );
 		if ( value.has_exception( ) )
@@ -486,8 +492,7 @@ fail( Fn&& fn, Queue&& queue )
 				try
 				{
 					deferred->set_by_fun(
-						std::move( tmp_fn.consume( ) ),
-						e );
+						Q_MOVABLE_CONSUME( fn ), e );
 				}
 				catch ( ... )
 				{
@@ -547,13 +552,13 @@ fail( Fn&& fn, Queue&& queue )
 	       is_set_default< Queue >::value
 	       ? ensure( set_default_get( queue ) )
 	       : get_queue( ) );
-	auto tmp_fn = Q_TEMPORARILY_COPYABLE( fn );
+	Q_MAKE_MOVABLE( fn );
 	auto state = state_;
 
 	typedef typename std::decay< Q_FIRST_ARGUMENT_OF( Fn ) >::type
 		exception_type;
 
-	auto perform = [ deferred, tmp_fn, state ]( ) mutable
+	auto perform = [ deferred, Q_MOVABLE_MOVE( fn ), state ]( ) mutable
 	{
 		auto value = state->consume( );
 		if ( value.has_exception( ) )
@@ -568,8 +573,7 @@ fail( Fn&& fn, Queue&& queue )
 				try
 				{
 					deferred->set_by_fun(
-						std::move( tmp_fn.consume( ) ),
-						e );
+						Q_MOVABLE_CONSUME( fn ), e );
 				}
 				catch ( ... )
 				{
@@ -620,16 +624,16 @@ finally( Fn&& fn, Queue&& queue )
 	     is_set_default< Queue >::value
 	     ? ensure( set_default_get( queue ) )
 	     : get_queue( ) );
-	auto tmp_fn = Q_TEMPORARILY_COPYABLE( fn );
+	Q_MAKE_MOVABLE( fn );
 	auto state = state_;
 
-	auto perform = [ deferred, tmp_fn, state ]( ) mutable
+	auto perform = [ deferred, Q_MOVABLE_MOVE( fn ), state ]( ) mutable
 	{
 		auto value = state->consume( );
 
 		try
 		{
-			tmp_fn.consume( )( );
+			Q_MOVABLE_CONSUME( fn )( );
 
 			deferred->set_expect( std::move( value ) );
 		}
@@ -670,14 +674,14 @@ finally( Fn&& fn, Queue&& queue )
 	     is_set_default< Queue >::value
 	     ? ensure( set_default_get( queue ) )
 	     : get_queue( ) );
-	auto tmp_fn = Q_TEMPORARILY_COPYABLE( fn );
+	Q_MAKE_MOVABLE( fn );
 	auto state = state_;
 
-	auto perform = [ deferred, tmp_fn, state ]( ) mutable
+	auto perform = [ deferred, Q_MOVABLE_MOVE( fn ), state ]( ) mutable
 	{
 		try
 		{
-			auto inner_promise = tmp_fn.consume( )( );
+			auto inner_promise = Q_MOVABLE_CONSUME( fn )( );
 
 			inner_promise
 			.then( [ deferred, state ]( )

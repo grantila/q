@@ -18,7 +18,7 @@
 #define LIBQ_SETDEFAULT_HPP
 
 #define Q_IS_SETDEFAULT_SAME( type1, type2 ) \
-	::q::detail::set_default< \
+	::q::defaultable< \
 		typename std::decay< type1 >::type \
 	>::template is_decayed< type2 >::value
 
@@ -27,10 +27,10 @@ namespace q {
 template< typename T >
 struct is_set_default;
 
-namespace detail {
-
 template< typename T >
-struct set_default;
+struct defaultable;
+
+namespace detail {
 
 template< typename T >
 struct set_default_type
@@ -50,13 +50,15 @@ struct set_default_type< T&& >
 : set_default_type< T >
 { };
 template< typename T >
-struct set_default_type< set_default< T > >
+struct set_default_type< defaultable< T > >
 {
 	typedef T type;
 };
 
+} // detail
+
 template< typename T >
-struct set_default
+struct defaultable
 {
 	typedef T type;
 
@@ -67,7 +69,7 @@ struct set_default
 		typename std::is_same<
 			T,
 			typename std::decay<
-				typename set_default_type< T_ >::type
+				typename detail::set_default_type< T_ >::type
 			>::type
 		>::type,
 		typename std::is_same< T, T_ >::type
@@ -81,7 +83,7 @@ struct set_default
 		typename std::is_same<
 			T,
 			typename std::decay<
-				typename set_default_type< T_ >::type
+				typename detail::set_default_type< T_ >::type
 			>::type
 		>::type,
 		typename std::is_same<
@@ -93,8 +95,6 @@ struct set_default
 
 	T value;
 };
-
-} // detail
 
 template< typename T >
 struct is_set_default
@@ -117,14 +117,14 @@ struct is_set_default< T&& >
 { };
 
 template< typename T >
-struct is_set_default< detail::set_default< T > >
+struct is_set_default< defaultable< T > >
 : std::true_type
 { };
 
 template< typename T >
 typename std::enable_if<
 	is_set_default< T >::value,
-	detail::set_default< T >
+	defaultable< T >
 >::type
 set_default( T&& t )
 {
@@ -134,11 +134,11 @@ set_default( T&& t )
 template< typename T >
 typename std::enable_if<
 	!is_set_default< T >::value,
-	detail::set_default< typename std::decay< T >::type >
+	defaultable< typename std::decay< T >::type >
 >::type
 set_default( T&& t )
 {
-	return detail::set_default< typename std::decay< T >::type >
+	return defaultable< typename std::decay< T >::type >
 		{ std::forward< T >( t ) };
 }
 

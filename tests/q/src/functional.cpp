@@ -153,6 +153,45 @@ TEST( functional, function_argument_types )
 	EXPECT_EQ( std::size_t( 2 ), Q_ARITY_OF( fn_type ) );
 }
 
+int void_fn( );
+int void_t_fn( q::void_t );
+
+TEST( functional, function_argument_void_type )
+{
+	typedef decltype( void_fn ) fn_type;
+	typedef decltype( void_t_fn ) fn_t_type;
+
+	EXPECT_TRUE( (
+		Q_ARGUMENTS_ARE_CONVERTIBLE_FROM( fn_type, void )
+			::value
+	) );
+	EXPECT_TRUE( (
+		Q_ARGUMENTS_ARE_CONVERTIBLE_FROM( fn_type )::value
+	) );
+	EXPECT_FALSE( (
+		Q_ARGUMENTS_ARE_CONVERTIBLE_FROM( fn_t_type, void )
+			::value
+	) );
+	EXPECT_FALSE( (
+		Q_ARGUMENTS_ARE_CONVERTIBLE_FROM( fn_t_type )::value
+	) );
+
+	EXPECT_TRUE( (
+		Q_ARGUMENTS_ARE_CONVERTIBLE_FROM_INCL_VOID( fn_type, void )
+			::value
+	) );
+	EXPECT_TRUE( (
+		Q_ARGUMENTS_ARE_CONVERTIBLE_FROM_INCL_VOID( fn_type )::value
+	) );
+	EXPECT_TRUE( (
+		Q_ARGUMENTS_ARE_CONVERTIBLE_FROM_INCL_VOID( fn_t_type, void )
+			::value
+	) );
+	EXPECT_TRUE( (
+		Q_ARGUMENTS_ARE_CONVERTIBLE_FROM_INCL_VOID( fn_t_type )::value
+	) );
+}
+
 struct C
 {
 	C( int ) { }
@@ -198,6 +237,29 @@ TEST( functional, call_with_args )
 	EXPECT_EQ( std::size_t( 1 ), num_args::value );
 	EXPECT_EQ( 11, ret1 );
 	EXPECT_EQ( 11, ret2 );
+}
+
+int fn_void_t( q::void_t )
+{
+	return 5;
+}
+
+TEST( functional, call_with_args_void )
+{
+	typedef Q_RESULT_OF_AS_ARGUMENT( decltype( fn_void_t ) )::size num_args;
+
+	q::void_t _void;
+	auto args = std::make_tuple( _void );
+	auto ret1 = q::call_with_args( fn_void_t, _void );
+	auto ret2 = q::call_with_args_by_tuple( fn_void_t, std::move( args ) );
+	auto ret3 = q::call_with_args( fn_void_t );
+	auto ret4 = q::call_with_args_by_tuple( fn_void_t, std::make_tuple( ) );
+
+	EXPECT_EQ( std::size_t( 1 ), num_args::value );
+	EXPECT_EQ( 5, ret1 );
+	EXPECT_EQ( 5, ret2 );
+	EXPECT_EQ( 5, ret3 );
+	EXPECT_EQ( 5, ret4 );
 }
 
 TEST( functional, result_of )

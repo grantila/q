@@ -32,6 +32,20 @@ namespace q {
 template< typename T > void ignore_result( T&& ) { }
 template< typename T > void ignore_parameter( T&& ) { }
 
+struct void_t { };
+
+template< typename T >
+struct objectify
+{
+	typedef T type;
+};
+
+template< >
+struct objectify< void >
+{
+	typedef void_t type;
+};
+
 namespace detail {
 
 template< typename T >
@@ -41,6 +55,18 @@ template< typename T >
 typename std::remove_reference< T >::type identity_fn_noref( T&& );
 
 } // namespace detail
+
+/**
+ * Provides a functional operator which expands ::type from a meta-function
+ */
+template< template< typename > class T >
+struct functional_type
+{
+	template< typename U >
+	struct of
+	: T< U >::type
+	{ };
+};
 
 /**
  * q::bool_type is std::true_type if value is true, otherwise q::bool_type is
@@ -101,6 +127,18 @@ struct is_same_type
 	>::type
 >
 { };
+
+/**
+ * Composable is_same_type
+ */
+template< typename A >
+struct same
+{
+	template< typename B >
+	struct as
+	: is_same_type< A, B >
+	{ };
+};
 
 template< typename... T >
 struct is_tuple
@@ -349,8 +387,35 @@ struct tuple_of< std::tuple< T... > >
 	typedef std::tuple< T... > type;
 };
 
+// Get the same kind of integer (signed/unsigned) but of ptr_size
+template<
+	typename T,
+	bool IsInteger = std::is_integral< T >::value,
+	bool IsSigned = std::is_signed< T >::value
+>
+struct ptr_size_integer;
+
+template< typename T >
+struct ptr_size_integer< T, true, false >
+{
+	typedef std::uintptr_t type;
+};
+
+template< typename T >
+struct ptr_size_integer< T, true, true >
+{
+	typedef std::intptr_t type;
+};
+
+template< typename T >
+using ptr_size_integer_t = typename ptr_size_integer< T >::type;
+
 template< typename T, typename... Args >
-std::unique_ptr< T > make_unique( Args&&... args )
+typename std::enable_if<
+	!std::is_array< T >::value,
+	std::unique_ptr< T >
+>::type
+make_unique( Args&&... args )
 {
 #ifdef LIBQ_WITH_CPP14
 	return std::make_unique< T >( std::forward< Args >( args )... );
@@ -358,6 +423,22 @@ std::unique_ptr< T > make_unique( Args&&... args )
 	return std::unique_ptr< T >( new T( std::forward< Args >( args )... ) );
 #endif
 }
+
+template< typename T >
+typename std::enable_if<
+	std::is_array< T >::value,
+	std::unique_ptr< T >
+>::type
+make_unique( std::size_t size )
+{
+#ifdef LIBQ_WITH_CPP14
+	return std::make_unique< T >( size );
+#else
+	typedef typename std::remove_extent< T >::type U;
+	return std::unique_ptr< T >( new U[ size ] );
+#endif
+}
+
 
 } // namespace q
 

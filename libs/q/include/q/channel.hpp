@@ -111,12 +111,17 @@ public:
 	, resume_count_( std::min( resume_count, buffer_count ) )
 	{ }
 
-	bool is_closed( )
+	std::size_t buffer_count( ) const
+	{
+		return buffer_count_;
+	}
+
+	bool is_closed( ) const
 	{
 		return closed_;
 	}
 
-	std::exception_ptr get_exception( )
+	std::exception_ptr get_exception( ) const
 	{
 		Q_AUTO_UNIQUE_LOCK( mutex_ );
 
@@ -282,6 +287,11 @@ public:
 		resume_notification_ = fn;
 	}
 
+	void unset_resume_notification( )
+	{
+		set_resume_notification( task( ) );
+	}
+
 	/**
 	 * Adds a scope to this channel. This will cause the channel to "own"
 	 * the scope, and thereby destruct it when the channel is destructed.
@@ -329,10 +339,30 @@ private:
 		typedef typename channel_traits< T... >::promise_arguments_type
 			arguments_type;
 
-		auto promise = q::reject< arguments_type >(
-			default_queue_, std::forward< E >( e ) );
+		if ( closed_.load( std::memory_order_seq_cst ) )
+			// Ignore this rejection/closing as we're already closed
+			return;
 
-		queue_.push( std::move( promise ) );
+		if ( waiters_.empty( ) )
+		{
+			auto promise = q::reject< arguments_type >(
+				default_queue_, std::forward< E >( e ) );
+
+			queue_.push( std::move( promise ) );
+		}
+		else
+		{
+			bool was_closed = closed_.exchange(
+				true, std::memory_order_seq_cst );
+
+			if ( !was_closed )
+				close_exception_ = std::forward< E >( e );
+
+			auto waiter = std::move( waiters_.front( ) );
+			waiters_.pop_front( );
+
+			waiter->set_exception( close_exception_ );
+		}
 	}
 
 	template< typename E >
@@ -351,10 +381,30 @@ private:
 		typedef typename channel_traits< T... >::promise_arguments_type
 			arguments_type;
 
-		auto promise = q::reject< arguments_type >(
-			default_queue_, std::forward< E >( e ) );
+		if ( closed_.load( std::memory_order_seq_cst ) )
+			// Ignore this rejection/closing as we're already closed
+			return;
 
-		queue_.push( promise.share( ) );
+		if ( waiters_.empty( ) )
+		{
+			auto promise = q::reject< arguments_type >(
+				default_queue_, std::forward< E >( e ) );
+
+			queue_.push( promise.share( ) );
+		}
+		else
+		{
+			bool was_closed = closed_.exchange(
+				true, std::memory_order_seq_cst );
+
+			if ( !was_closed )
+				close_exception_ = std::forward< E >( e );
+
+			auto waiter = std::move( waiters_.front( ) );
+			waiters_.pop_front( );
+
+			waiter->set_exception( close_exception_ );
+		}
 	}
 
 	inline void resume( )
@@ -369,7 +419,7 @@ private:
 
 	queue_ptr default_queue_;
 	// TODO: Make this lock-free and consider other list types
-	mutex mutex_;
+	mutable mutex mutex_;
 	std::list< std::shared_ptr< defer_type > > waiters_;
 	std::queue< tuple_type > queue_;
 	std::exception_ptr close_exception_;
@@ -457,14 +507,31 @@ public:
 		} ) );
 	}
 
-	bool is_closed( )
+	std::size_t buffer_count( ) const
+	{
+		return shared_channel_->buffer_count( );
+	}
+
+	bool is_closed( ) const
 	{
 		return shared_channel_->is_closed( );
+	}
+
+	std::exception_ptr get_exception( ) const
+	{
+		return shared_channel_->get_exception( );
 	}
 
 	void close( )
 	{
 		shared_channel_->close( );
+	}
+
+	// Existence of this equals that of the shared_channel
+	template< typename E >
+	void close( E&& e )
+	{
+		shared_channel_->close( std::forward< E >( e ) );
 	}
 
 	void add_scope_until_closed( scope&& scope )
@@ -475,6 +542,21 @@ public:
 	queue_ptr get_queue( ) const
 	{
 		return shared_channel_->get_queue( );
+	}
+
+	/**
+	 * Clears this channel from any queued values. The channel can still be
+	 * used for future values.
+	 *
+	 * NOTE: This will not trigger back pressure notifications! Use `clear`
+	 *       with caution, as you can easily end up with a stuck channel.
+	 *       Most likely you do not want to use this function to begin
+	 *       with, as it is a grand anti-pattern, only useful in rare
+	 *       situations.
+	 */
+	void clear( )
+	{
+		shared_channel_->clear( );
 	}
 
 private:
@@ -548,6 +630,28 @@ public:
 	}
 
 	/**
+	 * ( tuple< void_t > ) -> tuple< > (stripped from void_t)
+	 */
+	template< typename Tuple >
+	typename std::enable_if<
+		q::is_tuple< typename std::decay< Tuple >::type >::value
+		and
+		std::is_same<
+			typename std::decay< Tuple >::type,
+			std::tuple< void_t >
+		>::value
+		and
+		std::is_same<
+			outer_tuple_type,
+			std::tuple< >
+		>::value
+	>::type
+	send( Tuple&& t )
+	{
+		send( std::make_tuple( ) );
+	}
+
+	/**
 	 * Non-promise channel
 	 * ( Args... ) -> tuple< T... >
 	 */
@@ -555,7 +659,9 @@ public:
 	typename std::enable_if<
 		arguments<
 			typename std::decay< Args >::type...
-		>::template is_convertible_to< arguments< T... > >::value
+		>::template is_convertible_to_incl_void<
+			arguments< T... >
+		>::value
 	>::type
 	send( Args&&... args )
 	{
@@ -572,11 +678,37 @@ public:
 		and
 		arguments<
 			typename std::decay< Args >::type...
-		>::template is_convertible_to< promise_arguments_type >::value
+		>::template is_convertible_to_incl_void<
+			promise_arguments_type
+		>::value
 	>::type
 	send( Args&&... args )
 	{
 		send( std::make_tuple( std::forward< Args >( args )... ) );
+	}
+
+	/**
+	 * Promise-channel:
+	 * ( tuple< void_t > ) -> tuple< >
+	 * (stripped from void_t)
+	 */
+	template< typename Tuple >
+	typename std::enable_if<
+		is_promise::value
+		and
+		std::is_same<
+			typename std::decay< Tuple >::type,
+			std::tuple< void_t >
+		>::value
+		and
+		std::is_same<
+			promise_arguments_type,
+			q::arguments< >
+		>::value
+	>::type
+	send( Tuple&& t )
+	{
+		send( std::make_tuple( ) );
 	}
 
 	/**
@@ -609,14 +741,31 @@ public:
 		shared_channel_->set_resume_notification( std::move( fn ) );
 	}
 
+	void unset_resume_notification( )
+	{
+		shared_channel_->unset_resume_notification( );
+	}
+
 	bool is_closed( )
 	{
 		return shared_channel_->is_closed( );
 	}
 
+	std::exception_ptr get_exception( ) const
+	{
+		return shared_channel_->get_exception( );
+	}
+
 	void close( )
 	{
 		shared_channel_->close( );
+	}
+
+	// Existence of this equals that of the shared_channel
+	template< typename E >
+	void close( E&& e )
+	{
+		shared_channel_->close( std::forward< E >( e ) );
 	}
 
 	void add_scope_until_closed( scope&& scope )

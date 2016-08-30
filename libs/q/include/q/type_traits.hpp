@@ -101,20 +101,43 @@ struct is_move_constructible< void >
  * Generic version of a fold used to check if a certain type checker applies to
  * all types in the pack T.
  */
-template< template< typename > class Operator, typename Nil, typename... T >
+template< template< typename > class Operator, typename... T >
 struct satisfies_all
 : fold<
 	q::arguments< T... >,
 	generic_operator<
 		Operator, logic_and
 	>::template fold_type,
-	Nil
+	std::true_type
 >
 { };
 
 
+namespace detail {
 
+template< typename T, typename... Args >
+struct are_all_same
+: fold<
+	q::arguments< Args... >,
+	generic_operator<
+		same< T >::template as, logic_and
+	>::template fold_type,
+std::true_type
+>
+{ };
 
+} // namespace detail
+
+// Ensures are types are equal
+template< typename... Args >
+struct are_all_same
+: detail::are_all_same< Args... >
+{ };
+
+template< >
+struct are_all_same< >
+: std::true_type
+{ };
 
 /**
  * Same as q::arguments but specialized for tuples, to create a generic
@@ -122,8 +145,10 @@ struct satisfies_all
  */
 template< typename Tuple >
 struct tuple_arguments
-: public detail::tuple_arguments< Tuple >
-{ };
+: public detail::tuple_arguments< Tuple > // TODO: Remove
+{
+	typedef typename detail::tuple_arguments< Tuple >::type type;
+};
 
 /**
  * Exposes the arguments from a @c std::tuple wrapped in a @c q::arguments,

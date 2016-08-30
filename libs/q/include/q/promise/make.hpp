@@ -128,11 +128,11 @@ make_promise( const queue_ptr& queue, Fn&& fn )
 		::template apply< ::q::detail::defer >::type
 		::construct( queue );
 
-	auto tmp_fn = Q_TEMPORARILY_COPYABLE( fn );
+	Q_MAKE_MOVABLE( fn );
 
-	queue->push( [ deferred, tmp_fn ]( ) mutable
+	queue->push( [ deferred, Q_MOVABLE_MOVE( fn ) ]( ) mutable
 	{
-		deferred->set_by_fun( std::move( tmp_fn.consume( ) ) );
+		deferred->set_by_fun( Q_MOVABLE_CONSUME( fn ) );
 	} );
 
 	return deferred->get_promise( );
@@ -186,11 +186,11 @@ make_promise( const ::q::queue_ptr& queue, Fn&& fn )
 
 	auto helper = std::make_shared< resolve_helper >( queue );
 
-	auto tmp_fn = Q_TEMPORARILY_COPYABLE( fn );
+	Q_MAKE_MOVABLE( fn );
 
-	queue->push( [ helper, tmp_fn ]( ) mutable
+	queue->push( [ helper, Q_MOVABLE_MOVE( fn ) ]( ) mutable
 	{
-		helper->run( std::move( tmp_fn.consume( ) ) );
+		helper->run( Q_MOVABLE_CONSUME( fn ) );
 	} );
 
 	return helper->get_promise( );
@@ -232,11 +232,11 @@ make_promise_of( const ::q::queue_ptr& queue, Fn&& fn )
 		typename q::remove_rvalue_reference< Args >::type...
 	> tuple_type;
 
-	auto tmp_fn = Q_TEMPORARILY_COPYABLE( fn );
+	Q_MAKE_MOVABLE( fn );
 
 	auto deferred = q::detail::defer< tuple_type >::construct( queue );
 
-	queue->push( [ deferred, tmp_fn ]( ) mutable
+	queue->push( [ deferred, Q_MOVABLE_MOVE( fn ) ]( ) mutable
 	{
 		auto resolve = [ deferred ]( Args&&... args )
 		{
@@ -250,7 +250,7 @@ make_promise_of( const ::q::queue_ptr& queue, Fn&& fn )
 
 		try
 		{
-			tmp_fn.consume( )( resolve, reject );
+			Q_MOVABLE_CONSUME( fn )( resolve, reject );
 		}
 		catch ( ... )
 		{

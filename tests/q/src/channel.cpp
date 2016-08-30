@@ -24,6 +24,8 @@ TEST_F( channel, zero_types )
 
 	writable.send( );
 	writable.send( std::make_tuple( ) );
+	writable.send( q::void_t( ) );
+	writable.send( std::make_tuple( q::void_t( ) ) );
 	writable.close( );
 
 	auto promise = readable.receive( )
@@ -35,6 +37,27 @@ TEST_F( channel, zero_types )
 	) )
 	.then( EXPECT_CALL_WRAPPER(
 		[ &readable ]( std::tuple< >&& )
+		{
+			return readable.receive( );
+		}
+	) )
+	.then( EXPECT_CALL_WRAPPER(
+		[ ]( ) { }
+	) )
+	.then( EXPECT_CALL_WRAPPER(
+		[ ]( q::void_t&& ) { }
+	) )
+	.then( EXPECT_CALL_WRAPPER(
+		[ ]( std::tuple< q::void_t >&& ) { }
+	) )
+	.then( EXPECT_CALL_WRAPPER(
+		[ &readable ]( q::void_t&& )
+		{
+			return readable.receive( );
+		}
+	) )
+	.then( EXPECT_CALL_WRAPPER(
+		[ &readable ]( std::tuple< q::void_t >&& )
 		{
 			return readable.receive( );
 		}
@@ -229,21 +252,22 @@ TEST_F( channel, channel_empty_promise_specialization )
 
 	writable.send( );
 	writable.send( std::make_tuple< >( ) );
+	writable.send( q::void_t( ) );
+	writable.send( std::make_tuple( q::void_t( ) ) );
 	writable.close( );
 
+	auto receiver = EXPECT_N_CALLS_WRAPPER( 4,
+		[ &readable ]( )
+		{
+			return readable.receive( );
+		}
+	);
+
 	auto promise = readable.receive( )
-	.then( EXPECT_CALL_WRAPPER(
-		[ &readable ]( )
-		{
-			return readable.receive( );
-		}
-	) )
-	.then( EXPECT_CALL_WRAPPER(
-		[ &readable ]( )
-		{
-			return readable.receive( );
-		}
-	) )
+	.then( receiver )
+	.then( receiver )
+	.then( receiver )
+	.then( receiver )
 	.then( EXPECT_NO_CALL_WRAPPER(
 		[ ]( ) { }
 	) )
