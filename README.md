@@ -21,7 +21,7 @@ Apache License 2.0
 What it is
 ==========
 
-The library q (or libq) is following the core ideas and naming in the [Promises/A+](http://promises-aplus.github.io/promises-spec/) specification, which provides a simplistic and straightforward API for deferring functions, and invoke completions asynchronously. The name is borrowed from the well-known JavaScript implementation with the [same name](http://github.com/kriskowal/q), but is influenced more by [Bluebird](http://bluebirdjs.com/) by providing a lot of functional tools such as `filter`, `map` and `reduce` as well as `finally`, `reflect` and `tap`. Although q provides a large amount of features, they all exist to make the promise implementation as solid and easy-to-use as possible. Event based asynchronicity, like `delay` or any asynchronous I/O (e.g. file or network), is not built-in. Instead, this is provided by support libraries (like q-io). This is to keep `q` free from any dependencies, it only depends on C++11.
+The library q (or libq) is following the core ideas and naming in the [Promises/A+](http://promises-aplus.github.io/promises-spec/) specification, which provides a simplistic and straightforward API for deferring functions, and invoke completions asynchronously. The name is borrowed from the well-known JavaScript implementation with the [same name](http://github.com/kriskowal/q), but is influenced more by [Bluebird](http://bluebirdjs.com/) by providing a lot of functional tools such as `filter`, `map` and `reduce` (yet to be implemented / decided to be implemented) as well as `finally`, `reflect` and `tap`. Although q provides a large amount of features, they all exist to make the promise implementation as solid and easy-to-use as possible. A generic and useful event based routine `delay` is implemented in core q, but more high-resolution timer events as well as other event based asynchronous I/O (e.g. file or network), is not built-in. Instead, this is provided by support libraries (like q-io). This is to keep `q` free from any dependencies, it only depends on C++11. The built-in `delay` is supported by the `blocking_dispatcher` and `threadpool`, but are of low-resolution system timers.
 
 q provides, a part from the pure asynchronous IoC methods, a wide range of tools and helpers to make the use as simple and obvious as possible, while still being perfectly type safe. One example if this, is the automatic `std::tuple` expansion of *promise chains*.
 
@@ -180,14 +180,14 @@ q::promise< std::tuple< > > c( );
 q::promise< std::tuple< std::vector< char > > > d( );
 
 q::all( a( ), b( ), c( ), d( ) )
+.then( [ ]( double d, std::string&& s, int i, std::vector< char >&& v )
+{
+    // All 4 functions succeeded, as all promises completed successfully.
+} )
 .fail( [ ]( std::exception_ptr e )
 {
     // At least one of the functions failed, or returned a promise that failed.
     std::cerr << q::stream_exception( e ) << std::endl;
-} )
-.then( [ ]( double d, std::string&& s, int i, std::vector< char >&& v )
-{
-    // All 4 functions succeeded, as all promises completed successfully.
 } );
 ```
 
@@ -197,16 +197,16 @@ A similar problem is having a variably sized set of *same-type* promises. Such c
 std::vector< q::promise< std::tuple< std::string, int > > > promises;
 
 q::all( promises )
-.fail( [ ]( q::combined_promise_exception< std::tuple< std::string > >&& e )
-{
-    // At least one promise failed.
-    // The exception will contain information about which promises failed and which didn't.
-} )
 .then( [ ]( std::vector< std::tuple< std::string, int > >&& values )
 {
     // Data from all promises is collected in one std::vector and *moved* to this function.
     // This means we can move it forward, and the data had never been copied.
     do_stuff( std::move( values ) );
+} )
+.fail( [ ]( q::combined_promise_exception< std::tuple< std::string > >&& e )
+{
+    // At least one promise failed.
+    // The exception will contain information about which promises failed and which didn't.
 } );
 ```
 
