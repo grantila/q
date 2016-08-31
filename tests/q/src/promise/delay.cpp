@@ -3,7 +3,7 @@
 
 Q_TEST_MAKE_SCOPE( delay );
 
-TEST_F( delay, synchronous_with_value )
+TEST_F( delay, with_value )
 {
 	run(
 		q::with( queue )
@@ -21,21 +21,18 @@ TEST_F( delay, synchronous_with_value )
 	);
 }
 
-TEST_F( delay, synchronous_with_exception )
+TEST_F( delay, with_exception )
 {
 	run(
 		q::with( queue )
 		.then( EXPECT_CALL_WRAPPER(
-		[ ]( ) -> long
+		[ ]( )
 		{
 			Q_THROW( Error( ) );
 		} ) )
 		.delay( std::chrono::nanoseconds( 1 ) )
 		.fail( EXPECT_CALL_WRAPPER(
-		[ ]( Error& e ) -> long
-		{
-			return 0;
-		} ) )
-		.then( [ ]( long ) { } )
+		[ ]( Error& e ) { } ) )
+		.then( [ ]( ) { } )
 	);
 }
