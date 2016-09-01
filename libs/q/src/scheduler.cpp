@@ -221,7 +221,7 @@ void priority_scheduler::add_queue( queue_ptr queue )
 
 	auto _this = shared_from_this( );
 
-	auto fetcher = [ _this ]( ) mutable noexcept -> task
+	auto fetcher = [ _this ]( ) mutable noexcept -> timer_task
 	{
 		return _this->next_task( );
 	};
@@ -233,18 +233,10 @@ void priority_scheduler::poke( )
 {
 	auto _this = shared_from_this( );
 
-	auto runner = [ _this ]( ) mutable
-	{
-		// TODO: Ensure this doesn't throw...
-		auto t = _this->next_task( );
-		if ( !!t )
-			t( );
-	};
-
 	pimpl_->event_dispatcher_->notify( );
 }
 
-task priority_scheduler::next_task( )
+timer_task priority_scheduler::next_task( )
 {
 	return pimpl_->queues_.pop_next( );
 }
@@ -283,7 +275,7 @@ void direct_scheduler::add_queue( queue_ptr queue )
 
 	auto _this = shared_from_this( );
 
-	auto fetcher = [ _this ]( ) mutable noexcept -> task
+	auto fetcher = [ _this ]( ) mutable noexcept -> timer_task
 	{
 		return _this->next_task( );
 	};
@@ -296,7 +288,7 @@ void direct_scheduler::poke( )
 	pimpl_->event_dispatcher_->notify( );
 }
 
-task direct_scheduler::next_task( )
+timer_task direct_scheduler::next_task( )
 {
 	return pimpl_->queue_->pop( );
 }

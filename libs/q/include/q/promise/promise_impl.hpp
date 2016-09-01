@@ -288,7 +288,7 @@ then( AsyncTask&& task )
 				}
 				else
 				{
-					deferred->set_value(
+					deferred->set_expect(
 						Q_MOVABLE_CONSUME( value ) );
 				}
 			};
@@ -712,6 +712,38 @@ finally( Fn&& fn, Queue&& queue )
 	                         ensure( set_default_forward( queue ) ) );
 
 	return deferred->get_promise( );
+}
+
+template< bool Shared, typename... Args >
+typename generic_promise< Shared, std::tuple< Args... > >::promise_this_type
+generic_promise< Shared, std::tuple< Args... > >::
+delay( timer::duration_type duration, queue_options options )
+{
+	auto queue = options.move< queue_ptr >( queue_ );
+	auto next_queue = options.move< defaultable< queue_ptr > >(
+		set_default( queue ) ).value;
+
+	auto deferred = ::q::make_shared< detail::defer< Args... > >(
+		next_queue );
+
+	auto state = state_;
+
+	auto perform = [ deferred, state ]( ) mutable
+	{
+		auto value = state->consume( );
+		deferred->set_expect( std::move( value ) );
+	};
+
+	auto timed_task = [ perform, queue, duration ]( ) mutable
+	{
+		auto wait_until = timer::point_type::clock::now( ) + duration;
+
+		queue->push( perform, wait_until );
+	};
+
+	state_->signal( )->push( std::move( perform ), queue );
+
+	return deferred->template get_suitable_promise< promise_this_type >( );
 }
 
 template< bool Shared, typename... Args >

@@ -431,7 +431,7 @@ typename std::enable_if<
 >::type
 make_unique( std::size_t size )
 {
-#if __cplusplus >= 201402L
+#ifdef LIBQ_WITH_CPP14
 	return std::make_unique< T >( size );
 #else
 	typedef typename std::remove_extent< T >::type U;
