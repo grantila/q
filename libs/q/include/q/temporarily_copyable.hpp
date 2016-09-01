@@ -31,6 +31,9 @@
 #define Q_MOVE_TEMPORARILY_COPYABLE( value ) \
 	::q::make_temporarily_copyable( std::move( value ) )
 
+// TODO: Fix these, ensure we only move if we can, and not if the input is an
+//       l-value reference!
+
 #ifndef LIBQ_WITH_CPP14
 	/**
 	 * Make a variable "movable" into a lambda.
