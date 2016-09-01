@@ -31,6 +31,9 @@
 #define Q_MOVE_TEMPORARILY_COPYABLE( value ) \
 	::q::make_temporarily_copyable( std::move( value ) )
 
+// TODO: Fix these, ensure we only move if we can, and not if the input is an
+//       l-value reference!
+
 #ifndef LIBQ_WITH_CPP14
 	/**
 	 * Make a variable "movable" into a lambda.
@@ -50,10 +53,12 @@
 	 * variable or in a function argument.
 	 */
 #	define Q_MOVABLE_CONSUME( x ) ( std::move( __movable_##x.consume( ) ) )
+#	define Q_MOVABLE_GET( x ) ( __movable_##x.get( ) )
 #else
 #	define Q_MAKE_MOVABLE( x )
 #	define Q_MOVABLE_MOVE( x ) x{ std::move( x ) }
 #	define Q_MOVABLE_CONSUME( x ) ( std::move( x ) )
+#	define Q_MOVABLE_GET( x ) ( x )
 #endif
 
 
@@ -90,6 +95,16 @@ public:
 	: t_( t )
 	{ }
 
+	T& get( )
+	{
+		return t_;
+	}
+
+	const T& get( ) const
+	{
+		return t_;
+	}
+
 	T consume( )
 	{
 		return std::move( t_ );
@@ -116,6 +131,16 @@ public:
 	temporarily_copyable( const this_type& ref )
 	: t_( std::move( const_cast< this_type& >( ref ).t_ ) )
 	{ }
+
+	T& get( )
+	{
+		return t_;
+	}
+
+	const T& get( ) const
+	{
+		return t_;
+	}
 
 	T consume( )
 	{
