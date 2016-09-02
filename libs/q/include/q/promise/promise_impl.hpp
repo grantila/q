@@ -741,7 +741,7 @@ delay( timer::duration_type duration, queue_options options )
 		queue->push( perform, wait_until );
 	};
 
-	state_->signal( )->push( std::move( perform ), queue );
+	state_->signal( )->push( std::move( timed_task ), queue );
 
 	return deferred->template get_suitable_promise< promise_this_type >( );
 }

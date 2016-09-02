@@ -36,3 +36,15 @@ TEST_F( delay, with_exception )
 		.then( [ ]( ) { } )
 	);
 }
+
+TEST_F( delay, create_with_time )
+{
+	auto now = q::timer::point_type::clock::now( );
+
+	run( q::delay( queue, now + std::chrono::microseconds( 1 ) ) );
+}
+
+TEST_F( delay, create_with_duration )
+{
+	run( q::delay( queue, std::chrono::microseconds( 1 ) ) );
+}
