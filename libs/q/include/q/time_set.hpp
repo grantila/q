@@ -99,7 +99,11 @@ public:
 		if ( iter == set_.end( ) )
 			return IfEmpty::empty( );
 
-		return IfEmpty::value( std::move( std::get< 1 >( *iter ) ) );
+		T value = std::move( std::get< 1 >( *iter ) );
+
+		set_.erase( iter );
+
+		return IfEmpty::value( std::move( value ) );
 	}
 
 	timer::duration_type next_time( )
