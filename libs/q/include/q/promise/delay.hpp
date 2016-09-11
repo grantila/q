@@ -19,11 +19,36 @@
 
 namespace q {
 
-promise< std::tuple< > >
-delay( const queue_ptr& queue, timer::point_type run_at );
+template< typename... Args >
+promise< std::tuple< typename std::decay< Args >::type... > >
+delay( const queue_ptr& queue, timer::point_type run_at, Args&&... args )
+{
+	typedef detail::defer< typename std::decay< Args >::type... >
+		deferred_type;
+	auto deferred = deferred_type::construct( queue );
 
-promise< std::tuple< > >
-delay( const queue_ptr& queue, timer::duration_type duration );
+	auto _args = std::make_tuple( std::forward< Args >( args )... );
+	Q_MOVE_INTO_MOVABLE( _args );
+
+	queue->push( [ deferred, Q_MOVABLE_MOVE( _args ) ]( ) mutable
+	{
+		deferred->set_value( Q_MOVABLE_CONSUME( _args ) );
+	}, std::move( run_at ) );
+
+	return deferred->get_promise( );
+}
+
+template< typename... Args >
+promise< std::tuple< typename std::decay< Args >::type... > >
+delay( const queue_ptr& queue, timer::duration_type duration, Args&&... args )
+{
+	return delay(
+		queue,
+		timer::point_type::clock::now( ) + duration,
+		std::forward< Args >( args )...
+	);
+}
+
 
 } // namespace q
 
