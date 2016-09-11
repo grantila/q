@@ -31,9 +31,6 @@
 #define Q_MOVE_TEMPORARILY_COPYABLE( value ) \
 	::q::make_temporarily_copyable( std::move( value ) )
 
-// TODO: Fix these, ensure we only move if we can, and not if the input is an
-//       l-value reference!
-
 #ifndef LIBQ_WITH_CPP14
 	/**
 	 * Make a variable "movable" into a lambda.
@@ -42,6 +39,13 @@
 	 */
 #	define Q_MAKE_MOVABLE( x ) \
 		auto __movable_##x = Q_TEMPORARILY_COPYABLE( x )
+
+	/**
+	 * Make a variable movable into a lambda. Unlike Q_MAKE_MOVABLE, this
+	 * will force-move the variable into this wrapper.
+	 */
+#	define Q_MOVE_INTO_MOVABLE( x ) \
+		auto __movable_##x = Q_MOVE_TEMPORARILY_COPYABLE( x )
 
 	/**
 	 * Moves the variable into a lambda. Use this in the capture list.
@@ -56,7 +60,8 @@
 #	define Q_MOVABLE_GET( x ) ( __movable_##x.get( ) )
 #else
 #	define Q_MAKE_MOVABLE( x )
-#	define Q_MOVABLE_MOVE( x ) x{ std::move( x ) }
+#	define Q_MOVE_INTO_MOVABLE( x )
+#	define Q_MOVABLE_MOVE( x ) x{ Q_FORWARD( x ) }
 #	define Q_MOVABLE_CONSUME( x ) ( std::move( x ) )
 #	define Q_MOVABLE_GET( x ) ( x )
 #endif

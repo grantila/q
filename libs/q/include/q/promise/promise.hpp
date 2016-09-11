@@ -57,16 +57,16 @@ public:
 	template< typename... T >
 	struct is_valid_arguments
 	: ::q::is_argument_same_or_convertible_incl_void<
-		arguments< T... >,
-		argument_types
+		argument_types,
+		arguments< T... >
 	>
 	{ };
 
 	template< typename... T >
 	struct is_valid_arguments< arguments< T... > >
 	: ::q::is_argument_same_or_convertible_incl_void<
-		arguments< T... >,
-		argument_types
+		argument_types,
+		arguments< T... >
 	>
 	{ };
 
@@ -140,6 +140,8 @@ public:
 	typename std::enable_if<
 		Q_IS_FUNCTION( Fn )::value
 		and
+		!first_argument_is_tuple< Fn >::value
+		and
 		this_type::template is_valid_arguments<
 			Q_ARGUMENTS_OF( Fn )
 		>::value
@@ -158,7 +160,7 @@ public:
 	typename std::enable_if<
 		Q_IS_FUNCTION( Fn )::value
 		and
-		Q_FIRST_ARGUMENT_IS_TUPLE( Fn )
+		first_argument_is_tuple< Fn >::value
 		and
 		::q::is_argument_same_or_convertible_incl_void<
 			arguments< Args... >,
@@ -181,6 +183,8 @@ public:
 	typename std::enable_if<
 		Q_IS_FUNCTION( Fn )::value
 		and
+		!first_argument_is_tuple< Fn >::value
+		and
 		this_type::template is_valid_arguments<
 			Q_ARGUMENTS_OF( Fn )
 		>::value
@@ -199,7 +203,7 @@ public:
 	typename std::enable_if<
 		Q_IS_FUNCTION( Fn )::value
 		and
-		Q_FIRST_ARGUMENT_IS_TUPLE( Fn )
+		first_argument_is_tuple< Fn >::value
 		and
 		::q::is_argument_same_or_convertible_incl_void<
 			argument_types,

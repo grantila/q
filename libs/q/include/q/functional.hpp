@@ -327,6 +327,16 @@ using first_argument_of = Q_FIRST_ARGUMENT_OF( Fn );
 template< typename Fn >
 using memberclass_of = Q_MEMBERCLASS_OF( Fn );
 
+template< typename Fn, bool HasAnyArgument = ( Q_ARITY_OF( Fn ) > 0 ) >
+struct first_argument_is_tuple
+: std::false_type
+{ };
+
+template< typename Fn >
+struct first_argument_is_tuple< Fn, true >
+: bool_type< Q_FIRST_ARGUMENT_IS_TUPLE( Fn ) >
+{ };
+
 #ifdef LIBQ_WITH_CPP14
 
 template< typename Fn >
@@ -340,9 +350,6 @@ constexpr std::size_t arity_of = Q_ARITY_OF( Fn );
 
 template< typename Fn >
 constexpr bool is_const_of = Q_IS_CONST_OF( Fn );
-
-template< typename Fn >
-constexpr bool first_argument_is_tuple = Q_FIRST_ARGUMENT_IS_TUPLE( Fn );
 
 template< typename Fn, typename... Args >
 constexpr bool arguments_of_are =

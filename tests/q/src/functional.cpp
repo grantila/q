@@ -380,8 +380,10 @@ TEST( functional, first_argument_is_tuple )
 		bool fn_t( std::tuple< long > );
 		bool fn_l( long );
 	};
-	EXPECT_TRUE( q::first_argument_is_tuple< decltype( &C::fn_t ) > );
-	EXPECT_FALSE( q::first_argument_is_tuple< decltype( &C::fn_l ) > );
+	EXPECT_TRUE(
+		q::first_argument_is_tuple< decltype( &C::fn_t ) >::value );
+	EXPECT_FALSE(
+		q::first_argument_is_tuple< decltype( &C::fn_l ) >::value );
 }
 
 TEST( functional, arguments_of_are )
