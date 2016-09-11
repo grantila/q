@@ -70,3 +70,15 @@ TEST_F( with, with_non_empty_shared_promise )
 		q::with( queue, q::with( queue, 5 ).share( ) ),
 		5 );
 }
+
+TEST_F( with, with_char_pointer_to_string )
+{
+	run(
+		q::with( queue, "test" )
+		.then( EXPECT_CALL_WRAPPER(
+		[ ]( std::string&& s )
+		{
+			EXPECT_EQ( s, "test" );
+		} ) )
+	);
+}

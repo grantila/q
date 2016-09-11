@@ -27,6 +27,8 @@ template< typename Fn, typename Queue >
 inline typename std::enable_if<
 	Q_IS_FUNCTION( Fn )::value
 	and
+	!first_argument_is_tuple< Fn >::value
+	and
 	generic_promise<
 		Shared, std::tuple< Args... >
 	>::template is_valid_arguments<
@@ -83,7 +85,7 @@ template< typename Fn, typename Queue >
 typename std::enable_if<
 	Q_IS_FUNCTION( Fn )::value
 	and
-	Q_FIRST_ARGUMENT_IS_TUPLE( Fn )
+	first_argument_is_tuple< Fn >::value
 	and
 	::q::is_argument_same_or_convertible_incl_void<
 		arguments< Args... >,
@@ -133,6 +135,8 @@ template< typename Fn, typename Queue >
 typename std::enable_if<
 	Q_IS_FUNCTION( Fn )::value
 	and
+	!first_argument_is_tuple< Fn >::value
+	and
 	generic_promise<
 		Shared, std::tuple< Args... >
 	>::template is_valid_arguments<
@@ -180,7 +184,7 @@ template< typename Fn, typename Queue >
 typename std::enable_if<
 	Q_IS_FUNCTION( Fn )::value
 	and
-	Q_FIRST_ARGUMENT_IS_TUPLE( Fn )
+	first_argument_is_tuple< Fn >::value
 	and
 	::q::is_argument_same_or_convertible_incl_void<
 		arguments< Args... >,
