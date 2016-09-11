@@ -343,6 +343,13 @@ struct is_base_of< Base*, Derived* >
 : std::is_base_of< Base, Derived >
 { };
 
+template< typename T >
+struct bit_limits
+{
+	static constexpr T lowest_bit = T( 1 );
+	static constexpr T highest_bit = T( 1 ) << ( sizeof( T ) * 8 - 1 );
+};
+
 template< typename... T >
 struct not_implemented;
 
