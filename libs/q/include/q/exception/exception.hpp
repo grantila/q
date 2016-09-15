@@ -17,6 +17,7 @@
 #ifndef LIBQ_EXCEPTION_EXCEPTION_HPP
 #define LIBQ_EXCEPTION_EXCEPTION_HPP
 
+#include <q/pp.hpp>
 #include <q/types.hpp>
 #include <q/type_traits.hpp>
 
@@ -24,6 +25,8 @@
 #include <vector>
 #include <iosfwd>
 #include <sstream>
+#include <system_error>
+#include <functional>
 
 #define Q_THROW( ... ) \
 	throw ::q::add_exception_properties( __VA_ARGS__ )
@@ -37,6 +40,26 @@
 			return #Name ; \
 		} \
 	}
+
+#define Q_MAKE_STANDARD_EXCEPTION_OF_BASE( Name, Base ) \
+	class Name \
+	: public ::q::exception \
+	, public Base \
+	{ \
+	public: \
+		template< typename... Args > \
+		Name( Args&&... args ) \
+		: Base( std::forward< Args >( args )... ) \
+		{ } \
+		\
+		virtual const char* name( ) const noexcept override \
+		{ \
+			return #Name ; \
+		} \
+	}
+
+#define Q_MAKE_STANDARD_EXCEPTION( Name ) \
+	Q_MAKE_STANDARD_EXCEPTION_OF_BASE( Name, ::std::Name )
 
 /**
  * Run @c fn and ensure that it doesn't throw any exception. If it does, invoke
@@ -255,6 +278,23 @@ private:
 };
 
 std::ostream& operator<<( std::ostream& , const stream_exception& );
+
+Q_MAKE_STANDARD_EXCEPTION( logic_error );
+	Q_MAKE_STANDARD_EXCEPTION( invalid_argument );
+	Q_MAKE_STANDARD_EXCEPTION( domain_error );
+	Q_MAKE_STANDARD_EXCEPTION( length_error );
+	Q_MAKE_STANDARD_EXCEPTION( out_of_range );
+Q_MAKE_STANDARD_EXCEPTION( runtime_error );
+	Q_MAKE_STANDARD_EXCEPTION( range_error );
+	Q_MAKE_STANDARD_EXCEPTION( overflow_error );
+	Q_MAKE_STANDARD_EXCEPTION( underflow_error );
+	Q_MAKE_STANDARD_EXCEPTION( system_error );
+		Q_MAKE_STANDARD_EXCEPTION_OF_BASE(
+			ios_base_failure, ::std::ios_base::failure );
+Q_MAKE_STANDARD_EXCEPTION( bad_function_call );
+Q_MAKE_STANDARD_EXCEPTION( bad_alloc );
+	Q_MAKE_STANDARD_EXCEPTION( bad_array_new_length );
+Q_MAKE_STANDARD_EXCEPTION( bad_exception );
 
 /**
  * Tries to convert an `exception_ptr` to a `std::string`, by

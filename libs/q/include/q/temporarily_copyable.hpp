@@ -41,6 +41,13 @@
 		auto __movable_##x = Q_TEMPORARILY_COPYABLE( x )
 
 	/**
+	 * Make a variable movable into a lambda. Unlike Q_MAKE_MOVABLE, this
+	 * will force-move the variable into this wrapper.
+	 */
+#	define Q_MOVE_INTO_MOVABLE( x ) \
+		auto __movable_##x = Q_MOVE_TEMPORARILY_COPYABLE( x )
+
+	/**
 	 * Moves the variable into a lambda. Use this in the capture list.
 	 */
 #	define Q_MOVABLE_MOVE( x ) __movable_##x
@@ -50,10 +57,13 @@
 	 * variable or in a function argument.
 	 */
 #	define Q_MOVABLE_CONSUME( x ) ( std::move( __movable_##x.consume( ) ) )
+#	define Q_MOVABLE_GET( x ) ( __movable_##x.get( ) )
 #else
 #	define Q_MAKE_MOVABLE( x )
-#	define Q_MOVABLE_MOVE( x ) x{ std::move( x ) }
+#	define Q_MOVE_INTO_MOVABLE( x )
+#	define Q_MOVABLE_MOVE( x ) x{ Q_FORWARD( x ) }
 #	define Q_MOVABLE_CONSUME( x ) ( std::move( x ) )
+#	define Q_MOVABLE_GET( x ) ( x )
 #endif
 
 
@@ -90,6 +100,16 @@ public:
 	: t_( t )
 	{ }
 
+	T& get( )
+	{
+		return t_;
+	}
+
+	const T& get( ) const
+	{
+		return t_;
+	}
+
 	T consume( )
 	{
 		return std::move( t_ );
@@ -116,6 +136,16 @@ public:
 	temporarily_copyable( const this_type& ref )
 	: t_( std::move( const_cast< this_type& >( ref ).t_ ) )
 	{ }
+
+	T& get( )
+	{
+		return t_;
+	}
+
+	const T& get( ) const
+	{
+		return t_;
+	}
 
 	T consume( )
 	{

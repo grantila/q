@@ -20,6 +20,7 @@
 #include <q/types.hpp>
 #include <q/mutex.hpp>
 #include <q/exception.hpp>
+#include <q/timer.hpp>
 
 #include <memory>
 
@@ -29,11 +30,51 @@ class queue_exception
 : public exception
 { };
 
+struct timer_task
+{
+	timer_task( ) = default;
+	timer_task( timer_task&& ) = default;
+	timer_task( const timer_task& ) = default;
+
+	timer_task( task&& _task )
+	: task( std::move( _task ) )
+	, is_timed_( false )
+	{ }
+
+	timer_task( task&& _task, timer::point_type&& _wait_until )
+	: task( std::move( _task ) )
+	, wait_until( std::move( _wait_until ) )
+	, is_timed_( true )
+	{ }
+
+	bool operator!( ) const
+	{
+		return !this->task;
+	}
+
+	operator bool( ) const
+	{
+		return !!this->task;
+	}
+
+
+	bool is_timed( ) const
+	{
+		return is_timed_;
+	}
+
+	task task;
+	timer::point_type wait_until;
+
+private:
+	bool is_timed_;
+};
+
 class queue
 : public std::enable_shared_from_this< queue >
 {
 public:
-	typedef task element_type;
+	typedef timer_task element_type;
 	typedef std::function< void( void ) > notify_type;
 
 	static queue_ptr construct( priority_t priority );
@@ -41,18 +82,19 @@ public:
 	~queue( );
 
 	void push( task&& task );
+	void push( task&& task, timer::point_type wait_until );
 
 	priority_t priority( ) const;
 
 	/**
-	 * Sets a function callback as consumer of the queue. The queue will call
-	 * this function each time a task is added to the queue.
+	 * Sets a function callback as consumer of the queue. The queue will
+	 * call this function each time a task is added to the queue.
 	 */
 	void set_consumer( notify_type fn );
 
 	bool empty( );
 
-	task pop( );
+	timer_task pop( );
 
 protected:
 	queue( priority_t priority = 0 );

@@ -22,7 +22,9 @@ namespace q { namespace rx {
 template< typename T >
 template< typename Fn >
 typename std::enable_if<
-	Q_ARGUMENTS_ARE_CONVERTIBLE_FROM( Fn, T )::value
+	Q_ARGUMENTS_ARE_CONVERTIBLE_FROM_INCL_VOID( Fn, T )::value
+	and
+	q::arity_of< Fn > != 0
 	and
 	std::is_void< ::q::result_of< Fn > >::value,
 	::q::promise< std::tuple< > >
@@ -32,7 +34,8 @@ consume( Fn&& fn, base_options options )
 {
 	typedef std::shared_ptr< detail::observable_readable< T > >
 		readable_type;
-	typedef typename std::decay< Fn >::type fn_type;
+	typedef typename q::objectify< typename std::decay< Fn >::type >::type
+		fn_type;
 
 	struct context_type
 	{
@@ -53,6 +56,8 @@ consume( Fn&& fn, base_options options )
 	};
 	auto context = std::make_shared< context_type >( readable_ );
 
+	// TODO: This will need to be rewritten to allow for void_t-wrapped
+	// functions, if their arity is zero.
 	context->fn = q::make_unique< fn_type >( std::forward< Fn >( fn ) );
 
 	auto next_queue = options.get< q::defaultable< q::queue_ptr > >(
@@ -178,7 +183,9 @@ consume( Fn&& fn, base_options options )
 template< typename T >
 template< typename Fn >
 typename std::enable_if<
-	Q_ARGUMENTS_ARE_CONVERTIBLE_FROM( Fn, T )::value
+	Q_ARGUMENTS_ARE_CONVERTIBLE_FROM_INCL_VOID( Fn, T )::value
+	and
+	q::arity_of< Fn > != 0
 	and
 	::q::is_promise<
 		typename std::decay< ::q::result_of< Fn > >::type
@@ -192,7 +199,8 @@ consume( Fn&& fn, base_options options )
 {
 	typedef std::shared_ptr< detail::observable_readable< T > >
 		readable_type;
-	typedef typename std::decay< Fn >::type fn_type;
+	typedef typename q::objectify< typename std::decay< Fn >::type >::type
+		fn_type;
 
 	struct context_type
 	{
@@ -212,6 +220,8 @@ consume( Fn&& fn, base_options options )
 	};
 	auto context = std::make_shared< context_type >( readable_ );
 
+	// TODO: This will need to be rewritten to allow for void_t-wrapped
+	// functions, if their arity is zero.
 	context->fn = q::make_unique< fn_type >( std::forward< Fn >( fn ) );
 
 	auto next_queue = options.get< q::defaultable< q::queue_ptr > >(
@@ -228,7 +238,7 @@ consume( Fn&& fn, base_options options )
 		context->recursive_consumer = [ context ]( )
 		{
 			context->readable->receive(
-				[ context ]( T&& t )
+				[ context ]( void_safe_type&& t )
 				{
 					return ( *context->fn )( std::move( t ) )
 					.then( [ context ]( )
@@ -256,7 +266,7 @@ consume( Fn&& fn, base_options options )
 template< typename T >
 template< typename Fn >
 typename std::enable_if<
-	Q_ARGUMENTS_ARE( Fn, void_t )::value
+	q::arity_of< Fn > == 0
 	and
 	std::is_same< T, void >::value,
 	::q::promise< std::tuple< > >
@@ -266,9 +276,9 @@ consume( Fn&& fn, base_options options )
 {
 	Q_MAKE_MOVABLE( fn );
 
-	return consume( [ Q_MOVABLE_MOVE( fn ) ]( ) mutable
+	return consume( [ Q_MOVABLE_MOVE( fn ) ]( void_t ) mutable
 	{
-		Q_MOVABLE_GET( fn )( void_t( ) );
+		return Q_MOVABLE_GET( fn )( );
 	}, options );
 }
 

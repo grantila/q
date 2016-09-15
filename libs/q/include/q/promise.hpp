@@ -25,6 +25,7 @@
 #include <q/expect.hpp>
 #include <q/memory.hpp>
 #include <q/set_default.hpp>
+#include <q/options.hpp>
 
 #include <q/promise/async_task.hpp>
 #include <q/promise/core.hpp>
@@ -36,6 +37,7 @@
 #include <q/promise/with.hpp>
 #include <q/promise/all.hpp>
 #include <q/promise/make.hpp>
+#include <q/promise/delay.hpp>
 #include <q/promise/promisify.hpp>
 #include <q/promise/promise_impl.hpp>
 

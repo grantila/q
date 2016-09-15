@@ -17,6 +17,9 @@
 #ifndef LIBQ_PROMISE_ASYNC_TASK_HPP
 #define LIBQ_PROMISE_ASYNC_TASK_HPP
 
+#include <q/expect.hpp>
+#include <q/functional.hpp>
+
 namespace q {
 
 /**

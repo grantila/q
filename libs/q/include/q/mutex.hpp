@@ -17,8 +17,10 @@
 #ifndef LIBQ_MUTEX_HPP
 #define LIBQ_MUTEX_HPP
 
+#include <q/pp.hpp>
 #include <q/types.hpp>
 #include <q/type_traits.hpp>
+
 #include <mutex>
 
 namespace q {
@@ -205,7 +207,7 @@ struct std_mutex< recursive_mutex >
 	::q::unique_lock< \
 		decltype( ::q::detail::identity_fn_noref( \
 			LIBQ_EXPAND( LIBQ_FIRST( __VA_ARGS__ ) ) ) ) \
-	> lock_unnamed_ ## LIBQ_LINE ( __VA_ARGS__ )
+	> LIBQ_JOIN( lock_unnamed_, LIBQ_LINE ) ( __VA_ARGS__ )
 
 #define Q_UNIQUE_LOCK( ... ) \
 	::q::unique_lock< \
@@ -217,7 +219,7 @@ struct std_mutex< recursive_mutex >
 	::q::unique_unlock< \
 		decltype( ::q::detail::identity_fn_noref( \
 			LIBQ_EXPAND( LIBQ_FIRST( __VA_ARGS__ ) ) ) ) \
-	> unlock_unnamed_ ## LIBQ_LINE ( __VA_ARGS__ )
+	> LIBQ_JOIN( unlock_unnamed_, LIBQ_LINE ) ( __VA_ARGS__ )
 
 #define Q_UNIQUE_UNLOCK( ... ) \
 	::q::unique_unlock< \

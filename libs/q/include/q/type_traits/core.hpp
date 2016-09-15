@@ -343,6 +343,13 @@ struct is_base_of< Base*, Derived* >
 : std::is_base_of< Base, Derived >
 { };
 
+template< typename T >
+struct bit_limits
+{
+	static constexpr T lowest_bit = T( 1 );
+	static constexpr T highest_bit = T( 1 ) << ( sizeof( T ) * 8 - 1 );
+};
+
 template< typename... T >
 struct not_implemented;
 
@@ -386,6 +393,28 @@ struct tuple_of< std::tuple< T... > >
 {
 	typedef std::tuple< T... > type;
 };
+
+
+template< typename T >
+typename std::enable_if<
+	!std::is_void< T >::value,
+	T
+>::type
+default_initialize( )
+{
+	return T( );
+}
+
+template< typename T >
+typename std::enable_if<
+	std::is_void< T >::value,
+	void_t
+>::type
+default_initialize( )
+{
+	return void_t( );
+}
+
 
 // Get the same kind of integer (signed/unsigned) but of ptr_size
 template<

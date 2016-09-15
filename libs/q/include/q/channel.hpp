@@ -275,7 +275,7 @@ public:
 		}
 	}
 
-	inline bool should_send( )
+	inline bool should_send( ) const
 	{
 		return !paused_ && !closed_;
 	}
@@ -731,7 +731,7 @@ public:
 		) ) );
 	}
 
-	bool should_send( )
+	bool should_send( ) const
 	{
 		return shared_channel_->should_send( );
 	}
@@ -746,7 +746,7 @@ public:
 		shared_channel_->unset_resume_notification( );
 	}
 
-	bool is_closed( )
+	bool is_closed( ) const
 	{
 		return shared_channel_->is_closed( );
 	}

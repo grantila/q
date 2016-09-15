@@ -27,6 +27,8 @@ template< typename Fn, typename Queue >
 inline typename std::enable_if<
 	Q_IS_FUNCTION( Fn )::value
 	and
+	!first_argument_is_tuple< Fn >::value
+	and
 	generic_promise<
 		Shared, std::tuple< Args... >
 	>::template is_valid_arguments<
@@ -83,7 +85,7 @@ template< typename Fn, typename Queue >
 typename std::enable_if<
 	Q_IS_FUNCTION( Fn )::value
 	and
-	Q_FIRST_ARGUMENT_IS_TUPLE( Fn )
+	first_argument_is_tuple< Fn >::value
 	and
 	::q::is_argument_same_or_convertible_incl_void<
 		arguments< Args... >,
@@ -133,6 +135,8 @@ template< typename Fn, typename Queue >
 typename std::enable_if<
 	Q_IS_FUNCTION( Fn )::value
 	and
+	!first_argument_is_tuple< Fn >::value
+	and
 	generic_promise<
 		Shared, std::tuple< Args... >
 	>::template is_valid_arguments<
@@ -180,7 +184,7 @@ template< typename Fn, typename Queue >
 typename std::enable_if<
 	Q_IS_FUNCTION( Fn )::value
 	and
-	Q_FIRST_ARGUMENT_IS_TUPLE( Fn )
+	first_argument_is_tuple< Fn >::value
 	and
 	::q::is_argument_same_or_convertible_incl_void<
 		arguments< Args... >,
@@ -288,7 +292,7 @@ then( AsyncTask&& task )
 				}
 				else
 				{
-					deferred->set_value(
+					deferred->set_expect(
 						Q_MOVABLE_CONSUME( value ) );
 				}
 			};
@@ -712,6 +716,38 @@ finally( Fn&& fn, Queue&& queue )
 	                         ensure( set_default_forward( queue ) ) );
 
 	return deferred->get_promise( );
+}
+
+template< bool Shared, typename... Args >
+typename generic_promise< Shared, std::tuple< Args... > >::promise_this_type
+generic_promise< Shared, std::tuple< Args... > >::
+delay( timer::duration_type duration, queue_options options )
+{
+	auto queue = options.move< queue_ptr >( queue_ );
+	auto next_queue = options.move< defaultable< queue_ptr > >(
+		set_default( queue ) ).value;
+
+	auto deferred = ::q::make_shared< detail::defer< Args... > >(
+		next_queue );
+
+	auto state = state_;
+
+	auto perform = [ deferred, state ]( ) mutable
+	{
+		auto value = state->consume( );
+		deferred->set_expect( std::move( value ) );
+	};
+
+	auto timed_task = [ perform, queue, duration ]( ) mutable
+	{
+		auto wait_until = timer::point_type::clock::now( ) + duration;
+
+		queue->push( perform, wait_until );
+	};
+
+	state_->signal( )->push( std::move( timed_task ), queue );
+
+	return deferred->template get_suitable_promise< promise_this_type >( );
 }
 
 template< bool Shared, typename... Args >
