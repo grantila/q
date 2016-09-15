@@ -353,7 +353,9 @@ public:
 	 */
 	template< typename Fn >
 	typename std::enable_if<
-		Q_ARGUMENTS_ARE_CONVERTIBLE_FROM( Fn, T )::value
+		Q_ARGUMENTS_ARE_CONVERTIBLE_FROM_INCL_VOID( Fn, T )::value
+		and
+		q::arity_of< Fn > != 0
 		and
 		std::is_void< ::q::result_of< Fn > >::value,
 		::q::promise< std::tuple< > >
@@ -369,7 +371,9 @@ public:
 	 */
 	template< typename Fn >
 	typename std::enable_if<
-		Q_ARGUMENTS_ARE_CONVERTIBLE_FROM( Fn, T )::value
+		Q_ARGUMENTS_ARE_CONVERTIBLE_FROM_INCL_VOID( Fn, T )::value
+		and
+		q::arity_of< Fn > != 0
 		and
 		::q::is_promise<
 			typename std::decay< ::q::result_of< Fn > >::type
@@ -381,11 +385,12 @@ public:
 	consume( Fn&& fn, base_options options = base_options( ) );
 
 	/**
-	 * ( void_t ) -> *
+	 * ( ) -> *
+	 * No argument is wrapped to a function taking void_t
 	 */
 	template< typename Fn >
 	typename std::enable_if<
-		Q_ARGUMENTS_ARE( Fn, void_t )::value
+		q::arity_of< Fn > == 0
 		and
 		std::is_same< T, void >::value,
 		::q::promise< std::tuple< > >
