@@ -22,6 +22,7 @@
 #include <q/channel.hpp>
 #include <q/options.hpp>
 #include <q/concurrency.hpp>
+#include <q/timer.hpp>
 
 #include <q-rx/types.hpp>
 #include <q-rx/observable/core.hpp>
@@ -40,6 +41,7 @@
 #include <q-rx/observable/creators/from.hpp>
 #include <q-rx/observable/creators/with.hpp>
 
+#include <q-rx/observable/transformers/buffer.hpp>
 #include <q-rx/observable/transformers/map.hpp>
 
 #include <q-rx/observable/consumers/consume.hpp>

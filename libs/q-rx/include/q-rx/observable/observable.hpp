@@ -56,6 +56,8 @@ class observable
 	typedef typename q::objectify< T >::type void_safe_type;
 
 public:
+	typedef observable< T > this_type;
+
 	/**********************************************************************
 	 * Creators
 	 *********************************************************************/
@@ -309,6 +311,72 @@ public:
 	/**********************************************************************
 	 * Transformers
 	 *********************************************************************/
+
+	/************************************************
+	 * Transformers: Buffer
+	 ***********************************************/
+
+	/**
+	 * count
+	 */
+	observable< std::vector< void_safe_type > >
+	buffer(
+		std::size_t count,
+		combine_options options = combine_options( )
+	);
+
+	/**
+	 * count, stride
+	 *
+	 * NOTE; stride is called "skip" in ReactiveX, which is an erroneous
+	 * naming, since it's not how many items to skip, but the distances
+	 * between the beginnings of each outgoing chunk as counted by the
+	 * incoming items.
+	 */
+	observable< std::vector< void_safe_type > >
+	buffer(
+		std::size_t count,
+		std::size_t stride,
+		combine_options options = combine_options( )
+	);
+
+	/**
+	 * closing_observable
+	 */
+	observable< std::vector< void_safe_type > >
+	buffer(
+		observable< void > closing_observable,
+		combine_options options = combine_options( )
+	);
+
+	/**
+	 * duration
+	 */
+	observable< std::vector< void_safe_type > >
+	buffer(
+		q::timer::duration_type duration,
+		combine_options options = combine_options( )
+	);
+
+	/**
+	 * duration, shift
+	 */
+	observable< std::vector< void_safe_type > >
+	buffer(
+		q::timer::duration_type duration,
+		q::timer::duration_type shift,
+		combine_options options = combine_options( )
+	);
+
+	/**
+	 * duration, count
+	 */
+	observable< std::vector< void_safe_type > >
+	buffer(
+		q::timer::duration_type duration,
+		std::size_t count,
+		combine_options options = combine_options( )
+	);
 
 	/************************************************
 	 * Transformers: Map
