@@ -293,6 +293,27 @@ public:
 	}
 
 	/**
+	 * Triggers (calls) the resume notification callback, if the channel
+	 * allows more data to be sent, but not if the channel is "full".
+	 */
+	void trigger_resume_notification( )
+	{
+		task notification;
+
+		{
+			Q_AUTO_UNIQUE_LOCK( mutex_ );
+
+			if ( !should_send( ) )
+				return;
+
+			notification = resume_notification_;
+		}
+
+		if ( notification )
+			notification( );
+	}
+
+	/**
 	 * Adds a scope to this channel. This will cause the channel to "own"
 	 * the scope, and thereby destruct it when the channel is destructed.
 	 */
@@ -744,6 +765,11 @@ public:
 	void unset_resume_notification( )
 	{
 		shared_channel_->unset_resume_notification( );
+	}
+
+	void trigger_resume_notification( )
+	{
+		shared_channel_->trigger_resume_notification( );
 	}
 
 	bool is_closed( ) const
