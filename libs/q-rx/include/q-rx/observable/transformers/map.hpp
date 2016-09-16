@@ -43,6 +43,7 @@ map( Fn&& fn, base_options options )
 	::q::channel< out_promise_type > ch( next_queue, concurrency );
 
 	// TODO: Implement concurrency
+	// TODO: Implement back pressure handling
 
 	auto writable = ch.get_writable( );
 
@@ -84,6 +85,7 @@ typename std::enable_if<
 observable< T >::
 map( Fn&& fn, base_options options )
 {
+	// TODO: Implement
 	return *this;
 }
 
