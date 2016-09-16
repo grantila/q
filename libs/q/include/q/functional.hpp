@@ -327,6 +327,23 @@ using first_argument_of = Q_FIRST_ARGUMENT_OF( Fn );
 template< typename Fn >
 using memberclass_of = Q_MEMBERCLASS_OF( Fn );
 
+template<
+	typename Fn,
+	template< typename > class T,
+	bool _HasAnyArgument = ( Q_ARITY_OF( Fn ) > 0 )
+>
+struct first_argument_is
+: std::false_type
+{ };
+
+template<
+	typename Fn,
+	template< typename > class T
+>
+struct first_argument_is< Fn, T, true >
+: T< first_argument_of< Fn > >
+{ };
+
 template< typename Fn, bool HasAnyArgument = ( Q_ARITY_OF( Fn ) > 0 ) >
 struct first_argument_is_tuple
 : std::false_type
