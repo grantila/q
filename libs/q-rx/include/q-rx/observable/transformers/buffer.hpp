@@ -167,7 +167,10 @@ buffer( std::size_t count, std::size_t stride, combine_options options )
 	ctx->count = count;
 	ctx->stride = stride;
 
-	consume( std::bind( &context::on_data, ctx ) )
+	consume( [ ctx ]( void_safe_type&& t )
+	{
+		return ctx->on_data( std::move( t ) );
+	} )
 	.finally( [ ctx ]( )
 	{
 		ctx->cleanup( );
