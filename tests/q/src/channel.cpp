@@ -69,7 +69,9 @@ TEST_F( channel, zero_types )
 		[ ]( q::channel_closed_exception& ) { }
 	) )
 	.fail( EXPECT_NO_CALL_WRAPPER(
-		[ ]( std::exception_ptr ) { }
+		[ ]( std::exception_ptr e ) {
+			std::cout << q::stream_exception( e ) << std::endl;
+		}
 	) );
 
 	run( std::move( promise ) );
@@ -236,7 +238,8 @@ TEST_F( channel, auto_close_on_writable_destruction )
 	auto promise = std::move( std::get< 0 >( tup ) );
 	auto writable = std::move( std::get< 1 >( tup ) );
 
-	EXPECT_THROW( writable.send( 17 ), q::channel_closed_exception );
+	EXPECT_FALSE( writable.send( 17 ) );
+	EXPECT_THROW( writable.ensure_send( 17 ), q::channel_closed_exception );
 
 	run( std::move( promise ) );
 }
@@ -532,6 +535,208 @@ TEST_F( channel, channel_shared_promise_specialization_rejection )
 				<< std::endl;
 		}
 	) );
+
+	run( std::move( promise ) );
+}
+
+TEST_F( channel, fast_receive_zero_types )
+{
+	q::channel< > ch( queue, 5 );
+
+	auto readable = ch.get_readable( );
+	auto writable = ch.get_writable( );
+
+	writable.send( );
+	writable.send( );
+	writable.close( );
+
+	auto on_value = [ ]( ) { };
+	auto on_closed = [ ]( ) { };
+
+	auto promise = readable.receive(
+		EXPECT_CALL_WRAPPER( on_value ),
+		EXPECT_NO_CALL_WRAPPER( on_closed )
+	)
+	.then( EXPECT_CALL_WRAPPER( ( [ = ]( ) mutable
+	{
+		return readable.receive(
+			EXPECT_CALL_WRAPPER( on_value ),
+			EXPECT_NO_CALL_WRAPPER( on_closed )
+		);
+	} ) ) )
+	.then( EXPECT_CALL_WRAPPER( ( [ = ]( ) mutable
+	{
+		return readable.receive(
+			EXPECT_NO_CALL_WRAPPER( on_value ),
+			EXPECT_CALL_WRAPPER( on_closed )
+		);
+	} ) ) );
+
+	run( std::move( promise ) );
+}
+
+TEST_F( channel, fast_receive_one_type )
+{
+	q::channel< int > ch( queue, 5 );
+
+	auto readable = ch.get_readable( );
+	auto writable = ch.get_writable( );
+
+	std::vector< int > expected{ 17, 4711 };
+	std::size_t counter = 0;
+
+	writable.send( expected[ 0 ] );
+	writable.send( expected[ 1 ] );
+	writable.close( );
+
+	auto on_value = [ & ]( int i )
+	{
+		EXPECT_EQ( expected[ counter++ ], i );
+	};
+	auto on_closed = [ ]( ) { };
+
+	auto promise = readable.receive(
+		EXPECT_CALL_WRAPPER( on_value ),
+		EXPECT_NO_CALL_WRAPPER( on_closed )
+	)
+	.then( EXPECT_CALL_WRAPPER( [ = ]( ) mutable
+	{
+		return readable.receive(
+			EXPECT_CALL_WRAPPER( on_value ),
+			EXPECT_NO_CALL_WRAPPER( on_closed )
+		);
+	} ) )
+	.then( EXPECT_CALL_WRAPPER( [ = ]( ) mutable
+	{
+		return readable.receive(
+			EXPECT_NO_CALL_WRAPPER( on_value ),
+			EXPECT_CALL_WRAPPER( on_closed )
+		);
+	} ) );
+
+	run( std::move( promise ) );
+}
+
+TEST_F( channel, fast_receive_two_types )
+{
+	q::channel< int, std::string > ch( queue, 5 );
+
+	auto readable = ch.get_readable( );
+	auto writable = ch.get_writable( );
+
+	std::vector< std::tuple< int, std::string > > expected{
+		{ 17, "hello" }, { 4711, "world" }
+	};
+	std::size_t counter = 0;
+
+	writable.send( expected[ 0 ] );
+	writable.send( expected[ 1 ] );
+	writable.close( );
+
+	auto on_value = [ & ]( int i, std::string s )
+	{
+		EXPECT_EQ( std::get< 0 >( expected[ counter ] ), i );
+		EXPECT_EQ( std::get< 1 >( expected[ counter ] ), s );
+		++counter;
+	};
+	auto on_closed = [ ]( ) { };
+
+
+	auto promise = readable.receive(
+		EXPECT_CALL_WRAPPER( on_value ),
+		EXPECT_NO_CALL_WRAPPER( on_closed )
+	)
+	.then( EXPECT_CALL_WRAPPER( [ = ]( ) mutable
+	{
+		return readable.receive(
+			EXPECT_CALL_WRAPPER( on_value ),
+			EXPECT_NO_CALL_WRAPPER( on_closed )
+		);
+	} ) )
+	.then( EXPECT_CALL_WRAPPER( [ = ]( ) mutable
+	{
+		return readable.receive(
+			EXPECT_NO_CALL_WRAPPER( on_value ),
+			EXPECT_CALL_WRAPPER( on_closed )
+		);
+	} ) );
+
+	run( std::move( promise ) );
+}
+
+TEST_F( channel, fast_receive_closed_with_exception )
+{
+	q::channel< int > ch( queue, 5 );
+
+	auto readable = ch.get_readable( );
+	auto writable = ch.get_writable( );
+
+	std::vector< int > expected{ 17, 4711 };
+	std::size_t counter = 0;
+
+	writable.send( expected[ 0 ] );
+	writable.send( expected[ 1 ] );
+	writable.close( test_exception( ) );
+
+	auto on_value = [ & ]( int i )
+	{
+		EXPECT_EQ( expected[ counter++ ], i );
+	};
+	auto on_closed = [ ]( ) { };
+
+	auto promise = readable.receive(
+		EXPECT_CALL_WRAPPER( on_value ),
+		EXPECT_NO_CALL_WRAPPER( on_closed )
+	)
+	.then( EXPECT_CALL_WRAPPER( [ = ]( ) mutable
+	{
+		return readable.receive(
+			EXPECT_CALL_WRAPPER( on_value ),
+			EXPECT_NO_CALL_WRAPPER( on_closed )
+		);
+	} ) )
+	.then( EXPECT_CALL_WRAPPER( [ = ]( ) mutable
+	{
+		return readable.receive(
+			EXPECT_NO_CALL_WRAPPER( on_value ),
+			EXPECT_NO_CALL_WRAPPER( on_closed )
+		);
+	} ) )
+	.fail( EXPECT_CALL_WRAPPER( [ ]( test_exception& ) { } ) );
+
+	run( std::move( promise ) );
+}
+
+TEST_F( channel, fast_receive_exception_when_reading_value )
+{
+	q::channel< int > ch( queue, 5 );
+
+	auto readable = ch.get_readable( );
+	auto writable = ch.get_writable( );
+
+	std::vector< int > expected{ 17, 4711 };
+	std::size_t counter = 0;
+
+	writable.send( expected[ 0 ] );
+	writable.send( expected[ 1 ] );
+	writable.close( );
+
+	auto on_value = [ & ]( int i )
+	{
+		EXPECT_EQ( expected[ counter++ ], i );
+		if ( counter == 1 )
+			Q_THROW( test_exception( ) );
+	};
+	auto on_closed = [ ]( ) { };
+
+	auto promise = readable.receive(
+		EXPECT_CALL_WRAPPER( on_value ),
+		EXPECT_NO_CALL_WRAPPER( on_closed )
+	)
+	.fail( EXPECT_CALL_WRAPPER( [ readable ]( test_exception& )
+	{
+		EXPECT_TRUE( readable.is_closed( ) );
+	} ) );
 
 	run( std::move( promise ) );
 }
