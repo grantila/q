@@ -221,6 +221,11 @@ public:
 			::template is_convertible_to<
 				Q_ARGUMENTS_OF( Fn )
 			>::value
+		and
+		!::q::tuple_arguments< Args >
+			::template equals<
+				::q::arguments< void_t >
+			>::value
 	>::type
 	set_by_fun( Fn&& fn, Args&& args )
 	{
@@ -404,7 +409,7 @@ public:
 	 */
 	template< typename Fn, typename Args >
 	typename std::enable_if<
-		is_tuple< Args >::value
+		is_tuple< typename std::decay< Args >::type >::value
 		and
 		tuple_arguments<
 			typename std::decay< Args >::type
@@ -425,6 +430,26 @@ public:
 	set_by_fun( Fn&& fn, Args&& args )
 	{
 		set_by_fun( std::forward< Fn >( fn ), void_t( ) );
+	}
+
+	/**
+	 * fn( tuple< void_t > ) -> fn( )
+	 */
+	template< typename Fn, typename Args >
+	typename std::enable_if<
+		is_tuple< typename std::decay< Args >::type >::value
+		and
+		tuple_arguments<
+			typename std::decay< Args >::type
+		>::template equals<
+			arguments< void_t >
+		>::value
+		and
+		arguments_of< Fn >::empty::value
+	>::type
+	set_by_fun( Fn&& fn, Args&& args )
+	{
+		set_by_fun( std::forward< Fn >( fn ) );
 	}
 
 	void satisfy( promise_type&& promise )
