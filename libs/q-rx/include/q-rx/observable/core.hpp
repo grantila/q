@@ -17,6 +17,10 @@
 #ifndef LIBQ_RX_OBSERVABLE_CORE_HPP
 #define LIBQ_RX_OBSERVABLE_CORE_HPP
 
+#ifndef Q_RX_DEFAULT_BACKLOG
+#	define Q_RX_DEFAULT_BACKLOG 10
+#endif
+
 namespace q { namespace rx {
 
 typedef q::options<

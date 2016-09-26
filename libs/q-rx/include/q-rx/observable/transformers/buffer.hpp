@@ -48,11 +48,11 @@ buffer( std::size_t count, std::size_t stride, combine_options options )
 	auto queue = readable_->get_queue( );
 	auto next_queue = options.get< q::defaultable< q::queue_ptr > >(
 		q::set_default( queue ) ).value;
-	auto backlog_size = options.get< backlog >( count );
+	auto backlog_size = options.get< backlog >( Q_RX_DEFAULT_BACKLOG );
 
 	typedef q::channel< std::vector< void_safe_type > > channel_type;
 
-	channel_type channel_( queue, backlog_size );
+	channel_type channel_( next_queue, backlog_size );
 	auto writable = channel_.get_writable( );
 
 	struct context
@@ -92,16 +92,33 @@ buffer( std::size_t count, std::size_t stride, combine_options options )
 
 		void cleanup( )
 		{
+			if ( !buf.empty( ) )
+			{
+				// There is an unsent last chunk of data.
+				try
+				{
+					writable.send( std::move( buf ) );
+				}
+				// We ignore the errors, since upstream is
+				// already closed, and have no chance to signal
+				// errors.
+				catch ( std::exception_ptr e ) { }
+				reset( false );
+			}
+
 			writable.unset_resume_notification( );
+			writable.close( );
 		}
 
-		void reset( )
+		void reset( bool reserve = true )
 		{
 			decltype( buf ) new_buf;
 			std::swap( new_buf, buf );
 
 			buf.clear( );
-			buf.reserve( count );
+			if ( reserve )
+				buf.reserve( count );
+			index = 0;
 		}
 
 		bool step( void_safe_type&& t )
@@ -171,15 +188,15 @@ buffer( std::size_t count, std::size_t stride, combine_options options )
 	{
 		return ctx->on_data( std::move( t ) );
 	} )
-	.finally( [ ctx ]( )
-	{
-		ctx->cleanup( );
-	} )
 	.fail( [ writable ]( std::exception_ptr e ) mutable
 	{
 		// Any error on the input observable is immediately forwarded.
 		// This is how all operators are expected to work.
 		writable.close( e );
+	} )
+	.finally( [ ctx ]( )
+	{
+		ctx->cleanup( );
 	} );
 
 	return observable< std::vector< void_safe_type > >( channel_ );
@@ -193,7 +210,154 @@ observable< std::vector< typename observable< T >::void_safe_type > >
 observable< T >::
 buffer( observable< void > closing_observable, combine_options options )
 {
-	; // TODO
+	auto queue = readable_->get_queue( );
+	auto next_queue = options.get< q::defaultable< q::queue_ptr > >(
+		q::set_default( queue ) ).value;
+	auto backlog_size = options.get< backlog >( Q_RX_DEFAULT_BACKLOG );
+
+	typedef q::channel< std::vector< void_safe_type > > channel_type;
+
+	channel_type channel_( next_queue, backlog_size );
+	auto writable = channel_.get_writable( );
+
+	struct context
+	{
+		q::mutex mut;
+		q::readable< > back_pressure_readable;
+		queue_ptr queue;
+		q::writable< std::vector< void_safe_type > > writable;
+		std::vector< void_safe_type > buf;
+
+		context(
+			queue_ptr queue,
+			q::writable< std::vector< void_safe_type > > writable
+		)
+		: mut( Q_HERE, "observable::buffer(closing_observable)" )
+		, queue( queue )
+		, writable( writable )
+		{
+			q::channel< > bp( queue, 1 );
+			back_pressure_readable = bp.get_readable( );
+			auto back_pressure_writable = bp.get_writable( );
+
+			writable.set_resume_notification(
+				[ back_pressure_writable ]( ) mutable
+				{
+					back_pressure_writable.send( );
+				}
+			);
+		}
+
+		~context( )
+		{
+			cleanup( );
+		}
+
+		void cleanup( )
+		{
+			if ( !buf.empty( ) )
+			{
+				// There is an unsent last chunk of data.
+				try
+				{
+					writable.send( std::move( buf ) );
+				}
+				// We ignore the errors, since upstream is
+				// already closed, and have no chance to signal
+				// errors.
+				catch ( std::exception_ptr e ) { }
+			}
+
+			writable.unset_resume_notification( );
+			writable.close( );
+		}
+
+		q::promise< std::tuple< > > push( )
+		{
+			decltype( buf ) swapped_buf;
+
+			Q_AUTO_UNIQUE_LOCK( mut );
+
+			std::swap( swapped_buf, buf );
+
+			if ( writable.is_closed( ) )
+				std::rethrow_exception(
+					writable.get_exception( ) );
+
+			try
+			{
+				writable.send( std::move( swapped_buf ) );
+			}
+			catch ( std::exception_ptr err )
+			{
+				// We'll probably a channel_closed_exception,
+				// but what we really want is to propagate the
+				// real inner exception upstream.
+				std::rethrow_exception(
+					writable.get_exception( ) );
+			}
+
+			if ( !writable.should_send( ) )
+			{
+				// We shouldn't send any more right now.
+				// We'll await downstream back pressure
+				// notification for upstream resuming.
+				back_pressure_readable.clear( );
+				writable.trigger_resume_notification( );
+
+				// We need to await downstream back pressure
+				return back_pressure_readable.receive( );
+			}
+
+			return q::with( queue );
+		}
+
+		void on_data( void_safe_type&& t )
+		{
+			Q_AUTO_UNIQUE_LOCK( mut );
+
+			buf.push_back( std::move( t ) );
+		}
+	};
+
+	auto ctx = std::make_shared< context >( queue, writable );
+
+	// Consume from the upstream observable
+
+	consume( [ ctx ]( void_safe_type&& t )
+	{
+		return ctx->on_data( std::move( t ) );
+	} )
+	.fail( [ writable ]( std::exception_ptr e ) mutable
+	{
+		// Any error on the input observable is immediately forwarded.
+		// This is how all operators are expected to work.
+		writable.close( e );
+	} )
+	.finally( [ ctx ]( )
+	{
+		ctx->cleanup( );
+	} );
+
+	// Consume from the closing observable
+
+	closing_observable.consume( [ ctx ]( )
+	{
+		return ctx->push( );
+	} )
+	.fail( [ writable ]( std::exception_ptr e ) mutable
+	{
+		// Any error on the closing observable is immediately forwarded.
+		// This is the only way to ensure this observable isn't stuck
+		// forever, if the upstream observable is never ending.
+		writable.close( e );
+	} )
+	.finally( [ ctx ]( )
+	{
+		ctx->cleanup( );
+	} );
+
+	return observable< std::vector< void_safe_type > >( channel_ );
 }
 
 /**
