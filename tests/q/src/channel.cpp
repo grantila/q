@@ -22,10 +22,10 @@ TEST_F( channel, zero_types )
 	auto readable = ch.get_readable( );
 	auto writable = ch.get_writable( );
 
-	writable.send( );
-	writable.send( std::make_tuple( ) );
-	writable.send( q::void_t( ) );
-	writable.send( std::make_tuple( q::void_t( ) ) );
+	EXPECT_TRUE( writable.send( ) );
+	EXPECT_TRUE( writable.send( std::make_tuple( ) ) );
+	EXPECT_TRUE( writable.send( q::void_t( ) ) );
+	EXPECT_TRUE( writable.send( std::make_tuple( q::void_t( ) ) ) );
 	writable.close( );
 
 	auto promise = readable.receive( )
@@ -84,8 +84,8 @@ TEST_F( channel, one_type )
 	auto readable = ch.get_readable( );
 	auto writable = ch.get_writable( );
 
-	writable.send( 17 );
-	writable.send( std::make_tuple< int >( 4711 ) );
+	EXPECT_TRUE( writable.send( 17 ) );
+	EXPECT_TRUE( writable.send( std::make_tuple< int >( 4711 ) ) );
 	writable.close( );
 
 	auto promise = readable.receive( )
@@ -125,8 +125,8 @@ TEST_F( channel, two_types )
 	auto readable = ch.get_readable( );
 	auto writable = ch.get_writable( );
 
-	writable.send( 17, "hello" );
-	writable.send( std::make_tuple( 4711, "world" ) );
+	EXPECT_TRUE( writable.send( 17, "hello" ) );
+	EXPECT_TRUE( writable.send( std::make_tuple( 4711, "world" ) ) );
 	writable.close( );
 
 	auto promise = readable.receive( )
@@ -170,8 +170,8 @@ TEST_F( channel, auto_close_on_readable_destruction )
 		auto readable = ch.get_readable( );
 		auto writable = ch.get_writable( );
 
-		writable.send( 17 );
-		writable.send( 4711 );
+		EXPECT_TRUE( writable.send( 17 ) );
+		EXPECT_TRUE( writable.send( 4711 ) );
 
 		return readable;
 	};
@@ -253,10 +253,10 @@ TEST_F( channel, channel_empty_promise_specialization )
 	auto readable = ch.get_readable( );
 	auto writable = ch.get_writable( );
 
-	writable.send( );
-	writable.send( std::make_tuple< >( ) );
-	writable.send( q::void_t( ) );
-	writable.send( std::make_tuple( q::void_t( ) ) );
+	EXPECT_TRUE( writable.send( ) );
+	EXPECT_TRUE( writable.send( std::make_tuple< >( ) ) );
+	EXPECT_TRUE( writable.send( q::void_t( ) ) );
+	EXPECT_TRUE( writable.send( std::make_tuple( q::void_t( ) ) ) );
 	writable.close( );
 
 	auto receiver = EXPECT_N_CALLS_WRAPPER( 4,
@@ -293,8 +293,8 @@ TEST_F( channel, channel_non_empty_promise_specialization )
 	auto readable = ch.get_readable( );
 	auto writable = ch.get_writable( );
 
-	writable.send( 17 );
-	writable.send( std::make_tuple< int >( 4711 ) );
+	EXPECT_TRUE( writable.send( 17 ) );
+	EXPECT_TRUE( writable.send( std::make_tuple< int >( 4711 ) ) );
 	writable.close( );
 
 	auto promise = readable.receive( )
@@ -341,9 +341,9 @@ TEST_F( channel, channel_promise_specialization_rejection )
 		Q_THROW( test_exception( ) );
 	} );
 
-	writable.send( 5 );
-	writable.send( std::move( rejected_promise ) );
-	writable.send( 17 );
+	EXPECT_TRUE( writable.send( 5 ) );
+	EXPECT_TRUE( writable.send( std::move( rejected_promise ) ) );
+	EXPECT_TRUE( writable.send( 17 ) );
 	writable.close( );
 
 	auto promise = readable.receive( )
@@ -401,8 +401,8 @@ TEST_F( channel, channel_empty_shared_promise_specialization )
 	auto readable = ch.get_readable( );
 	auto writable = ch.get_writable( );
 
-	writable.send( );
-	writable.send( std::make_tuple< >( ) );
+	EXPECT_TRUE( writable.send( ) );
+	EXPECT_TRUE( writable.send( std::make_tuple< >( ) ) );
 	writable.close( );
 
 	auto promise = readable.receive( )
@@ -440,8 +440,8 @@ TEST_F( channel, channel_non_empty_shared_promise_specialization )
 	auto readable = ch.get_readable( );
 	auto writable = ch.get_writable( );
 
-	writable.send( 17 );
-	writable.send( std::make_tuple< int >( 4711 ) );
+	EXPECT_TRUE( writable.send( 17 ) );
+	EXPECT_TRUE( writable.send( std::make_tuple< int >( 4711 ) ) );
 	writable.close( );
 
 	auto promise = readable.receive( )
@@ -488,9 +488,9 @@ TEST_F( channel, channel_shared_promise_specialization_rejection )
 		Q_THROW( test_exception( ) );
 	} ).share( );
 
-	writable.send( 5 );
-	writable.send( std::move( rejected_promise ) );
-	writable.send( 17 );
+	EXPECT_TRUE( writable.send( 5 ) );
+	EXPECT_TRUE( writable.send( std::move( rejected_promise ) ) );
+	EXPECT_TRUE( writable.send( 17 ) );
 	writable.close( );
 
 	auto promise = readable.receive( )
@@ -546,8 +546,8 @@ TEST_F( channel, fast_receive_zero_types )
 	auto readable = ch.get_readable( );
 	auto writable = ch.get_writable( );
 
-	writable.send( );
-	writable.send( );
+	EXPECT_TRUE( writable.send( ) );
+	EXPECT_TRUE( writable.send( ) );
 	writable.close( );
 
 	auto on_value = [ ]( ) { };
@@ -585,8 +585,8 @@ TEST_F( channel, fast_receive_one_type )
 	std::vector< int > expected{ 17, 4711 };
 	std::size_t counter = 0;
 
-	writable.send( expected[ 0 ] );
-	writable.send( expected[ 1 ] );
+	EXPECT_TRUE( writable.send( expected[ 0 ] ) );
+	EXPECT_TRUE( writable.send( expected[ 1 ] ) );
 	writable.close( );
 
 	auto on_value = [ & ]( int i )
@@ -629,8 +629,8 @@ TEST_F( channel, fast_receive_two_types )
 	};
 	std::size_t counter = 0;
 
-	writable.send( expected[ 0 ] );
-	writable.send( expected[ 1 ] );
+	EXPECT_TRUE( writable.send( expected[ 0 ] ) );
+	EXPECT_TRUE( writable.send( expected[ 1 ] ) );
 	writable.close( );
 
 	auto on_value = [ & ]( int i, std::string s )
@@ -674,8 +674,8 @@ TEST_F( channel, fast_receive_closed_with_exception )
 	std::vector< int > expected{ 17, 4711 };
 	std::size_t counter = 0;
 
-	writable.send( expected[ 0 ] );
-	writable.send( expected[ 1 ] );
+	EXPECT_TRUE( writable.send( expected[ 0 ] ) );
+	EXPECT_TRUE( writable.send( expected[ 1 ] ) );
 	writable.close( test_exception( ) );
 
 	auto on_value = [ & ]( int i )
@@ -717,8 +717,8 @@ TEST_F( channel, fast_receive_exception_when_reading_value )
 	std::vector< int > expected{ 17, 4711 };
 	std::size_t counter = 0;
 
-	writable.send( expected[ 0 ] );
-	writable.send( expected[ 1 ] );
+	EXPECT_TRUE( writable.send( expected[ 0 ] ) );
+	EXPECT_TRUE( writable.send( expected[ 1 ] ) );
 	writable.close( );
 
 	auto on_value = [ & ]( int i )

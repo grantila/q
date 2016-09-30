@@ -59,6 +59,20 @@
 #if __cplusplus >= 201402L
 #	define LIBQ_WITH_CPP14
 #endif
+#if __cplusplus >= 201406L
+	// This particular version isn't set yet, and compiler support may vary
+#	define LIBQ_WITH_CPP17
+#endif
+
+#ifdef LIBQ_WITH_CPP17
+#	define Q_NODISCARD [[nodiscard]]
+#elif defined( __GNUC__ ) && ( __GNUC__ >= 4 )
+#	define Q_NODISCARD __attribute__ ((warn_unused_result))
+#elif defined( _MSC_VER ) && ( _MSC_VER >= 1700 )
+#	define Q_NODISCARD _Check_return_
+#else
+#	define Q_NODISCARD
+#endif
 
 #define LIBQ_JOIN_( a, b ) a ## b
 #define LIBQ_JOIN( a, b ) LIBQ_JOIN_( a, b )

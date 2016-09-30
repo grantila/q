@@ -212,16 +212,19 @@ public:
 	, resume_count_( std::min( resume_count, buffer_count ) )
 	{ }
 
+	Q_NODISCARD
 	std::size_t buffer_count( ) const
 	{
 		return buffer_count_;
 	}
 
+	Q_NODISCARD
 	bool is_closed( ) const
 	{
 		return closed_;
 	}
 
+	Q_NODISCARD
 	bool has_exception( ) const
 	{
 		Q_AUTO_UNIQUE_LOCK( mutex_ );
@@ -229,6 +232,7 @@ public:
 		return std::get< 0 >( close_exception_ );
 	}
 
+	Q_NODISCARD
 	std::exception_ptr get_exception( ) const
 	{
 		Q_AUTO_UNIQUE_LOCK( mutex_ );
@@ -282,8 +286,7 @@ public:
 		_close( std::make_tuple( true, std::forward< E >( e ) ) );
 	}
 
-	// TODO: Make this into a bool return, for whether it was sent or not,
-	//       corresponding to if the channel was closed or not.
+	Q_NODISCARD
 	bool send( tuple_type&& t )
 	{
 		Q_AUTO_UNIQUE_LOCK( mutex_ );
@@ -309,11 +312,13 @@ public:
 		return true;
 	}
 
+	Q_NODISCARD
 	bool send( const tuple_type& t )
 	{
 		return send( tuple_type( t ) );
 	}
 
+	Q_NODISCARD
 	promise< tuple_type > receive( )
 	{
 		Q_AUTO_UNIQUE_LOCK( mutex_ );
@@ -382,6 +387,7 @@ public:
 	 * returned promise, the channel will be closed with this exception!
 	 */
 	template< typename FnValue, typename FnClosed >
+	Q_NODISCARD
 	promise< std::tuple< > >
 	receive( FnValue&& fn_value, FnClosed&& fn_closed )
 	{
@@ -459,6 +465,7 @@ public:
 		}
 	}
 
+	Q_NODISCARD
 	inline bool should_send( ) const
 	{
 		return !paused_ && !closed_;
@@ -512,6 +519,7 @@ public:
 		scopes_.emplace_back( std::move( scope ) );
 	}
 
+	Q_NODISCARD
 	queue_ptr get_queue( ) const
 	{
 		return default_queue_;
@@ -837,6 +845,7 @@ public:
 	 * ( tuple< T... > ) ->
 	 */
 	template< typename Tuple >
+	Q_NODISCARD
 	typename std::enable_if<
 		q::is_tuple< typename std::decay< Tuple >::type >::value
 		and
@@ -856,6 +865,7 @@ public:
 	 * ( tuple< void_t > ) -> tuple< > (stripped from void_t)
 	 */
 	template< typename Tuple >
+	Q_NODISCARD
 	typename std::enable_if<
 		q::is_tuple< typename std::decay< Tuple >::type >::value
 		and
@@ -880,6 +890,7 @@ public:
 	 * ( Args... ) -> tuple< T... >
 	 */
 	template< typename... Args >
+	Q_NODISCARD
 	typename std::enable_if<
 		arguments<
 			typename std::decay< Args >::type...
@@ -899,6 +910,7 @@ public:
 	 * ( Args... ) -> tuple< T... >
 	 */
 	template< typename... Args >
+	Q_NODISCARD
 	typename std::enable_if<
 		is_promise::value
 		and
@@ -945,6 +957,7 @@ public:
 	 * ( tuple< T... > ) -> tuple< promise< tuple< T... > > >
 	 */
 	template< typename Tuple >
+	Q_NODISCARD
 	typename std::enable_if<
 		is_promise::value
 		and
@@ -972,6 +985,7 @@ public:
 			Q_THROW( channel_closed_exception( ) );
 	}
 
+	Q_NODISCARD
 	bool should_send( ) const
 	{
 		return shared_channel_->should_send( );
