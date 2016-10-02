@@ -39,7 +39,10 @@
 #include <q/promise/make.hpp>
 #include <q/promise/delay.hpp>
 #include <q/promise/promisify.hpp>
-#include <q/promise/promise_impl.hpp>
+#include <q/promise/impl/then.hpp>
+#include <q/promise/impl/fail.hpp>
+#include <q/promise/impl/finally.hpp>
+#include <q/promise/impl/rest.hpp>
 
 #include <future>
 #include <memory>
