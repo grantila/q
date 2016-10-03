@@ -265,7 +265,7 @@ TEST( functional, call_with_args_void )
 TEST( functional, result_of )
 {
 	auto fn = [ ]( int, long ) { return true; };
-	typedef q::result_of< decltype( fn ) > test;
+	typedef q::result_of_t< decltype( fn ) > test;
 	auto expectation = std::is_same< test, bool >::value;
 	EXPECT_TRUE( expectation );
 }
@@ -273,7 +273,7 @@ TEST( functional, result_of )
 TEST( functional, result_of_as_argument )
 {
 	auto fn = [ ]( int, long ) { return true; };
-	typedef q::result_of_as_argument< decltype( fn ) > test;
+	typedef q::result_of_as_argument_t< decltype( fn ) > test;
 	auto expectation =
 		q::is_argument_same< test, q::arguments< bool > >::value;
 	EXPECT_TRUE( expectation );
@@ -282,7 +282,7 @@ TEST( functional, result_of_as_argument )
 TEST( functional, result_of_as_tuple )
 {
 	auto fn = [ ]( int, long ) { return true; };
-	typedef q::result_of_as_tuple< decltype( fn ) > test;
+	typedef q::result_of_as_tuple_t< decltype( fn ) > test;
 	auto expectation = std::is_same< test, std::tuple< bool > >::value;
 	EXPECT_TRUE( expectation );
 }
@@ -290,7 +290,7 @@ TEST( functional, result_of_as_tuple )
 TEST( functional, arguments_of )
 {
 	auto fn = [ ]( int, long ) { return true; };
-	typedef q::arguments_of< decltype( fn ) > test;
+	typedef q::arguments_of_t< decltype( fn ) > test;
 	auto expectation =
 		q::is_argument_same< test, q::arguments< int, long > >::value;
 	EXPECT_TRUE( expectation );
@@ -299,7 +299,7 @@ TEST( functional, arguments_of )
 TEST( functional, first_argument_of )
 {
 	auto fn = [ ]( int, long ) { return true; };
-	typedef q::first_argument_of< decltype( fn ) > test;
+	typedef q::first_argument_of_t< decltype( fn ) > test;
 	auto expectation = std::is_same< test, int >::value;
 	EXPECT_TRUE( expectation );
 }
@@ -311,7 +311,7 @@ TEST( functional, memberclass_of )
 		bool fn( int, long ) { return true; }
 	};
 	struct D { };
-	typedef q::memberclass_of< decltype( &C::fn ) > test;
+	typedef q::memberclass_of_t< decltype( &C::fn ) > test;
 	EXPECT_TRUE( ( std::is_same< test, C >::value ) );
 	EXPECT_FALSE( ( std::is_same< test, D >::value ) );
 }
@@ -329,10 +329,10 @@ TEST( functional, is_memberfunction )
 	// Non-capturing lambdas can be cast to raw C-functions
 	bool ( *fn_raw )( int, long ) = fn_lambda;
 
-	EXPECT_TRUE( q::is_memberfunction< decltype( &C::fn ) > );
-	EXPECT_TRUE( q::is_memberfunction< decltype( fn_lambda ) > );
-	EXPECT_FALSE( q::is_memberfunction< decltype( fn_raw ) > );
-	EXPECT_FALSE( q::is_memberfunction< C > );
+	EXPECT_TRUE( q::is_memberfunction_v< decltype( &C::fn ) > );
+	EXPECT_TRUE( q::is_memberfunction_v< decltype( fn_lambda ) > );
+	EXPECT_FALSE( q::is_memberfunction_v< decltype( fn_raw ) > );
+	EXPECT_FALSE( q::is_memberfunction_v< C > );
 }
 
 TEST( functional, is_function )
@@ -341,8 +341,8 @@ TEST( functional, is_function )
 	{
 		bool fn( int, long );
 	};
-	EXPECT_TRUE( q::is_function< decltype( &C::fn ) > );
-	EXPECT_FALSE( q::is_function< C > );
+	EXPECT_TRUE( q::is_function_v< decltype( &C::fn ) > );
+	EXPECT_FALSE( q::is_function_v< C > );
 }
 
 TEST( functional, arity_of )
@@ -352,8 +352,8 @@ TEST( functional, arity_of )
 		bool fn0( );
 		bool fn2( int, long );
 	};
-	EXPECT_EQ( std::size_t( 0 ), q::arity_of< decltype( &C::fn0 ) > );
-	EXPECT_EQ( std::size_t( 2 ), q::arity_of< decltype( &C::fn2 ) > );
+	EXPECT_EQ( std::size_t( 0 ), q::arity_of_v< decltype( &C::fn0 ) > );
+	EXPECT_EQ( std::size_t( 2 ), q::arity_of_v< decltype( &C::fn2 ) > );
 }
 
 TEST( functional, is_const_of )
@@ -367,10 +367,10 @@ TEST( functional, is_const_of )
 	auto fn_mutable_lambda = [ ]( ) mutable { };
 	auto fn_lambda = [ ]( ) { };
 
-	EXPECT_TRUE( q::is_const_of< decltype( &C::fn_c ) > );
-	EXPECT_FALSE( q::is_const_of< decltype( &C::fn_nc ) > );
-	EXPECT_TRUE( q::is_const_of< decltype( fn_lambda ) > );
-	EXPECT_FALSE( q::is_const_of< decltype( fn_mutable_lambda ) > );
+	EXPECT_TRUE( q::is_const_of_v< decltype( &C::fn_c ) > );
+	EXPECT_FALSE( q::is_const_of_v< decltype( &C::fn_nc ) > );
+	EXPECT_TRUE( q::is_const_of_v< decltype( fn_lambda ) > );
+	EXPECT_FALSE( q::is_const_of_v< decltype( fn_mutable_lambda ) > );
 }
 
 TEST( functional, first_argument_is_tuple )
@@ -393,10 +393,10 @@ TEST( functional, arguments_of_are )
 		bool fn( std::tuple< long > );
 	};
 	EXPECT_TRUE( (
-		q::arguments_of_are< decltype( &C::fn ), std::tuple< long > >
+		q::arguments_of_are_v< decltype( &C::fn ), std::tuple< long > >
 	) );
 	EXPECT_FALSE( (
-		q::arguments_of_are< decltype( &C::fn ), std::tuple< int > >
+		q::arguments_of_are_v< decltype( &C::fn ), std::tuple< int > >
 	) );
 }
 
@@ -407,23 +407,23 @@ TEST( functional, arguments_of_are_convertible_from )
 		bool fn( std::tuple< long > );
 	};
 	EXPECT_TRUE( (
-		q::arguments_of_are_convertible_from<
+		q::arguments_of_are_convertible_from_v<
 			decltype( &C::fn ),
 			std::tuple< long >
 		>
 	) );
 	EXPECT_TRUE( (
-		q::arguments_of_are_convertible_from<
+		q::arguments_of_are_convertible_from_v<
 			decltype( &C::fn ),
 			std::tuple< int >
 		>
 	) );
 	EXPECT_FALSE( (
-		q::arguments_of_are_convertible_from<
+		q::arguments_of_are_convertible_from_v<
 			decltype( &C::fn ),
 			std::tuple< std::unique_ptr< C > >
 		>
 	) );
 }
 
-#endif
+#endif // LIBQ_WITH_CPP14
