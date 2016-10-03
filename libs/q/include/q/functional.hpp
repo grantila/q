@@ -310,27 +310,62 @@ struct function_traits
 };
 
 template< typename Fn >
-using result_of = Q_RESULT_OF( Fn );
+using is_function_t = typename Q_IS_FUNCTION( Fn );
 
 template< typename Fn >
-using result_of_as_argument = Q_RESULT_OF_AS_ARGUMENT_TYPE( Fn );
+using is_memberfunction_t = typename Q_IS_MEMBERFUNCTION( Fn );
 
 template< typename Fn >
-using result_of_as_tuple = Q_RESULT_OF_AS_TUPLE_TYPE( Fn );
+using arity_of_t = typename ::q::function_traits< Fn >::arity;
 
 template< typename Fn >
-using arguments_of = Q_ARGUMENTS_OF( Fn );
+using is_const_of_t = typename ::q::function_traits< Fn >::is_const;
 
 template< typename Fn >
-using first_argument_of = Q_FIRST_ARGUMENT_OF( Fn );
+using result_of_t = Q_RESULT_OF( Fn );
 
 template< typename Fn >
-using memberclass_of = Q_MEMBERCLASS_OF( Fn );
+using result_of_as_argument_t = Q_RESULT_OF_AS_ARGUMENT_TYPE( Fn );
+
+template< typename Fn >
+using result_of_as_tuple_t = Q_RESULT_OF_AS_TUPLE_TYPE( Fn );
+
+template< typename Fn >
+using arguments_of_t = Q_ARGUMENTS_OF( Fn );
+
+template< typename Fn >
+using first_argument_of_t = Q_FIRST_ARGUMENT_OF( Fn );
+
+template< typename Fn >
+using first_argument_is_tuple_t = ::q::is_tuple<
+		typename ::std::decay<
+			typename ::q::function_traits<
+				Fn
+			>::argument_types::first_type
+		>::type
+	>;
+
+template< typename Fn >
+using memberclass_of_t = Q_MEMBERCLASS_OF( Fn );
+
+template< typename Fn, typename... Args >
+using arguments_of_are_t =
+	::q::is_argument_same<
+		arguments_of_t< Fn >,
+		::q::arguments< Args... >
+	>;
+
+template< typename Fn, typename... Args >
+using arguments_of_are_convertible_from_t =
+	::q::is_argument_same_or_convertible<
+		::q::arguments< Args... >,
+		arguments_of_t< Fn >
+	>;
 
 template<
 	typename Fn,
 	template< typename > class T,
-	bool _HasAnyArgument = ( Q_ARITY_OF( Fn ) > 0 )
+	bool _HasAnyArgument = ( arity_of_t< Fn >::value > 0 )
 >
 struct first_argument_is
 : std::false_type
@@ -341,52 +376,45 @@ template<
 	template< typename > class T
 >
 struct first_argument_is< Fn, T, true >
-: T< first_argument_of< Fn > >
+: T< first_argument_of_t< Fn > >
 { };
 
-template< typename Fn, bool HasAnyArgument = ( Q_ARITY_OF( Fn ) > 0 ) >
+template< typename Fn, bool HasAnyArgument = ( arity_of_t< Fn >::value > 0 ) >
 struct first_argument_is_tuple
 : std::false_type
 { };
 
 template< typename Fn >
 struct first_argument_is_tuple< Fn, true >
-: bool_type< Q_FIRST_ARGUMENT_IS_TUPLE( Fn ) >
+: bool_type< first_argument_is_tuple_t< Fn >::value >
 { };
 
 #ifdef LIBQ_WITH_CPP14
 
 template< typename Fn >
-constexpr bool is_memberfunction = Q_IS_MEMBERFUNCTION( Fn )::value;
+constexpr bool is_function_v = is_function_t< Fn >::value;
 
 template< typename Fn >
-constexpr bool is_function = Q_IS_FUNCTION( Fn )::value;
+constexpr bool is_memberfunction_v = is_memberfunction_t< Fn >::value;
 
 template< typename Fn >
-constexpr std::size_t arity_of = Q_ARITY_OF( Fn );
+constexpr std::size_t arity_of_v = arity_of_t< Fn >::value;
 
 template< typename Fn >
-constexpr bool is_const_of = Q_IS_CONST_OF( Fn );
+constexpr bool is_const_of_v = is_const_of_t< Fn >::value;
 
 template< typename Fn, typename... Args >
-constexpr bool arguments_of_are =
-	::q::is_argument_same<
-		arguments_of< Fn >,
-		::q::arguments< Args... >
-	>::value;
+constexpr bool arguments_of_are_v = arguments_of_are_t< Fn, Args... >::value;
 
 template< typename Fn, typename... Args >
-constexpr bool arguments_of_are_convertible_from =
-	::q::is_argument_same_or_convertible<
-		::q::arguments< Args... >,
-		arguments_of< Fn >
-	>::value;
+constexpr bool arguments_of_are_convertible_from_v =
+	arguments_of_are_convertible_from_t< Fn, Args... >::value;
 
 #endif // C++14
 
 template< typename Fn, typename... Args >
 typename std::enable_if<
-	Q_IS_FUNCTION( Fn )::value
+	is_function_t< Fn >::value
 	and
 	Q_ARGUMENTS_ARE_CONVERTIBLE_FROM( Fn, Args... )::value
 	and
@@ -395,7 +423,7 @@ typename std::enable_if<
 		or
 		Q_FUNCTIONTRAITS( Fn )::using_call_operator::value
 	),
-	Q_RESULT_OF( Fn )
+	result_of_t< Fn >
 >::type
 call_with_args( Fn&& fn, Args&&... args )
 #ifndef LIBQ_WITH_BROKEN_NOEXCEPT
@@ -407,7 +435,7 @@ noexcept( noexcept( fn( std::forward< Args >( args )... ) ) )
 
 template< typename Fn >
 typename std::enable_if<
-	Q_IS_FUNCTION( Fn )::value
+	is_function_t< Fn >::value
 	and
 	Q_ARGUMENTS_ARE_CONVERTIBLE_FROM( Fn, void_t )::value
 	and
@@ -416,7 +444,7 @@ typename std::enable_if<
 		or
 		Q_FUNCTIONTRAITS( Fn )::using_call_operator::value
 	),
-	Q_RESULT_OF( Fn )
+	result_of_t< Fn >
 >::type
 call_with_args( Fn&& fn )
 #ifndef LIBQ_WITH_BROKEN_NOEXCEPT
@@ -440,7 +468,7 @@ typename std::enable_if<
 		>::value
 	) &&
 	is_pointer_like< typename std::decay< Class >::type >::value,
-	Q_RESULT_OF( Fn )
+	result_of_t< Fn >
 >::type
 call_with_args( Fn&& fn, Class&& obj, Args&&... args )
 #ifndef LIBQ_WITH_BROKEN_NOEXCEPT
@@ -464,7 +492,7 @@ typename std::enable_if<
 		>::value
 	) &&
 	!is_pointer_like< typename std::decay< Class >::type >::value,
-	Q_RESULT_OF( Fn )
+	result_of_t< Fn >
 >::type
 call_with_args( Fn&& fn, Class&& obj, Args&&... args )
 #ifndef LIBQ_WITH_BROKEN_NOEXCEPT
@@ -477,7 +505,7 @@ noexcept( noexcept( ( obj.*fn )( std::forward< Args >( args )... ) ) )
 namespace detail {
 
 template< typename Fn, class Tuple, std::size_t... Indexes >
-Q_RESULT_OF( Fn )
+result_of_t< Fn >
 call_with_args_by_tuple( Fn&& fn, Tuple&& tuple, q::index_tuple< Indexes... > )
 #ifndef LIBQ_WITH_BROKEN_NOEXCEPT
 noexcept( noexcept(
@@ -513,7 +541,7 @@ typename std::enable_if<
 		typename std::decay< Tuple >::type,
 		std::tuple< >
 	>::value,
-	Q_RESULT_OF( Fn )
+	result_of_t< Fn >
 >::type
 call_with_args_by_tuple( Fn&& fn, Tuple&& tuple )
 #ifndef LIBQ_WITH_BROKEN_NOEXCEPT
@@ -535,7 +563,7 @@ noexcept( noexcept(
 template< typename Fn >
 typename std::enable_if<
 	!Q_ARGUMENTS_ARE_CONVERTIBLE_FROM( Fn, void_t )::value,
-	Q_RESULT_OF( Fn )
+	result_of_t< Fn >
 >::type
 call_with_args_by_tuple( Fn&& fn, const std::tuple< >& tuple )
 #ifndef LIBQ_WITH_BROKEN_NOEXCEPT
@@ -598,7 +626,7 @@ typename std::enable_if<
 	>::value
 	and
 	Q_ARGUMENTS_ARE_CONVERTIBLE_FROM( InnerFn, Args... )::value,
-	Q_RESULT_OF( Fn )
+	result_of_t< Fn >
 >::type
 call_with_args_by_fun( Fn&& fn, InnerFn&& inner_fn, Args&&... args )
 #ifndef LIBQ_WITH_BROKEN_NOEXCEPT
@@ -659,7 +687,7 @@ noexcept( noexcept( Class( Class( fn( std::forward< Args >( args )... ) ) ) ) )
  * q::arguments< int, double >.
  */
 template< typename Fn, typename... Args >
-Q_RESULT_OF( Fn )
+result_of_t< Fn >
 call( Fn&& fn, Args&&... args )
 {
 	// TODO: Implement

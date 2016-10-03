@@ -355,7 +355,7 @@ public:
 		>::value
 		and
 		!std::is_same<
-			typename std::decay< first_argument_of< Fn > >::type,
+			typename std::decay< first_argument_of_t< Fn > >::type,
 			void_t
 		>::value
 		and
@@ -389,10 +389,10 @@ public:
 			typename std::decay< Args >::type
 		>::empty_or_void::value
 		and
-		arguments_of< Fn >::size::value == 1
+		arguments_of_t< Fn >::size::value == 1
 		and
 		std::is_same<
-			typename std::decay< first_argument_of< Fn > >::type,
+			typename std::decay< first_argument_of_t< Fn > >::type,
 			std::tuple< void_t >
 		>::value
 	>::type
@@ -420,10 +420,10 @@ public:
 			void_t
 		>::value
 		and
-		arguments_of< Fn >::size::value == 1
+		arguments_of_t< Fn >::size::value == 1
 		and
 		std::is_same<
-			typename std::decay< first_argument_of< Fn > >::type,
+			typename std::decay< first_argument_of_t< Fn > >::type,
 			void_t
 		>::value
 	>::type
@@ -445,7 +445,7 @@ public:
 			arguments< void_t >
 		>::value
 		and
-		arguments_of< Fn >::empty::value
+		arguments_of_t< Fn >::empty::value
 	>::type
 	set_by_fun( Fn&& fn, Args&& args )
 	{
