@@ -25,16 +25,16 @@ namespace q { namespace detail {
 template< bool Shared, typename... Args >
 template< typename Fn, typename Queue >
 typename std::enable_if<
-	Q_IS_FUNCTION( Fn )::value
+	is_function_t< Fn >::value
 	and
-	Q_ARITY_OF( Fn ) == 1
+	arity_of_t< Fn >::value == 1
 	and
 	is_same_type<
-		Q_FIRST_ARGUMENT_OF( Fn ),
+		first_argument_of_t< Fn >,
 		std::exception_ptr
 	>::value
 	and
-	detail::tuple_arguments< Q_RESULT_OF( Fn ) >
+	detail::tuple_arguments< result_of_t< Fn > >
 		::template is_convertible_to<
 			typename generic_promise<
 				Shared, std::tuple< Args... >
@@ -94,16 +94,16 @@ fail( Fn&& fn, Queue&& queue )
 template< bool Shared, typename... Args >
 template< typename Fn, typename Queue >
 typename std::enable_if<
-	Q_IS_FUNCTION( Fn )::value
+	is_function_t< Fn >::value
 	and
 	is_same_type<
-		Q_FIRST_ARGUMENT_OF( Fn ),
+		first_argument_of_t< Fn >,
 		std::exception_ptr
 	>::value
 	and
-	is_promise< Q_RESULT_OF( Fn ) >::value
+	is_promise< result_of_t< Fn > >::value
 	and
-	Q_FUNCTIONTRAITS( Fn )::result_type::argument_types
+	result_of_t< Fn >::argument_types
 		::template is_convertible_to<
 			typename generic_promise<
 				Shared, std::tuple< Args... >
@@ -162,13 +162,13 @@ fail( Fn&& fn, Queue&& queue )
 template< bool Shared, typename... Args >
 template< typename Fn, typename Queue >
 typename std::enable_if<
-	Q_IS_FUNCTION( Fn )::value
+	is_function_t< Fn >::value
 	and
-	Q_ARITY_OF( Fn ) == 1
+	arity_of_t< Fn >::value == 1
 	and
-	!Q_ARGUMENTS_ARE( Fn, std::exception_ptr )::value
+	!arguments_of_are_t< Fn, std::exception_ptr >::value
 	and
-	detail::tuple_arguments< Q_RESULT_OF( Fn ) >
+	detail::tuple_arguments< result_of_t< Fn > >
 		::template is_convertible_to<
 			typename generic_promise<
 				Shared, std::tuple< Args... >
@@ -241,15 +241,15 @@ fail( Fn&& fn, Queue&& queue )
 template< bool Shared, typename... Args >
 template< typename Fn, typename Queue >
 typename std::enable_if<
-	Q_IS_FUNCTION( Fn )::value
+	is_function_t< Fn >::value
 	and
-	Q_ARITY_OF( Fn ) == 1
+	arity_of_t< Fn >::value == 1
 	and
-	!Q_ARGUMENTS_ARE( Fn, std::exception_ptr )::value
+	!arguments_of_are_t< Fn, std::exception_ptr >::value
 	and
-	is_promise< Q_RESULT_OF( Fn ) >::value
+	is_promise< result_of_t< Fn > >::value
 	and
-	Q_FUNCTIONTRAITS( Fn )::result_type::argument_types
+	result_of_t< Fn >::argument_types
 		::template is_convertible_to<
 			typename generic_promise<
 				Shared, std::tuple< Args... >

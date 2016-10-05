@@ -25,11 +25,11 @@ namespace q { namespace detail {
 template< bool Shared, typename... Args >
 template< typename Fn, typename Queue >
 typename std::enable_if<
-	Q_IS_FUNCTION( Fn )::value
+	is_function_t< Fn >::value
 	and
-	std::is_void< Q_RESULT_OF( Fn ) >::value
+	std::is_void< result_of_t< Fn > >::value
 	and
-	Q_ARITY_OF( Fn ) == 0
+	arity_of_t< Fn >::value == 0
 	and
 	Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
 	typename generic_promise<
@@ -75,11 +75,11 @@ finally( Fn&& fn, Queue&& queue )
 template< bool Shared, typename... Args >
 template< typename Fn, typename Queue >
 typename std::enable_if<
-	Q_IS_FUNCTION( Fn )::value
+	is_function_t< Fn >::value
 	and
-	::q::is_promise< Q_RESULT_OF( Fn ) >::value
+	::q::is_promise< result_of_t< Fn > >::value
 	and
-	Q_FUNCTIONTRAITS( Fn )::result_type::argument_types::size::value == 0
+	result_of_t< Fn >::argument_types::empty::value
 	and
 	Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
 	typename generic_promise<
