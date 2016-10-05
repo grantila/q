@@ -25,25 +25,25 @@ namespace q { namespace detail {
 template< bool Shared, typename... Args >
 template< typename Fn, typename Queue >
 inline typename std::enable_if<
-	Q_IS_FUNCTION( Fn )::value
+	is_function_t< Fn >::value
 	and
 	!first_argument_is_tuple< Fn >::value
 	and
 	generic_promise<
 		Shared, std::tuple< Args... >
 	>::template is_valid_arguments<
-		Q_ARGUMENTS_OF( Fn )
+		arguments_of_t< Fn >
 	>::value
 	and
-	!is_promise< Q_RESULT_OF( Fn ) >::value
+	!is_promise< result_of_t< Fn > >::value
 	and
 	Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
-	promise< Q_RESULT_OF_AS_TUPLE_TYPE( Fn ) >
+	promise< result_of_as_tuple_t< Fn > >
 >::type
 generic_promise< Shared, std::tuple< Args... > >::
 then( Fn&& fn, Queue&& queue )
 {
-	typedef Q_RESULT_OF_AS_TUPLE_TYPE( Fn ) return_tuple_type;
+	typedef result_of_as_tuple_t< Fn > return_tuple_type;
 	auto deferred = detail::defer< return_tuple_type >::construct(
 		is_set_default< Queue >::value
 		? ensure( set_default_get( queue ) )
@@ -74,26 +74,26 @@ then( Fn&& fn, Queue&& queue )
 template< bool Shared, typename... Args >
 template< typename Fn, typename Queue >
 typename std::enable_if<
-	Q_IS_FUNCTION( Fn )::value
+	is_function_t< Fn >::value
 	and
 	first_argument_is_tuple< Fn >::value
 	and
 	::q::is_argument_same_or_convertible_incl_void<
 		arguments< Args... >,
 		typename tuple_arguments<
-			Q_ARGUMENTS_OF( Fn )::first_type
+			first_argument_of_t< Fn >
 		>::type
 	>::value
 	and
-	!is_promise< Q_RESULT_OF( Fn ) >::value
+	!is_promise< result_of_t< Fn > >::value
 	and
 	Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
-	promise< Q_RESULT_OF_AS_ARGUMENT_TYPE( Fn )::tuple_type >
+	promise< result_of_as_tuple_t< Fn > >
 >::type
 generic_promise< Shared, std::tuple< Args... > >::
 then( Fn&& fn, Queue&& queue )
 {
-	typedef Q_RESULT_OF_AS_TUPLE_TYPE( Fn ) return_tuple_type;
+	typedef result_of_as_tuple_t< Fn > return_tuple_type;
 	auto deferred = detail::defer< return_tuple_type >::construct(
 	      is_set_default< Queue >::value
 	      ? ensure( set_default_get( queue ) )
@@ -124,25 +124,25 @@ then( Fn&& fn, Queue&& queue )
 template< bool Shared, typename... Args >
 template< typename Fn, typename Queue >
 typename std::enable_if<
-	Q_IS_FUNCTION( Fn )::value
+	is_function_t< Fn >::value
 	and
 	!first_argument_is_tuple< Fn >::value
 	and
 	generic_promise<
 		Shared, std::tuple< Args... >
 	>::template is_valid_arguments<
-		Q_ARGUMENTS_OF( Fn )
+		arguments_of_t< Fn >
 	>::value
 	and
-	is_promise< Q_RESULT_OF( Fn ) >::value
+	is_promise< result_of_t< Fn > >::value
 	and
 	Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
-	Q_RESULT_OF( Fn )::unique_this_type
+	typename result_of_t< Fn >::unique_this_type
 >::type
 generic_promise< Shared, std::tuple< Args... > >::
 then( Fn&& fn, Queue&& queue )
 {
-	typedef Q_RESULT_OF( Fn )::tuple_type return_tuple_type;
+	typedef typename result_of_t< Fn >::tuple_type return_tuple_type;
 	auto deferred = detail::defer< return_tuple_type >::construct(
 	      is_set_default< Queue >::value
 	      ? ensure( set_default_get( queue ) )
@@ -173,26 +173,26 @@ then( Fn&& fn, Queue&& queue )
 template< bool Shared, typename... Args >
 template< typename Fn, typename Queue >
 typename std::enable_if<
-	Q_IS_FUNCTION( Fn )::value
+	is_function_t< Fn >::value
 	and
 	first_argument_is_tuple< Fn >::value
 	and
 	::q::is_argument_same_or_convertible_incl_void<
 		arguments< Args... >,
 		typename tuple_arguments<
-			Q_ARGUMENTS_OF( Fn )::first_type
+			first_argument_of_t< Fn >
 		>::type
 	>::value
 	and
-	is_promise< Q_RESULT_OF( Fn ) >::value
+	is_promise< result_of_t< Fn > >::value
 	and
 	Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
-	Q_RESULT_OF( Fn )::unique_this_type
+	typename result_of_t< Fn >::unique_this_type
 >::type
 generic_promise< Shared, std::tuple< Args... > >::
 then( Fn&& fn, Queue&& queue )
 {
-	typedef Q_RESULT_OF( Fn )::tuple_type return_tuple_type;
+	typedef typename result_of_t< Fn >::tuple_type return_tuple_type;
 	auto deferred = detail::defer< return_tuple_type >::construct(
 	      is_set_default< Queue >::value
 	      ? ensure( set_default_get( queue ) )
