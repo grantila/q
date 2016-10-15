@@ -347,6 +347,101 @@ public:
 	fail( Fn&& fn, Queue&& queue = nullptr );
 
 	/**
+	 * tap() works like then() in that it will only be called if the
+	 * promise has a value, not exception.
+	 * However, it works like finally() in the sense that it cannot
+	 * manipulate the value (other than potentially making the returned
+	 * promise contain an exception instead, if this function throws an
+	 * exception (synchronously or asynchronously).
+	 *
+	 * This is useful for inspecting a promise without altering the chain.
+	 */
+
+	/**
+	 * ( T... ) -> void
+	 */
+	template< typename Fn, typename Queue = queue_ptr >
+	typename std::enable_if<
+		is_function_t< Fn >::value
+		and
+		this_type::template is_valid_arguments<
+			arguments_of_t< Fn >
+		>::value
+		and
+		std::is_void< result_of_t< Fn > >::value
+		and
+		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
+		unique_this_type
+	>::type
+	tap( Fn&& fn, Queue&& queue = nullptr );
+
+	/**
+	 * ( T... ) -> P< >
+	 */
+	template< typename Fn, typename Queue = queue_ptr >
+	typename std::enable_if<
+		is_function_t< Fn >::value
+		and
+		this_type::template is_valid_arguments<
+			arguments_of_t< Fn >
+		>::value
+		and
+		is_promise< result_of_t< Fn > >::value
+		and
+		result_of_t< Fn >::argument_types::empty_or_voidish::value
+		and
+		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
+		unique_this_type
+	>::type
+	tap( Fn&& fn, Queue&& queue = nullptr );
+
+	/**
+	 * ( std::tuple< ... > ) -> void
+	 */
+	template< typename Fn, typename Queue = queue_ptr >
+	typename std::enable_if<
+		is_function_t< Fn >::value
+		and
+		first_argument_is_tuple< Fn >::value
+		and
+		::q::is_argument_same_or_convertible_incl_void<
+			argument_types,
+			typename tuple_arguments<
+				first_argument_of_t< Fn >
+			>::type
+		>::value
+		and
+		std::is_void< result_of_t< Fn > >::value
+		and
+		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
+		unique_this_type
+	>::type
+	tap( Fn&& fn, Queue&& queue = nullptr );
+
+	/**
+	 * ( std::tuple< ... > ) -> P< >
+	 */
+	template< typename Fn, typename Queue = queue_ptr >
+	typename std::enable_if<
+		is_function_t< Fn >::value
+		and
+		first_argument_is_tuple< Fn >::value
+		and
+		::q::is_argument_same_or_convertible_incl_void<
+			argument_types,
+			typename tuple_arguments<
+				first_argument_of_t< Fn >
+			>::type
+		>::value
+		and
+		is_promise< result_of_t< Fn > >::value
+		and
+		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
+		unique_this_type
+	>::type
+	tap( Fn&& fn, Queue&& queue = nullptr );
+
+	/**
 	 * A finally() function is always run, ignoring the current state, i.e.
 	 * if the previous task threw an exception or returned a value.
 	 *
