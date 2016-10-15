@@ -442,6 +442,93 @@ public:
 	tap( Fn&& fn, Queue&& queue = nullptr );
 
 	/**
+	 * tap_error() works like tap(), except that it is only called if the
+	 * promsie contains an exception and not a value. Like tap(), it won't
+	 * alter the chain, and the provided functions can therefore only
+	 * return void or an empty promise.
+	 */
+
+	/**
+	 * std::exception_ptr -> void
+	 */
+	template< typename Fn, typename Queue = queue_ptr >
+	typename std::enable_if<
+		is_function_t< Fn >::value
+		and
+		arity_of_t< Fn >::value == 1
+		and
+		is_same_type<
+			first_argument_of_t< Fn >,
+			std::exception_ptr
+		>::value
+		and
+		std::is_void< result_of_t< Fn > >::value
+		and
+		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
+		unique_this_type
+	>::type
+	tap_error( Fn&& fn, Queue&& queue = nullptr );
+
+	/**
+	 * std::exception_ptr -> P< >
+	 */
+	template< typename Fn, typename Queue = queue_ptr >
+	typename std::enable_if<
+		is_function_t< Fn >::value
+		and
+		is_same_type<
+			first_argument_of_t< Fn >,
+			std::exception_ptr
+		>::value
+		and
+		is_promise< result_of_t< Fn > >::value
+		and
+		result_of_t< Fn >::argument_types::empty_or_voidish::value
+		and
+		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
+		unique_this_type
+	>::type
+	tap_error( Fn&& fn, Queue&& queue = nullptr );
+
+	/**
+	 * E -> void
+	 */
+	template< typename Fn, typename Queue = queue_ptr >
+	typename std::enable_if<
+		is_function_t< Fn >::value
+		and
+		arity_of_t< Fn >::value == 1
+		and
+		!arguments_of_are_t< Fn, std::exception_ptr >::value
+		and
+		std::is_void< result_of_t< Fn > >::value
+		and
+		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
+		unique_this_type
+	>::type
+	tap_error( Fn&& fn, Queue&& queue = nullptr );
+
+	/**
+	 * E -> P< >
+	 */
+	template< typename Fn, typename Queue = queue_ptr >
+	typename std::enable_if<
+		is_function_t< Fn >::value
+		and
+		arity_of_t< Fn >::value == 1
+		and
+		!arguments_of_are_t< Fn, std::exception_ptr >::value
+		and
+		is_promise< result_of_t< Fn > >::value
+		and
+		result_of_t< Fn >::argument_types::empty_or_voidish::value
+		and
+		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
+		unique_this_type
+	>::type
+	tap_error( Fn&& fn, Queue&& queue = nullptr );
+
+	/**
 	 * A finally() function is always run, ignoring the current state, i.e.
 	 * if the previous task threw an exception or returned a value.
 	 *

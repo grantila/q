@@ -43,10 +43,8 @@
 #include <q/promise/impl/fail.hpp>
 #include <q/promise/impl/finally.hpp>
 #include <q/promise/impl/tap.hpp>
+#include <q/promise/impl/tap_error.hpp>
 #include <q/promise/impl/rest.hpp>
-
-#include <future>
-#include <memory>
 
 namespace q {
 
