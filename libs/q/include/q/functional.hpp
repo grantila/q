@@ -396,6 +396,13 @@ using arguments_of_are_convertible_from_incl_void_t =
 		arguments_of_t< Fn >
 	>;
 
+template< typename Fn, typename... Args >
+using arguments_of_are_convertible_from_incl_void_t =
+	::q::is_argument_same_or_convertible_incl_void<
+		::q::arguments< Args... >,
+		arguments_of_t< Fn >
+	>;
+
 template<
 	typename Fn,
 	template< typename > class T,
