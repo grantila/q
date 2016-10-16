@@ -362,6 +362,13 @@ using arguments_of_are_convertible_from_t =
 		arguments_of_t< Fn >
 	>;
 
+template< typename Fn, typename... Args >
+using arguments_of_are_convertible_from_incl_void_t =
+	::q::is_argument_same_or_convertible_incl_void<
+		::q::arguments< Args... >,
+		arguments_of_t< Fn >
+	>;
+
 template<
 	typename Fn,
 	template< typename > class T,
@@ -409,6 +416,10 @@ constexpr bool arguments_of_are_v = arguments_of_are_t< Fn, Args... >::value;
 template< typename Fn, typename... Args >
 constexpr bool arguments_of_are_convertible_from_v =
 	arguments_of_are_convertible_from_t< Fn, Args... >::value;
+
+template< typename Fn, typename... Args >
+constexpr bool arguments_of_are_convertible_from_incl_void_v =
+	arguments_of_are_convertible_from_incl_void_t< Fn, Args... >::value;
 
 #endif // C++14
 
