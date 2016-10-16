@@ -248,7 +248,6 @@ public:
 				default_queue_ );
 
 			waiters_.push_back( defer );
-			resume( );
 
 			return defer->get_promise( );
 		}
@@ -257,7 +256,7 @@ public:
 			tuple_type t = std::move( queue_.front( ) );
 			queue_.pop( );
 
-			if ( queue_.size( ) < resume_count_ )
+			if ( queue_.size( ) < resume_count_ && paused_ )
 			{
 				auto self = this->shared_from_this( );
 				default_queue_->push( [ self ]( )
