@@ -17,9 +17,8 @@
 #ifndef LIBQ_PROMISE_SIGNAL_HPP
 #define LIBQ_PROMISE_SIGNAL_HPP
 
-#include <q/exception.hpp>
+#include <q/types.hpp>
 
-#include <vector>
 #include <memory>
 
 namespace q { namespace detail {
