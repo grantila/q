@@ -382,6 +382,13 @@ constexpr bool arguments_of_are_convertible_from =
 		arguments_of< Fn >
 	>::value;
 
+template< typename Fn, typename... Args >
+constexpr bool arguments_of_are_convertible_from_incl_void =
+	::q::is_argument_same_or_convertible_incl_void<
+		::q::arguments< Args... >,
+		arguments_of< Fn >
+	>::value;
+
 #endif // C++14
 
 template< typename Fn, typename... Args >

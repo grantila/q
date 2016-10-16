@@ -56,6 +56,7 @@ class observable
 	typedef typename q::objectify< T >::type void_safe_type;
 
 public:
+	typedef T element_type;
 	typedef observable< T > this_type;
 
 	/**********************************************************************
@@ -387,6 +388,8 @@ public:
 	 */
 	template< typename Fn >
 	typename std::enable_if<
+		q::arguments_of_are_convertible_from_incl_void< Fn, T >
+		and
 		!q::is_promise< Q_RESULT_OF( Fn ) >::value,
 		observable< Q_RESULT_OF( Fn ) >
 	>::type
@@ -397,6 +400,8 @@ public:
 	 */
 	template< typename Fn >
 	typename std::enable_if<
+		q::arguments_of_are_convertible_from_incl_void< Fn, T >
+		and
 		q::is_promise< Q_RESULT_OF( Fn ) >::value,
 		typename detail::tuple_to_observable<
 			typename ::q::result_of< Fn >::tuple_type
