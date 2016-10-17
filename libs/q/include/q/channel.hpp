@@ -654,6 +654,8 @@ public:
 	 */
 	template< typename Tuple >
 	typename std::enable_if<
+		!is_promise::value
+		and
 		q::is_tuple< typename std::decay< Tuple >::type >::value
 		and
 		std::is_same<
@@ -677,6 +679,8 @@ public:
 	 */
 	template< typename... Args >
 	typename std::enable_if<
+		!is_promise::value
+		and
 		arguments<
 			typename std::decay< Args >::type...
 		>::template is_convertible_to_incl_void<
@@ -699,7 +703,7 @@ public:
 		arguments<
 			typename std::decay< Args >::type...
 		>::template is_convertible_to_incl_void<
-			promise_arguments_type
+			arguments< promise_type >
 		>::value
 	>::type
 	send( Args&&... args )
