@@ -53,6 +53,11 @@ public:
 		>,
 		void
 	>::type                                       short_expect_type;
+	typedef typename std::conditional<
+		sizeof...( Args ) < 2,
+		typename ::q::arguments< Args..., void >::first_type,
+		tuple_type
+	>::type                                       first_or_all_types;
 
 	template< typename... T >
 	struct is_valid_arguments
