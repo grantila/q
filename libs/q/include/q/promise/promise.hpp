@@ -138,18 +138,18 @@ public:
 	 */
 	template< typename Fn, typename Queue = queue_ptr >
 	typename std::enable_if<
-		Q_IS_FUNCTION( Fn )::value
+		is_function_t< Fn >::value
 		and
 		!first_argument_is_tuple< Fn >::value
 		and
 		this_type::template is_valid_arguments<
-			Q_ARGUMENTS_OF( Fn )
+			arguments_of_t< Fn >
 		>::value
 		and
-		!is_promise< Q_RESULT_OF( Fn ) >::value
+		!is_promise< result_of_t< Fn > >::value
 		and
 		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
-		promise< Q_RESULT_OF_AS_TUPLE_TYPE( Fn ) >
+		promise< result_of_as_tuple_t< Fn > >
 	>::type
 	then( Fn&& fn, Queue&& queue = nullptr );
 
@@ -158,21 +158,21 @@ public:
 	 */
 	template< typename Fn, typename Queue = queue_ptr >
 	typename std::enable_if<
-		Q_IS_FUNCTION( Fn )::value
+		is_function_t< Fn >::value
 		and
 		first_argument_is_tuple< Fn >::value
 		and
 		::q::is_argument_same_or_convertible_incl_void<
 			arguments< Args... >,
 			typename tuple_arguments<
-				Q_ARGUMENTS_OF( Fn )::first_type
+				first_argument_of_t< Fn >
 			>::type
 		>::value
 		and
-		!is_promise< Q_RESULT_OF( Fn ) >::value
+		!is_promise< result_of_t< Fn > >::value
 		and
 		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
-		promise< Q_RESULT_OF_AS_ARGUMENT_TYPE( Fn )::tuple_type >
+		promise< result_of_as_tuple_t< Fn > >
 	>::type
 	then( Fn&& fn, Queue&& queue = nullptr );
 
@@ -181,18 +181,18 @@ public:
 	 */
 	template< typename Fn, typename Queue = queue_ptr >
 	typename std::enable_if<
-		Q_IS_FUNCTION( Fn )::value
+		is_function_t< Fn >::value
 		and
 		!first_argument_is_tuple< Fn >::value
 		and
 		this_type::template is_valid_arguments<
-			Q_ARGUMENTS_OF( Fn )
+			arguments_of_t< Fn >
 		>::value
 		and
-		is_promise< Q_RESULT_OF( Fn ) >::value
+		is_promise< result_of_t< Fn > >::value
 		and
 		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
-		Q_RESULT_OF( Fn )::unique_this_type
+		typename result_of_t< Fn >::unique_this_type
 	>::type
 	then( Fn&& fn, Queue&& queue = nullptr );
 
@@ -201,21 +201,21 @@ public:
 	 */
 	template< typename Fn, typename Queue = queue_ptr >
 	typename std::enable_if<
-		Q_IS_FUNCTION( Fn )::value
+		is_function_t< Fn >::value
 		and
 		first_argument_is_tuple< Fn >::value
 		and
 		::q::is_argument_same_or_convertible_incl_void<
 			argument_types,
 			typename tuple_arguments<
-				Q_ARGUMENTS_OF( Fn )::first_type
+				first_argument_of_t< Fn >
 			>::type
 		>::value
 		and
-		is_promise< Q_RESULT_OF( Fn ) >::value
+		is_promise< result_of_t< Fn > >::value
 		and
 		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
-		Q_RESULT_OF( Fn )::unique_this_type
+		typename result_of_t< Fn >::unique_this_type
 	>::type
 	then( Fn&& fn, Queue&& queue = nullptr );
 
@@ -267,16 +267,16 @@ public:
 	 */
 	template< typename Fn, typename Queue = queue_ptr >
 	typename std::enable_if<
-		Q_IS_FUNCTION( Fn )::value
+		is_function_t< Fn >::value
 		and
-		Q_ARITY_OF( Fn ) == 1
+		arity_of_t< Fn >::value == 1
 		and
 		is_same_type<
-			Q_FIRST_ARGUMENT_OF( Fn ),
+			first_argument_of_t< Fn >,
 			std::exception_ptr
 		>::value
 		and
-		detail::tuple_arguments< Q_RESULT_OF( Fn ) >
+		detail::tuple_arguments< result_of_t< Fn > >
 			::template is_convertible_to< argument_types >::value
 		and
 		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
@@ -289,16 +289,16 @@ public:
 	 */
 	template< typename Fn, typename Queue = queue_ptr >
 	typename std::enable_if<
-		Q_IS_FUNCTION( Fn )::value
+		is_function_t< Fn >::value
 		and
 		is_same_type<
-			Q_FIRST_ARGUMENT_OF( Fn ),
+			first_argument_of_t< Fn >,
 			std::exception_ptr
 		>::value
 		and
-		is_promise< Q_RESULT_OF( Fn ) >::value
+		is_promise< result_of_t< Fn > >::value
 		and
-		Q_FUNCTIONTRAITS( Fn )::result_type::argument_types
+		result_of_t< Fn >::argument_types
 			::template is_convertible_to< argument_types >::value
 		and
 		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
@@ -311,13 +311,13 @@ public:
 	 */
 	template< typename Fn, typename Queue = queue_ptr >
 	typename std::enable_if<
-		Q_IS_FUNCTION( Fn )::value
+		is_function_t< Fn >::value
 		and
-		Q_ARITY_OF( Fn ) == 1
+		arity_of_t< Fn >::value == 1
 		and
-		!Q_ARGUMENTS_ARE( Fn, std::exception_ptr )::value
+		!arguments_of_are_t< Fn, std::exception_ptr >::value
 		and
-		detail::tuple_arguments< Q_RESULT_OF( Fn ) >
+		detail::tuple_arguments< result_of_t< Fn > >
 			::template is_convertible_to< argument_types >::value
 		and
 		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
@@ -330,21 +330,203 @@ public:
 	 */
 	template< typename Fn, typename Queue = queue_ptr >
 	typename std::enable_if<
-		Q_IS_FUNCTION( Fn )::value
+		is_function_t< Fn >::value
 		and
-		Q_ARITY_OF( Fn ) == 1
+		arity_of_t< Fn >::value == 1
 		and
-		!Q_ARGUMENTS_ARE( Fn, std::exception_ptr )::value
+		!arguments_of_are_t< Fn, std::exception_ptr >::value
 		and
-		is_promise< Q_RESULT_OF( Fn ) >::value
+		is_promise< result_of_t< Fn > >::value
 		and
-		Q_FUNCTIONTRAITS( Fn )::result_type::argument_types
+		result_of_t< Fn >::argument_types
 			::template is_convertible_to< argument_types >::value
 		and
 		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
 		promise_this_type
 	>::type
 	fail( Fn&& fn, Queue&& queue = nullptr );
+
+	/**
+	 * tap() works like then() in that it will only be called if the
+	 * promise has a value, not exception.
+	 * However, it works like finally() in the sense that it cannot
+	 * manipulate the value (other than potentially making the returned
+	 * promise contain an exception instead, if this function throws an
+	 * exception (synchronously or asynchronously).
+	 *
+	 * This is useful for inspecting a promise without altering the chain.
+	 */
+
+	/**
+	 * ( T... ) -> void
+	 */
+	template< typename Fn, typename Queue = queue_ptr >
+	typename std::enable_if<
+		is_function_t< Fn >::value
+		and
+		this_type::template is_valid_arguments<
+			arguments_of_t< Fn >
+		>::value
+		and
+		std::is_void< result_of_t< Fn > >::value
+		and
+		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
+		unique_this_type
+	>::type
+	tap( Fn&& fn, Queue&& queue = nullptr );
+
+	/**
+	 * ( T... ) -> P< >
+	 */
+	template< typename Fn, typename Queue = queue_ptr >
+	typename std::enable_if<
+		is_function_t< Fn >::value
+		and
+		this_type::template is_valid_arguments<
+			arguments_of_t< Fn >
+		>::value
+		and
+		is_promise< result_of_t< Fn > >::value
+		and
+		result_of_t< Fn >::argument_types::empty_or_voidish::value
+		and
+		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
+		unique_this_type
+	>::type
+	tap( Fn&& fn, Queue&& queue = nullptr );
+
+	/**
+	 * ( std::tuple< ... > ) -> void
+	 */
+	template< typename Fn, typename Queue = queue_ptr >
+	typename std::enable_if<
+		is_function_t< Fn >::value
+		and
+		first_argument_is_tuple< Fn >::value
+		and
+		::q::is_argument_same_or_convertible_incl_void<
+			argument_types,
+			typename tuple_arguments<
+				first_argument_of_t< Fn >
+			>::type
+		>::value
+		and
+		std::is_void< result_of_t< Fn > >::value
+		and
+		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
+		unique_this_type
+	>::type
+	tap( Fn&& fn, Queue&& queue = nullptr );
+
+	/**
+	 * ( std::tuple< ... > ) -> P< >
+	 */
+	template< typename Fn, typename Queue = queue_ptr >
+	typename std::enable_if<
+		is_function_t< Fn >::value
+		and
+		first_argument_is_tuple< Fn >::value
+		and
+		::q::is_argument_same_or_convertible_incl_void<
+			argument_types,
+			typename tuple_arguments<
+				first_argument_of_t< Fn >
+			>::type
+		>::value
+		and
+		is_promise< result_of_t< Fn > >::value
+		and
+		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
+		unique_this_type
+	>::type
+	tap( Fn&& fn, Queue&& queue = nullptr );
+
+	/**
+	 * tap_error() works like tap(), except that it is only called if the
+	 * promsie contains an exception and not a value. Like tap(), it won't
+	 * alter the chain, and the provided functions can therefore only
+	 * return void or an empty promise.
+	 */
+
+	/**
+	 * std::exception_ptr -> void
+	 */
+	template< typename Fn, typename Queue = queue_ptr >
+	typename std::enable_if<
+		is_function_t< Fn >::value
+		and
+		arity_of_t< Fn >::value == 1
+		and
+		is_same_type<
+			first_argument_of_t< Fn >,
+			std::exception_ptr
+		>::value
+		and
+		std::is_void< result_of_t< Fn > >::value
+		and
+		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
+		unique_this_type
+	>::type
+	tap_error( Fn&& fn, Queue&& queue = nullptr );
+
+	/**
+	 * std::exception_ptr -> P< >
+	 */
+	template< typename Fn, typename Queue = queue_ptr >
+	typename std::enable_if<
+		is_function_t< Fn >::value
+		and
+		is_same_type<
+			first_argument_of_t< Fn >,
+			std::exception_ptr
+		>::value
+		and
+		is_promise< result_of_t< Fn > >::value
+		and
+		result_of_t< Fn >::argument_types::empty_or_voidish::value
+		and
+		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
+		unique_this_type
+	>::type
+	tap_error( Fn&& fn, Queue&& queue = nullptr );
+
+	/**
+	 * E -> void
+	 */
+	template< typename Fn, typename Queue = queue_ptr >
+	typename std::enable_if<
+		is_function_t< Fn >::value
+		and
+		arity_of_t< Fn >::value == 1
+		and
+		!arguments_of_are_t< Fn, std::exception_ptr >::value
+		and
+		std::is_void< result_of_t< Fn > >::value
+		and
+		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
+		unique_this_type
+	>::type
+	tap_error( Fn&& fn, Queue&& queue = nullptr );
+
+	/**
+	 * E -> P< >
+	 */
+	template< typename Fn, typename Queue = queue_ptr >
+	typename std::enable_if<
+		is_function_t< Fn >::value
+		and
+		arity_of_t< Fn >::value == 1
+		and
+		!arguments_of_are_t< Fn, std::exception_ptr >::value
+		and
+		is_promise< result_of_t< Fn > >::value
+		and
+		result_of_t< Fn >::argument_types::empty_or_voidish::value
+		and
+		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
+		unique_this_type
+	>::type
+	tap_error( Fn&& fn, Queue&& queue = nullptr );
 
 	/**
 	 * A finally() function is always run, ignoring the current state, i.e.
@@ -358,11 +540,11 @@ public:
 	 */
 	template< typename Fn, typename Queue = queue_ptr >
 	typename std::enable_if<
-		Q_IS_FUNCTION( Fn )::value
+		is_function_t< Fn >::value
 		and
-		std::is_void< Q_RESULT_OF( Fn ) >::value
+		std::is_void< result_of_t< Fn > >::value
 		and
-		Q_ARITY_OF( Fn ) == 0
+		arity_of_t< Fn >::value == 0
 		and
 		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
 		promise_this_type
@@ -374,12 +556,11 @@ public:
 	 */
 	template< typename Fn, typename Queue = queue_ptr >
 	typename std::enable_if<
-		Q_IS_FUNCTION( Fn )::value
+		is_function_t< Fn >::value
 		and
-		::q::is_promise< Q_RESULT_OF( Fn ) >::value
+		::q::is_promise< result_of_t< Fn > >::value
 		and
-		Q_FUNCTIONTRAITS( Fn )
-			::result_type::argument_types::size::value == 0
+		result_of_t< Fn >::argument_types::empty::value
 		and
 		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
 		promise_this_type

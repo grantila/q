@@ -65,13 +65,13 @@ template< typename Fn >
 typename std::enable_if<
 	!is_promise< Q_RESULT_OF( Fn ) >::value,
 	decltype(
-		detail::promisifier< result_of< Fn >, arguments_of< Fn > >
+		detail::promisifier< result_of_t< Fn >, arguments_of_t< Fn > >
 		::promisify( nullptr, std::declval< Fn >( ) )
 	)
 >::type
 promisify( queue_ptr queue, Fn&& fn )
 {
-	return detail::promisifier< result_of< Fn >, arguments_of< Fn > >
+	return detail::promisifier< result_of_t< Fn >, arguments_of_t< Fn > >
 		::promisify( std::move( queue ), std::forward< Fn >( fn ) );
 }
 
