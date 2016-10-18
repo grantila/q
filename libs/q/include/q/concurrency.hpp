@@ -30,7 +30,7 @@ public:
 		infinity
 	};
 
-	concurrency( other value = other::infinity )
+	concurrency( other value )
 	: value_( std::numeric_limits< std::size_t >::max( ) )
 	{ }
 
@@ -38,13 +38,22 @@ public:
 	: value_( value )
 	{ }
 
+	// Will default to 1
+	concurrency( )
+	: value_( 0 )
+	{ }
+
 	operator std::size_t( ) const
 	{
+		if ( !value_ )
+			return 1;
 		return value_;
 	}
 
-	std::size_t get( ) const
+	std::size_t get( std::size_t fallback = 1 ) const
 	{
+		if ( !value_ )
+			return fallback;
 		return value_;
 	}
 
