@@ -59,6 +59,10 @@
 #if __cplusplus >= 201402L
 #	define LIBQ_WITH_CPP14
 #endif
+#if __cplusplus >= 201406L
+	// This particular version isn't set yet, and compiler support may vary
+#	define LIBQ_WITH_CPP17
+#endif
 
 #define LIBQ_JOIN_( a, b ) a ## b
 #define LIBQ_JOIN( a, b ) LIBQ_JOIN_( a, b )
@@ -66,7 +70,7 @@
 #define LIBQ_LINE __LINE__
 #define LIBQ_FILE __FILE__
 #ifdef LIBQ_ON_WINDOWS
-#	define LIBQ_FUNCTION __FUNCTION__
+#	define LIBQ_FUNCTION __FUNCSIG__
 #else
 #	define LIBQ_FUNCTION __PRETTY_FUNCTION__
 #endif
