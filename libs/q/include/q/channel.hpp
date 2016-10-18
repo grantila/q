@@ -897,6 +897,84 @@ private:
 	writable< T... > writable_;
 };
 
+Q_MAKE_SIMPLE_EXCEPTION( internal_backpressure_exception );
+
+/**
+ * backpressure is a helper class to allow multiple writables to signal
+ * upstream backpressure notifications, and when all have signaled, this class
+ * emits a downstream event (through a promise).
+ */
+class backpressure
+: public std::enable_shared_from_this< backpressure >
+{
+public:
+	template< typename... T >
+	void add_once( writable< T... > writable )
+	{
+		auto self = shared_from_this( );
+
+		++counter_;
+
+		writable.set_resume_notification(
+			[ self, writable ]( ) mutable
+			{
+				self->handle_one( );
+				writable.unset_resume_notification( );
+			},
+			true
+		);
+	}
+
+	readable< > get_readable( )
+	{
+		return back_ch_.get_readable( );
+	}
+
+	promise< std::tuple< > > get_promise( )
+	{
+		++counter_;
+
+		auto promise = get_readable( ).receive( );
+
+		handle_one( );
+
+		return promise;
+	}
+
+protected:
+	backpressure( const queue_ptr& queue )
+	: counter_( 0 )
+	, back_ch_( queue, 3 )
+	, writable_( back_ch_.get_writable( ) )
+	{ }
+
+	~backpressure( )
+	{
+		while ( counter_ > 0 )
+			handle_one( );
+	}
+
+private:
+	void handle_one( )
+	{
+		if ( !counter_ )
+		{
+			// Shouldn't happen
+			writable_.close( internal_backpressure_exception( ) );
+		}
+		else if ( !--counter_ )
+		{
+			// All pending/incoming channels are listened to.
+			// Forward one.
+			writable_.send( );
+		}
+	}
+
+	std::atomic< std::size_t > counter_;
+	channel< > back_ch_;
+	writable< > writable_;
+};
+
 } // namespace q
 
 #endif // LIBQ_CHANNEL_HPP
