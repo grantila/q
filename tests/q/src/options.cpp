@@ -31,10 +31,7 @@ TEST( options, one_type )
 
 	auto fun_opts1 = fun( );
 	EXPECT_FALSE( fun_opts1.has< q::concurrency >( ) );
-	EXPECT_EQ(
-		fun_opts1.get< q::concurrency >( ).get( ),
-		q::concurrency( q::concurrency::infinity ).get( )
-	);
+	EXPECT_EQ( 1, fun_opts1.get< q::concurrency >( ).get( ) );
 
 	auto fun_opts2 = fun( { q::concurrency( 4 ) } );
 	EXPECT_TRUE( fun_opts2.has< q::concurrency >( ) );
@@ -53,10 +50,7 @@ TEST( options, two_types )
 	auto fun_opts1 = fun( );
 	EXPECT_FALSE( fun_opts1.has< q::concurrency >( ) );
 	EXPECT_FALSE( fun_opts1.has< q::queue_ptr >( ) );
-	EXPECT_EQ(
-		fun_opts1.get< q::concurrency >( ).get( ),
-		q::concurrency( q::concurrency::infinity ).get( )
-	);
+	EXPECT_EQ( 1, fun_opts1.get< q::concurrency >( ).get( ) );
 
 	auto fun_opts2 = fun( { } );
 	EXPECT_FALSE( fun_opts1.has< q::concurrency >( ) );
