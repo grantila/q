@@ -279,16 +279,26 @@ public:
 		return !paused_ && !closed_;
 	}
 
-	void set_resume_notification( task fn )
+	void set_resume_notification( task fn, bool trigger_now )
 	{
-		Q_AUTO_UNIQUE_LOCK( mutex_ );
+		task notification;
 
-		resume_notification_ = fn;
+		{
+			Q_AUTO_UNIQUE_LOCK( mutex_ );
+
+			resume_notification_ = fn;
+
+			if ( trigger_now && !should_send( ) )
+				notification = resume_notification_;
+		}
+
+		if ( notification )
+			default_queue_->push( std::move( notification ) );
 	}
 
 	void unset_resume_notification( )
 	{
-		set_resume_notification( task( ) );
+		set_resume_notification( task( ), false );
 	}
 
 	/**
@@ -760,9 +770,10 @@ public:
 		return shared_channel_->should_send( );
 	}
 
-	void set_resume_notification( task fn )
+	void set_resume_notification( task fn, bool trigger_now = false )
 	{
-		shared_channel_->set_resume_notification( std::move( fn ) );
+		shared_channel_->set_resume_notification(
+			std::move( fn ), trigger_now );
 	}
 
 	void unset_resume_notification( )
@@ -800,6 +811,11 @@ public:
 	void add_scope_until_closed( scope&& scope )
 	{
 		shared_channel_->add_scope_until_closed( std::move( scope ) );
+	}
+
+	queue_ptr get_queue( ) const
+	{
+		return shared_channel_->get_queue( );
 	}
 
 private:
@@ -868,6 +884,11 @@ public:
 	void add_scope_until_closed( scope&& scope )
 	{
 		shared_channel_->add_scope_until_closed( std::move( scope ) );
+	}
+
+	queue_ptr get_queue( ) const
+	{
+		return shared_channel_->get_queue( );
 	}
 
 private:
