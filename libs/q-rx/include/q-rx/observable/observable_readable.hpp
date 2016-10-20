@@ -19,51 +19,98 @@
 
 namespace q { namespace rx { namespace detail {
 
+namespace {
+
+using empty_promise = q::promise< std::tuple< > >;
+
+} // anonymous namespace
+
 template< typename T >
 struct observable_readable_traits
 {
-	typedef std::function< void( T&& ) > receiver_type;
-	typedef std::function< void( ) > receiver_type_void;
-	typedef q::readable< T > readable_type;
-	typedef q::readable< q::expect< T > > readable_expect_type;
-	typedef q::readable< q::promise< std::tuple< T > > >
-		readable_promise_type;
-	typedef q::readable< q::shared_promise< std::tuple< T > > >
-		readable_shared_promise_type;
+	using receiver_type = std::function< void( T&& ) >;
+	using receiver_type_tuple = std::function< void( std::tuple< T >&& ) >;
+	using receiver_type_void = std::function< void( ) >;
+	using async_receiver_type = std::function< empty_promise( T&& ) >;
+	using async_receiver_type_tuple =
+		std::function< empty_promise( std::tuple< T >&& ) >;
+	using async_receiver_type_void = std::function< empty_promise( ) >;
+
+	using readable_type = q::readable< T >;
+	using readable_expect_type = q::readable< q::expect< T > >;
+	using readable_promise_type = q::readable< q::promise< std::tuple< T > > >;
+	using readable_shared_promise_type =
+		q::readable< q::shared_promise< std::tuple< T > > >;
+};
+
+template< typename... T >
+struct observable_readable_traits< std::tuple< T... > >
+{
+	using receiver_type = std::function< void( std::tuple< T... >&& ) >;
+	using receiver_type_tuple = std::function< void( T&&... ) >;
+	using receiver_type_void = std::function< void( ) >;
+	using async_receiver_type =
+		std::function< empty_promise( std::tuple< T... >&& ) >;
+	using async_receiver_type_tuple = std::function< empty_promise( T&&... ) >;
+	using async_receiver_type_void = std::function< empty_promise( ) >;
+
+	using readable_type = q::readable< T... >;
+	using readable_expect_type = q::readable< q::expect< std::tuple< T... > > >;
+	using readable_promise_type =
+		q::readable< q::promise< std::tuple< T... > > >;
+	using readable_shared_promise_type =
+		q::readable< q::shared_promise< std::tuple< T... > > >;
 };
 
 template< >
 struct observable_readable_traits< void >
 {
-	typedef std::function< void( ) > receiver_type;
-	typedef std::function< void( void_t ) > receiver_type_objectified;
-	typedef q::readable< > readable_type;
-	typedef q::readable< q::expect< void > > readable_expect_type;
-	typedef q::readable< q::promise< std::tuple< > > >
-		readable_promise_type;
-	typedef q::readable< q::shared_promise< std::tuple< > > >
-		readable_shared_promise_type;
+	using receiver_type = std::function< void( ) >;
+	using receiver_type_tuple = void_t;
+	using receiver_type_objectified = std::function< void( void_t ) >;
+	using async_receiver_type = std::function< empty_promise( ) >;
+	using async_receiver_type_tuple = void_t;
+	using async_receiver_type_objectified =
+		std::function< empty_promise( void_t ) >;
+
+	using readable_type = q::readable< >;
+	using readable_expect_type = q::readable< q::expect< void > >;
+	using readable_promise_type = q::readable< q::promise< std::tuple< > > >;
+	using readable_shared_promise_type =
+		q::readable< q::shared_promise< std::tuple< > > >;
 };
 
 template< typename T >
 struct observable_readable_objectified
 {
-	typedef typename observable_readable_traits< T >::receiver_type
-		receive_type;
+	using receive_type = typename observable_readable_traits< T >
+		::receiver_type;
+	using receiver_type_tuple = typename observable_readable_traits< T >
+		::receiver_type_tuple;
+	using async_receive_type = typename observable_readable_traits< T >
+		::async_receiver_type;
+	using async_receiver_type_tuple = typename observable_readable_traits< T >
+		::async_receiver_type_tuple;
 
 	virtual q::promise< std::tuple< > >
 	receive( receive_type&& fn, queue_ptr queue ) = 0;
+
+	virtual q::promise< std::tuple< > >
+	receive( receiver_type_tuple&& fn, queue_ptr queue ) = 0;
 };
 
 template< >
 struct observable_readable_objectified< void >
 {
-	typedef typename observable_readable_traits< void >
-		::receiver_type
-		receive_type;
-	typedef typename observable_readable_traits< void >
-		::receiver_type_objectified
-		receive_type_objectified;
+	using receive_type = typename observable_readable_traits< void >
+		::receiver_type;
+	using receive_type_objectified = typename observable_readable_traits< void >
+		::receiver_type_objectified;
+	using async_receive_type = typename observable_readable_traits< void >
+		::async_receiver_type;
+	using async_receive_type_objectified =
+		typename observable_readable_traits< void >
+		::async_receiver_type_objectified;
 
 	virtual q::promise< std::tuple< > >
 	receive( receive_type&& fn, queue_ptr queue ) = 0;
@@ -75,12 +122,15 @@ struct observable_readable_objectified< void >
 template< >
 struct observable_readable_objectified< void_t >
 {
-	typedef typename observable_readable_traits< void_t >
-		::receiver_type
-		receive_type;
-	typedef typename observable_readable_traits< void_t >
-		::receiver_type_void
-		receive_type_void;
+	using receive_type = typename observable_readable_traits< void_t >
+		::receiver_type;
+	using receive_type_void = typename observable_readable_traits< void_t >
+		::receiver_type_void;
+	using async_receive_type = typename observable_readable_traits< void_t >
+		::async_receiver_type;
+	using async_receive_type_void =
+		typename observable_readable_traits< void_t >
+		::async_receiver_type_void;
 
 	virtual q::promise< std::tuple< > >
 	receive( receive_type&& fn, queue_ptr queue ) = 0;
@@ -115,10 +165,16 @@ class observable_readable_direct
 : public observable_readable< T >
 {
 public:
-	typedef typename observable_readable_traits< T >::receiver_type
-		receive_type;
-	typedef typename observable_readable_traits< T >::readable_type
-		readable_type;
+	using receive_type = typename observable_readable_traits< T >
+		::receiver_type;
+	using receiver_type_tuple = typename observable_readable_traits< T >
+		::receiver_type_tuple;
+	using async_receive_type = typename observable_readable_traits< T >
+		::async_receiver_type;
+	using async_receiver_type_tuple = typename observable_readable_traits< T >
+		::async_receiver_type_tuple;
+	using readable_type = typename observable_readable_traits< T >
+		::readable_type;
 
 	observable_readable_direct( readable_type&& readable )
 	: readable_( readable )
@@ -126,6 +182,13 @@ public:
 
 	q::promise< std::tuple< > >
 	receive( receive_type&& fn, queue_ptr queue ) override
+	{
+		return readable_.receive( )
+		.then( std::move( fn ), std::move( queue ) );
+	}
+
+	q::promise< std::tuple< > >
+	receive( receiver_type_tuple&& fn, queue_ptr queue ) override
 	{
 		return readable_.receive( )
 		.then( std::move( fn ), std::move( queue ) );
@@ -160,15 +223,17 @@ class observable_readable_direct< void >
 : public observable_readable< void >
 {
 public:
-	typedef typename observable_readable_traits< void >
-		::receiver_type
-		receive_type;
-	typedef typename observable_readable_traits< void >
-		::receiver_type_objectified
-		receive_type_objectified;
-	typedef typename observable_readable_traits< void >
-		::readable_type
-		readable_type;
+	using receive_type = typename observable_readable_traits< void >
+		::receiver_type;
+	using receive_type_objectified = typename observable_readable_traits< void >
+		::receiver_type_objectified;
+	using async_receive_type = typename observable_readable_traits< void >
+		::async_receiver_type;
+	using async_receive_type_objectified =
+		typename observable_readable_traits< void >
+		::async_receiver_type_objectified;
+	using readable_type = typename observable_readable_traits< void >
+		::readable_type;
 
 	observable_readable_direct( readable_type&& readable )
 	: readable_( readable )
@@ -217,15 +282,17 @@ class observable_readable_direct< void_t >
 : public observable_readable< void_t >
 {
 public:
-	typedef typename observable_readable_traits< void_t >
-		::receiver_type
-		receive_type;
-	typedef typename observable_readable_traits< void_t >
-		::receiver_type_void
-		receiver_type_void;
-	typedef typename observable_readable_traits< void_t >
-		::readable_type
-		readable_type;
+	using receive_type = typename observable_readable_traits< void_t >
+		::receiver_type;
+	using receiver_type_void = typename observable_readable_traits< void_t >
+		::receiver_type_void;
+	using async_receive_type = typename observable_readable_traits< void_t >
+		::async_receiver_type;
+	using async_receiver_type_void =
+		typename observable_readable_traits< void_t >
+		::async_receiver_type_void;
+	using readable_type = typename observable_readable_traits< void_t >
+		::readable_type;
 
 	observable_readable_direct( readable_type&& readable )
 	: readable_( readable )
@@ -275,10 +342,16 @@ class observable_readable_expect
 : public observable_readable< T >
 {
 public:
-	typedef typename observable_readable_traits< T >::receiver_type
-		receive_type;
-	typedef typename observable_readable_traits< T >::readable_expect_type
-		readable_expect_type;
+	using receive_type = typename observable_readable_traits< T >
+		::receiver_type;
+	using receiver_type_tuple = typename observable_readable_traits< T >
+		::receiver_type_tuple;
+	using async_receive_type = typename observable_readable_traits< T >
+		::async_receiver_type;
+	using async_receiver_type_tuple = typename observable_readable_traits< T >
+		::async_receiver_type_tuple;
+	using readable_expect_type = typename observable_readable_traits< T >
+		::readable_expect_type;
 
 	observable_readable_expect( readable_expect_type&& readable )
 	: readable_( readable )
@@ -292,6 +365,12 @@ public:
 		{
 			return fn( exp.consume( ) );
 		}, std::move( queue ) );
+	}
+
+	q::promise< std::tuple< > >
+	receive( receiver_type_tuple&& fn, queue_ptr queue ) override
+	{
+		Q_THROW( 1 ); // Just for 'override' compile-time reasons
 	}
 
 	queue_ptr get_queue( ) const override
@@ -323,15 +402,17 @@ class observable_readable_expect< void >
 : public observable_readable< void >
 {
 public:
-	typedef typename observable_readable_traits< void >
-		::receiver_type
-		receive_type;
-	typedef typename observable_readable_traits< void >
-		::receiver_type_objectified
-		receive_type_objectified;
-	typedef typename observable_readable_traits< void >
-		::readable_expect_type
-		readable_expect_type;
+	using receive_type = typename observable_readable_traits< void >
+		::receiver_type;
+	using receive_type_objectified = typename observable_readable_traits< void >
+		::receiver_type_objectified;
+	using async_receive_type = typename observable_readable_traits< void >
+		::async_receiver_type;
+	using async_receive_type_objectified =
+		typename observable_readable_traits< void >
+		::async_receiver_type_objectified;
+	using readable_expect_type = typename observable_readable_traits< void >
+		::readable_expect_type;
 
 	observable_readable_expect( readable_expect_type&& readable )
 	: readable_( readable )
@@ -388,15 +469,17 @@ class observable_readable_expect< void_t >
 : public observable_readable< void_t >
 {
 public:
-	typedef typename observable_readable_traits< void_t >
-		::receiver_type
-		receive_type;
-	typedef typename observable_readable_traits< void_t >
-		::receiver_type_void
-		receive_type_void;
-	typedef typename observable_readable_traits< void_t >
-		::readable_expect_type
-		readable_expect_type;
+	using receive_type = typename observable_readable_traits< void_t >
+		::receiver_type;
+	using receive_type_void = typename observable_readable_traits< void_t >
+		::receiver_type_void;
+	using async_receive_type = typename observable_readable_traits< void_t >
+		::async_receiver_type;
+	using async_receive_type_void =
+		typename observable_readable_traits< void_t >
+		::async_receiver_type_void;
+	using readable_expect_type = typename observable_readable_traits< void_t >
+		::readable_expect_type;
 
 	observable_readable_expect( readable_expect_type&& readable )
 	: readable_( readable )
@@ -453,10 +536,16 @@ class observable_readable_promise
 : public observable_readable< T >
 {
 public:
-	typedef typename observable_readable_traits< T >::receiver_type
-		receive_type;
-	typedef typename observable_readable_traits< T >::readable_promise_type
-		readable_promise_type;
+	using receive_type = typename observable_readable_traits< T >
+		::receiver_type;
+	using receiver_type_tuple = typename observable_readable_traits< T >
+		::receiver_type_tuple;
+	using async_receive_type = typename observable_readable_traits< T >
+		::async_receiver_type;
+	using async_receiver_type_tuple = typename observable_readable_traits< T >
+		::async_receiver_type_tuple;
+	using readable_promise_type = typename observable_readable_traits< T >
+		::readable_promise_type;
 
 	observable_readable_promise( readable_promise_type&& readable )
 	: readable_( readable )
@@ -464,6 +553,13 @@ public:
 
 	q::promise< std::tuple< > >
 	receive( receive_type&& fn, queue_ptr queue ) override
+	{
+		return readable_.receive( )
+		.then( std::move( fn ), std::move( queue ) );
+	}
+
+	q::promise< std::tuple< > >
+	receive( receiver_type_tuple&& fn, queue_ptr queue ) override
 	{
 		return readable_.receive( )
 		.then( std::move( fn ), std::move( queue ) );
@@ -498,15 +594,17 @@ class observable_readable_promise< void >
 : public observable_readable< void >
 {
 public:
-	typedef typename observable_readable_traits< void >
-		::receiver_type
-		receive_type;
-	typedef typename observable_readable_traits< void >
-		::receiver_type_objectified
-		receive_type_objectified;
-	typedef typename observable_readable_traits< void >
-		::readable_promise_type
-		readable_promise_type;
+	using receive_type = typename observable_readable_traits< void >
+		::receiver_type;
+	using receive_type_objectified = typename observable_readable_traits< void >
+		::receiver_type_objectified;
+	using async_receive_type = typename observable_readable_traits< void >
+		::async_receiver_type;
+	using async_receive_type_objectified =
+		typename observable_readable_traits< void >
+		::async_receiver_type_objectified;
+	using readable_promise_type = typename observable_readable_traits< void >
+		::readable_promise_type;
 
 	observable_readable_promise( readable_promise_type&& readable )
 	: readable_( readable )
@@ -555,15 +653,17 @@ class observable_readable_promise< void_t >
 : public observable_readable< void_t >
 {
 public:
-	typedef typename observable_readable_traits< void_t >
-		::receiver_type
-		receive_type;
-	typedef typename observable_readable_traits< void_t >
-		::receiver_type_void
-		receive_type_void;
-	typedef typename observable_readable_traits< void_t >
-		::readable_promise_type
-		readable_promise_type;
+	using receive_type = typename observable_readable_traits< void_t >
+		::receiver_type;
+	using receive_type_void = typename observable_readable_traits< void_t >
+		::receiver_type_void;
+	using async_receive_type = typename observable_readable_traits< void_t >
+		::async_receiver_type;
+	using async_receive_type_void =
+		typename observable_readable_traits< void_t >
+		::async_receiver_type_void;
+	using readable_promise_type = typename observable_readable_traits< void_t >
+		::readable_promise_type;
 
 	observable_readable_promise( readable_promise_type&& readable )
 	: readable_( readable )
@@ -613,10 +713,17 @@ class observable_readable_shared_promise
 : public observable_readable< T >
 {
 public:
-	typedef typename observable_readable_traits< T >::receiver_type
-		receive_type;
-	typedef typename observable_readable_traits< T >
-		::readable_shared_promise_type readable_shared_promise_type;
+	using receive_type = typename observable_readable_traits< T >
+		::receiver_type;
+	using receiver_type_tuple = typename observable_readable_traits< T >
+		::receiver_type_tuple;
+	using async_receive_type = typename observable_readable_traits< T >
+		::async_receiver_type;
+	using async_receiver_type_tuple = typename observable_readable_traits< T >
+		::async_receiver_type_tuple;
+	using readable_shared_promise_type =
+		typename observable_readable_traits< T >
+		::readable_shared_promise_type;
 
 	observable_readable_shared_promise(
 		readable_shared_promise_type&& readable
@@ -626,6 +733,13 @@ public:
 
 	q::promise< std::tuple< > >
 	receive( receive_type&& fn, queue_ptr queue ) override
+	{
+		return readable_.receive( )
+		.then( std::move( fn ), std::move( queue ) );
+	}
+
+	q::promise< std::tuple< > >
+	receive( receiver_type_tuple&& fn, queue_ptr queue ) override
 	{
 		return readable_.receive( )
 		.then( std::move( fn ), std::move( queue ) );
@@ -660,15 +774,18 @@ class observable_readable_shared_promise< void >
 : public observable_readable< void >
 {
 public:
-	typedef typename observable_readable_traits< void >
-		::receiver_type
-		receive_type;
-	typedef typename observable_readable_traits< void >
-		::receiver_type_objectified
-		receive_type_objectified;
-	typedef typename observable_readable_traits< void >
-		::readable_shared_promise_type
-		readable_shared_promise_type;
+	using receive_type = typename observable_readable_traits< void >
+		::receiver_type;
+	using receive_type_objectified = typename observable_readable_traits< void >
+		::receiver_type_objectified;
+	using async_receive_type = typename observable_readable_traits< void >
+		::async_receiver_type;
+	using async_receive_type_objectified =
+		typename observable_readable_traits< void >
+		::async_receiver_type_objectified;
+	using readable_shared_promise_type =
+		typename observable_readable_traits< void >
+		::readable_shared_promise_type;
 
 	observable_readable_shared_promise(
 		readable_shared_promise_type&& readable
@@ -719,15 +836,18 @@ class observable_readable_shared_promise< void_t >
 : public observable_readable< void_t >
 {
 public:
-	typedef typename observable_readable_traits< void_t >
-		::receiver_type
-		receive_type;
-	typedef typename observable_readable_traits< void_t >
-		::receiver_type_void
-		receive_type_void;
-	typedef typename observable_readable_traits< void_t >
-		::readable_shared_promise_type
-		readable_shared_promise_type;
+	using receive_type = typename observable_readable_traits< void_t >
+		::receiver_type;
+	using receive_type_void = typename observable_readable_traits< void_t >
+		::receiver_type_void;
+	using async_receive_type = typename observable_readable_traits< void_t >
+		::async_receiver_type;
+	using async_receive_type_void =
+		typename observable_readable_traits< void_t >
+		::async_receiver_type_void;
+	using readable_shared_promise_type =
+		typename observable_readable_traits< void_t >
+		::readable_shared_promise_type;
 
 	observable_readable_shared_promise(
 		readable_shared_promise_type&& readable

@@ -31,6 +31,16 @@ struct observable_types
 	typedef std::tuple< T > tuple_type;
 };
 
+template< typename... T >
+struct observable_types< std::tuple< T... > >
+{
+	typedef q::expect< std::tuple< T... > > expect_type;
+	typedef q::channel< T... > channel_type;
+	typedef q::readable< T... > readable_type;
+	typedef q::writable< T... > writable_type;
+	typedef std::tuple< T... > tuple_type;
+};
+
 template< >
 struct observable_types< void >
 {
@@ -43,7 +53,7 @@ struct observable_types< void >
 
 } // namespace detail
 
-template< typename T >
+template< typename T = void >
 class observable
 : detail::observable_types< T >
 {
@@ -422,21 +432,40 @@ public:
 	 ***********************************************/
 
 	/**
-	 * ( T ) -> void
+	 * ( T [...] ) -> void
+	 *
+	 * Packed (in a tuple) or unpacked synchronous consumer
 	 */
 	template< typename Fn >
 	typename std::enable_if<
-		Q_ARGUMENTS_ARE_CONVERTIBLE_FROM_INCL_VOID( Fn, T )::value
+		(
+			(
+				arguments_of_are_convertible_from_incl_void_v<
+					Fn, T
+				>
+				and
+				q::arity_of_v< Fn > != 0
+			)
+			or
+			(
+				is_tuple_v< T >
+				and
+				tuple_arguments_t< T >
+					::template is_convertible_to_incl_void<
+						arguments_of_t< Fn >
+					>::value
+			)
+		)
 		and
-		q::arity_of< Fn > != 0
-		and
-		std::is_void< ::q::result_of< Fn > >::value,
+		std::is_void< ::q::result_of_t< Fn > >::value,
 		::q::promise< std::tuple< > >
 	>::type
 	consume( Fn&& fn, base_options options = base_options( ) );
 
 	/**
-	 * ( T ) -> promise< >
+	 * ( T [...] ) -> promise< >
+	 *
+	 * Packed (in a tuple) or unpacked asynchronous consumer
 	 *
 	 * This will make q-rx await the returned promise, and continue only
 	 * when the promise is resolved. It causes proper back pressure
@@ -444,15 +473,28 @@ public:
 	 */
 	template< typename Fn >
 	typename std::enable_if<
-		Q_ARGUMENTS_ARE_CONVERTIBLE_FROM_INCL_VOID( Fn, T )::value
+		(
+			(
+				arguments_of_are_convertible_from_incl_void_v<
+					Fn, T
+				>
+				and
+				q::arity_of_v< Fn > != 0
+			)
+			or
+			(
+				is_tuple_v< T >
+				and
+				tuple_arguments_t< T >
+					::template is_convertible_to_incl_void<
+						arguments_of_t< Fn >
+					>::value
+			)
+		)
 		and
-		q::arity_of< Fn > != 0
+		::q::is_promise_v< std::decay_t< ::q::result_of_t< Fn > > >
 		and
-		::q::is_promise<
-			typename std::decay< ::q::result_of< Fn > >::type
-		>::value
-		and
-		::q::result_of< Fn >::argument_types::size::value == 0,
+		::q::result_of_t< Fn >::argument_types::empty_v,
 		::q::promise< std::tuple< > >
 	>::type
 	consume( Fn&& fn, base_options options = base_options( ) );
@@ -463,9 +505,9 @@ public:
 	 */
 	template< typename Fn >
 	typename std::enable_if<
-		q::arity_of< Fn > == 0
+		q::arity_of_v< Fn > == 0
 		and
-		std::is_same< T, void >::value,
+		std::is_same< objectify_t< T >, void_t >::value,
 		::q::promise< std::tuple< > >
 	>::type
 	consume( Fn&& fn, base_options options = base_options( ) );
