@@ -72,7 +72,7 @@ struct single_option
 	template<
 		typename Tuple,
 		typename std::enable_if<
-			tuple_arguments< typename std::decay< Tuple >::type >
+			tuple_arguments_t< typename std::decay< Tuple >::type >
 				::template index_of< T >::value != -1
 		>::type* = nullptr
 	>
@@ -83,7 +83,7 @@ struct single_option
 	template<
 		typename Tuple,
 		typename std::enable_if<
-			tuple_arguments< typename std::decay< Tuple >::type >
+			tuple_arguments_t< typename std::decay< Tuple >::type >
 				::template index_of< T >::value == -1
 		>::type* = nullptr
 	>

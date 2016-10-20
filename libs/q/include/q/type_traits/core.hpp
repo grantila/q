@@ -31,6 +31,7 @@ namespace q {
 
 template< typename T > void ignore_result( T&& ) { }
 template< typename T > void ignore_parameter( T&& ) { }
+template< typename T > void unused_variable( T&& ) { }
 
 struct void_t { };
 
@@ -45,6 +46,9 @@ struct objectify< void >
 {
 	typedef void_t type;
 };
+
+template< typename T >
+using objectify_t = typename objectify< T >::type;
 
 namespace detail {
 
@@ -64,8 +68,12 @@ struct functional_type
 {
 	template< typename U >
 	struct of
-	: T< U >::type
-	{ };
+	{
+		typedef typename T< U >::type type;
+	};
+
+	template< typename U >
+	using of_t = typename T< U >::type;
 };
 
 /**
@@ -90,10 +98,19 @@ struct negate
 {
 	template< typename... Args >
 	struct of
-	: bool_type< !T< Args... >::value >
 	{
 		typedef bool_type< !T< Args... >::value > type;
 	};
+
+	template< typename... Args >
+	using of_t = bool_type< !T< Args... >::value >;
+
+#	ifdef LIBQ_WITH_CPP14
+
+	template< typename... Args >
+	constexpr bool of_v = of_t< Args... >::value;
+
+#	endif // LIBQ_WITH_CPP14
 };
 
 /**
@@ -105,10 +122,12 @@ struct negate
  */
 template< template< typename... > class T, typename... Args >
 struct isnt
-: negate< T >::template of< Args... >::type
 {
-	typedef typename negate< T >::template of< Args... >::type type;
+	typedef typename negate< T >::template of_t< Args... > type;
 };
+
+template< template< typename... > class T, typename... Args >
+using isnt_t = typename isnt< T, Args... >::type;
 
 /**
  * Similar to std::is_same, although this one disregards constness and
@@ -150,6 +169,13 @@ struct is_tuple< std::tuple< T... > >
 : std::true_type
 { };
 
+#ifdef LIBQ_WITH_CPP14
+
+template< typename... T >
+constexpr bool is_tuple_v = is_tuple< T... >::value;
+
+#endif // LIBQ_WITH_CPP14
+
 template< typename Tuple >
 struct is_empty_tuple
 : std::false_type
@@ -167,13 +193,6 @@ struct is_copyable
 	std::is_copy_assignable< T >::value
 >
 { };
-/* TODO: Implement for variadic templates
-template< typename... T >
-struct is_copyable< std::tuple< T... > >
-: is_copyable<  >
-{ };
-*/
-
 
 template< typename... T >
 struct is_nothrow_default_constructible;
@@ -342,6 +361,41 @@ template< typename Base, typename Derived >
 struct is_base_of< Base*, Derived* >
 : std::is_base_of< Base, Derived >
 { };
+
+
+namespace detail {
+
+template< typename T >
+struct is_container_helper
+{
+	template< typename U >
+	static std::true_type test(
+		decltype( std::begin( std::declval< U >( ) ) )* );
+
+	template< typename U >
+	static std::false_type test( ... );
+
+	typedef decltype( test< T >( nullptr ) ) is;
+};
+
+} // namespace detail
+
+/**
+ * Checks if a type is a container (such as a std::vector), by checking if it
+ * has a function begin(), or can be called with std::begin().
+ */
+template< typename T >
+struct is_container
+: detail::is_container_helper< T >::is
+{ };
+
+#ifdef LIBQ_WITH_CPP14
+
+template< typename T >
+constexpr bool is_container_v = is_container< T >::value;
+
+#endif // LIBQ_WITH_CPP14
+
 
 template< typename T >
 struct bit_limits

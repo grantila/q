@@ -90,11 +90,17 @@ struct arguments
 		typedef arguments< T... > type;
 	};
 
+	template< typename... T >
+	using identity_t = typename identity< T... >::type;
+
 	template< template< typename... > class T >
 	struct apply
 	{
 		typedef T< Args... > type;
 	};
+
+	template< template< typename... > class T >
+	using apply_t = typename apply< T >::type;
 
 	typedef typename detail::variadic_rest< Args... > rest;
 
@@ -126,6 +132,15 @@ struct arguments
 			>::value
 		)
 	> empty_or_voidish;
+
+#	ifdef LIBQ_WITH_CPP14
+
+	static constexpr std::size_t size_v = size::value;
+	static constexpr bool empty_v = false;
+	static constexpr bool empty_or_void_v = empty_or_void::value;
+	static constexpr bool empty_or_voidish_v = empty_or_voidish::value;
+
+#	endif // LIBQ_WITH_CPP14
 
 	// TODO: Why did I write this?
 	template< template< template< typename... > class > class T >
@@ -185,6 +200,19 @@ struct arguments
 	struct is_convertible_to_incl_void
 	: is_argument_same_or_convertible_incl_void< this_type, T >
 	{ };
+
+#	ifdef LIBQ_WITH_CPP14
+
+	template< typename T >
+	static constexpr bool is_convertible_to_v =
+		is_convertible_to< T >::value;
+
+	template< typename T >
+	static constexpr bool is_convertible_to_incl_void_v =
+		is_convertible_to_incl_void< T >::value;
+
+#	endif // LIBQ_WITH_CPP14
+
 
 	/**
 	 * map each argument with a type T and return a new q::arguments.
@@ -249,6 +277,9 @@ struct arguments< >
 		typedef T< > type;
 	};
 
+	template< template< typename... > class T >
+	using apply_t = typename apply< T >::type;
+
 	typedef typename apply< std::tuple >::type tuple_type;
 
 	typedef std::integral_constant< std::size_t, 0 > size;
@@ -258,6 +289,14 @@ struct arguments< >
 	typedef std::true_type empty_or_void;
 	typedef std::true_type empty_or_voidish;
 
+#	ifdef LIBQ_WITH_CPP14
+
+	static constexpr std::size_t size_v = size::value;
+	static constexpr bool empty_v = true;
+	static constexpr bool empty_or_void_v = true;
+	static constexpr bool empty_or_voidish_v = true;
+
+#	endif // LIBQ_WITH_CPP14
 
 	template< typename... Before >
 	struct prepend
@@ -323,14 +362,12 @@ namespace detail {
 
 template< typename T >
 struct tuple_arguments
-: public arguments< T > // TODO: Remove
 {
 	typedef arguments< T > type;
 };
 
 template< >
 struct tuple_arguments< void >
-: public arguments< > // TODO: Remove
 {
 	typedef arguments< > type;
 };
@@ -347,7 +384,6 @@ struct tuple_arguments< std::tuple< Args... >&& >
 
 template< typename... Args >
 struct tuple_arguments< std::tuple< Args... > >
-: public arguments< Args... > // TODO: Remove
 {
 	typedef arguments< Args... > type;
 };

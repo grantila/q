@@ -150,16 +150,8 @@ struct tuple_arguments
 	typedef typename detail::tuple_arguments< Tuple >::type type;
 };
 
-/**
- * Exposes the arguments from a @c std::tuple wrapped in a @c q::arguments,
- * since @c tuple_arguments strictly isn't the same type as @c arguments,
- * which inhibits type specialization.
- */
 template< typename Tuple >
-struct arguments_from_tuple
-{
-	typedef typename tuple_arguments< Tuple >::this_type type;
-};
+using tuple_arguments_t = typename tuple_arguments< Tuple >::type::this_type;
 
 
 /**

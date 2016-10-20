@@ -262,7 +262,7 @@ struct function_traits
 	typedef typename std::conditional<
 		std::is_same< result_type, void >::value,
 		arguments< >,
-		typename ::q::tuple_arguments< result_type >::this_type
+		::q::tuple_arguments_t< result_type >
 	>::type                                      result_argument_type;
 
 	/**
@@ -544,7 +544,7 @@ noexcept( noexcept(
 
 template< typename Tuple >
 using index_tuple = typename q::make_index_tuple<
-		q::tuple_arguments< Tuple >::size::value
+		q::tuple_arguments_t< Tuple >::size::value
 	>::type;
 
 } // namespace detail
