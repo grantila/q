@@ -664,8 +664,6 @@ public:
 	 */
 	template< typename Tuple >
 	typename std::enable_if<
-		!is_promise::value
-		and
 		q::is_tuple< typename std::decay< Tuple >::type >::value
 		and
 		std::is_same<
@@ -684,37 +682,35 @@ public:
 	}
 
 	/**
-	 * Non-promise channel
 	 * ( Args... ) -> tuple< T... >
 	 */
 	template< typename... Args >
 	typename std::enable_if<
-		!is_promise::value
-		and
-		arguments<
-			typename std::decay< Args >::type...
-		>::template is_convertible_to_incl_void<
-			arguments< T... >
-		>::value
-	>::type
-	send( Args&&... args )
-	{
-		send( std::make_tuple( std::forward< Args >( args )... ) );
-	}
-
-	/**
-	 * Promise-channel:
-	 * ( Args... ) -> tuple< T... >
-	 */
-	template< typename... Args >
-	typename std::enable_if<
-		is_promise::value
-		and
-		arguments<
-			typename std::decay< Args >::type...
-		>::template is_convertible_to_incl_void<
-			arguments< promise_type >
-		>::value
+		(
+			arguments<
+				typename std::decay< Args >::type...
+			>::template is_convertible_to_incl_void<
+				arguments< T... >
+			>::value
+		)
+		or
+		(
+			is_promise::value
+			and
+			(
+				arguments<
+					typename std::decay< Args >::type...
+				>::template is_convertible_to_incl_void<
+					arguments< promise_type >
+				>::value
+				or
+				arguments<
+					typename std::decay< Args >::type...
+				>::template is_convertible_to_incl_void<
+					typename promise_type::argument_types
+				>::value
+			)
+		)
 	>::type
 	send( Args&&... args )
 	{
