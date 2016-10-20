@@ -86,8 +86,8 @@ class async_termination
 : public async_termination_interface< Parameters, Completion >
 {
 public:
-	typedef typename ::q::tuple_arguments< Completion >
-		::template apply< ::q::detail::defer >::type defer_type;
+	typedef typename ::q::tuple_arguments_t< Completion >
+		::template apply_t< ::q::detail::defer > defer_type;
 
 	virtual ~async_termination( ) { }
 
@@ -117,7 +117,7 @@ protected:
 	typename std::enable_if<
 		::q::is_argument_same_or_convertible<
 			::q::arguments< Args... >,
-			typename ::q::arguments_from_tuple< Completion >::type
+			::q::tuple_arguments_t< Completion >
 		>::value
 	>::type
 	termination_done( Args&&... args )

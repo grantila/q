@@ -49,6 +49,13 @@ struct is_promise< shared_promise< T > >
 : std::true_type
 { };
 
+#ifdef LIBQ_WITH_CPP14
+
+template< typename T >
+constexpr bool is_promise_v = is_promise< T >::value;
+
+#endif // LIBQ_WITH_CPP14
+
 template< class... T >
 struct are_promises
 : fold<

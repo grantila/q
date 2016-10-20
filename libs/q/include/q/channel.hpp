@@ -648,10 +648,10 @@ public:
 	typename std::enable_if<
 		q::is_tuple< typename std::decay< Tuple >::type >::value
 		and
-		tuple_arguments<
+		tuple_arguments_t<
 			typename std::decay< Tuple >::type
 		>::template is_convertible_to<
-			typename tuple_arguments< outer_tuple_type >::this_type
+			tuple_arguments_t< outer_tuple_type >
 		>::value
 	>::type
 	send( Tuple&& t )
@@ -753,7 +753,7 @@ public:
 	typename std::enable_if<
 		is_promise::value
 		and
-		tuple_arguments< typename std::decay< Tuple >::type >
+		tuple_arguments_t< typename std::decay< Tuple >::type >
 			::template is_convertible_to< promise_arguments_type >
 			::value
 	>::type

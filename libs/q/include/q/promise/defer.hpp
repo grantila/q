@@ -217,12 +217,12 @@ public:
 		and
 		::q::is_tuple< Args >::value
 		and
-		::q::tuple_arguments< Args >
+		tuple_arguments_t< Args >
 			::template is_convertible_to<
 				Q_ARGUMENTS_OF( Fn )
 			>::value
 		and
-		!::q::tuple_arguments< Args >
+		!tuple_arguments_t< Args >
 			::template equals<
 				::q::arguments< void_t >
 			>::value
@@ -256,7 +256,7 @@ public:
 		and
 		::q::is_tuple< Args >::value
 		and
-		::q::tuple_arguments< Args >
+		tuple_arguments_t< Args >
 			::template is_convertible_to_incl_void<
 				Q_ARGUMENTS_OF( Fn )
 			>::value
@@ -348,7 +348,7 @@ public:
 	typename std::enable_if<
 		is_tuple< Args >::value
 		and
-		tuple_arguments<
+		tuple_arguments_t<
 			typename std::decay< Args >::type
 		>::template is_convertible_to_incl_void<
 			Q_ARGUMENTS_OF( Fn )
@@ -385,7 +385,7 @@ public:
 	typename std::enable_if<
 		is_tuple< Args >::value
 		and
-		tuple_arguments<
+		tuple_arguments_t<
 			typename std::decay< Args >::type
 		>::empty_or_void::value
 		and
@@ -411,7 +411,7 @@ public:
 	typename std::enable_if<
 		is_tuple< typename std::decay< Args >::type >::value
 		and
-		tuple_arguments<
+		tuple_arguments_t<
 			typename std::decay< Args >::type
 		>::empty_or_voidish::value
 		and
@@ -439,7 +439,7 @@ public:
 	typename std::enable_if<
 		is_tuple< typename std::decay< Args >::type >::value
 		and
-		tuple_arguments<
+		tuple_arguments_t<
 			typename std::decay< Args >::type
 		>::template equals<
 			arguments< void_t >
