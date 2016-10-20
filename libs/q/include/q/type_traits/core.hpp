@@ -108,7 +108,7 @@ struct negate
 #	ifdef LIBQ_WITH_CPP14
 
 	template< typename... Args >
-	constexpr bool of_v = of_t< Args... >::value;
+	static constexpr bool of_v = of_t< Args... >::value;
 
 #	endif // LIBQ_WITH_CPP14
 };
