@@ -80,9 +80,7 @@ typename std::enable_if<
 	and
 	::q::is_argument_same_or_convertible_incl_void<
 		arguments< Args... >,
-		typename tuple_arguments<
-			first_argument_of_t< Fn >
-		>::type
+		tuple_arguments_t< first_argument_of_t< Fn > >
 	>::value
 	and
 	!is_promise< result_of_t< Fn > >::value
@@ -179,9 +177,7 @@ typename std::enable_if<
 	and
 	::q::is_argument_same_or_convertible_incl_void<
 		arguments< Args... >,
-		typename tuple_arguments<
-			first_argument_of_t< Fn >
-		>::type
+		tuple_arguments_t< first_argument_of_t< Fn > >
 	>::value
 	and
 	is_promise< result_of_t< Fn > >::value

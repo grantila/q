@@ -169,9 +169,7 @@ public:
 		and
 		::q::is_argument_same_or_convertible_incl_void<
 			arguments< Args... >,
-			typename tuple_arguments<
-				first_argument_of_t< Fn >
-			>::type
+			tuple_arguments_t< first_argument_of_t< Fn > >
 		>::value
 		and
 		!is_promise< result_of_t< Fn > >::value
@@ -212,9 +210,7 @@ public:
 		and
 		::q::is_argument_same_or_convertible_incl_void<
 			argument_types,
-			typename tuple_arguments<
-				first_argument_of_t< Fn >
-			>::type
+			tuple_arguments_t< first_argument_of_t< Fn > >
 		>::value
 		and
 		is_promise< result_of_t< Fn > >::value
@@ -281,7 +277,7 @@ public:
 			std::exception_ptr
 		>::value
 		and
-		detail::tuple_arguments< result_of_t< Fn > >
+		tuple_arguments_t< result_of_t< Fn > >
 			::template is_convertible_to< argument_types >::value
 		and
 		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
@@ -322,7 +318,7 @@ public:
 		and
 		!arguments_of_are_t< Fn, std::exception_ptr >::value
 		and
-		detail::tuple_arguments< result_of_t< Fn > >
+		tuple_arguments_t< result_of_t< Fn > >
 			::template is_convertible_to< argument_types >::value
 		and
 		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
@@ -411,9 +407,7 @@ public:
 		and
 		::q::is_argument_same_or_convertible_incl_void<
 			argument_types,
-			typename tuple_arguments<
-				first_argument_of_t< Fn >
-			>::type
+			tuple_arguments_t< first_argument_of_t< Fn > >
 		>::value
 		and
 		std::is_void< result_of_t< Fn > >::value
@@ -434,9 +428,7 @@ public:
 		and
 		::q::is_argument_same_or_convertible_incl_void<
 			argument_types,
-			typename tuple_arguments<
-				first_argument_of_t< Fn >
-			>::type
+			tuple_arguments_t< first_argument_of_t< Fn > >
 		>::value
 		and
 		is_promise< result_of_t< Fn > >::value

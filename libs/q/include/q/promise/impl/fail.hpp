@@ -34,7 +34,7 @@ typename std::enable_if<
 		std::exception_ptr
 	>::value
 	and
-	detail::tuple_arguments< result_of_t< Fn > >
+	tuple_arguments_t< result_of_t< Fn > >
 		::template is_convertible_to<
 			typename generic_promise<
 				Shared, std::tuple< Args... >
@@ -168,7 +168,7 @@ typename std::enable_if<
 	and
 	!arguments_of_are_t< Fn, std::exception_ptr >::value
 	and
-	detail::tuple_arguments< result_of_t< Fn > >
+	tuple_arguments_t< result_of_t< Fn > >
 		::template is_convertible_to<
 			typename generic_promise<
 				Shared, std::tuple< Args... >
