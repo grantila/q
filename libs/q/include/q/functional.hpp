@@ -433,6 +433,72 @@ constexpr bool arguments_of_are_convertible_from_incl_void_v =
 
 #endif // C++14
 
+
+/**
+ * decay_function ensures that the function provided is either a function
+ * pointer (possibly a member function pointer!), or a std::function<...>.
+ *
+ * In complex situations, compilers can be fooled to coerce a function with an
+ * implicit signature (lambdas, or "anonymous classes") into a function with a
+ * different signature. This shouldn't be compilable but actually is.
+ *
+ * By forwarding the function through decay_function, it is guaranteed to
+ * either be a function pointer or a std::function, in which case the compiler
+ * cannot make coercion mistakes.
+ */
+template< typename Fn >
+typename std::enable_if<
+	is_function_t< Fn >::value
+	and
+	is_convertible_to< Fn, signature_ptr_of_t< Fn > >::value,
+	signature_ptr_of_t< Fn >
+>::type
+decay_function( Fn&& fn )
+{
+	return static_cast< signature_ptr_of_t< Fn > >(
+		std::forward< Fn >( fn ) );
+}
+
+template< typename Fn >
+typename std::enable_if<
+	is_function_t< Fn >::value
+	and
+	is_convertible_to< Fn, member_signature_ptr_of_t< Fn > >::value,
+	signature_ptr_of_t< Fn >
+>::type
+decay_function( Fn&& fn )
+{
+	return static_cast< member_signature_ptr_of_t< Fn > >(
+		std::forward< Fn >( fn ) );
+}
+
+template< typename Fn >
+typename std::enable_if<
+	is_function_t< Fn >::value
+	and
+	!is_convertible_to< Fn, signature_ptr_of_t< Fn > >::value
+	and
+	!is_convertible_to< Fn, member_signature_ptr_of_t< Fn > >::value
+	and
+	is_convertible_to< Fn, std_function_of_t< Fn > >::value,
+	std_function_of_t< Fn >
+>::type
+decay_function( Fn&& fn )
+{
+	return static_cast< std_function_of_t< Fn > >(
+		std::forward< Fn >( fn ) );
+}
+
+template< typename Fn >
+struct decayed_function
+{
+	typedef decltype( decay_function( std::declval< Fn >( ) ) ) type;
+};
+
+template< typename Fn >
+using decayed_function_t = typename decayed_function< Fn >::type;
+
+
 template< typename Fn, typename... Args >
 typename std::enable_if<
 	is_function_t< Fn >::value
