@@ -71,9 +71,9 @@ write_by_fun_async( q::writable< > writable, Promise&& promise )
 template< typename T >
 template< typename Fn >
 inline typename std::enable_if<
-	!q::is_promise< Q_RESULT_OF( Fn ) >::value
+	!q::is_promise< q::result_of_t< Fn > >::value
 	and
-	std::is_same< Q_RESULT_OF( Fn ), T >::value,
+	std::is_same< q::result_of_t< Fn >, T >::value,
 	observable< T >
 >::type
 observable< T >::
@@ -108,9 +108,9 @@ start( Fn&& fn, queue_options options )
 template< typename T >
 template< typename Fn >
 inline typename std::enable_if<
-	q::is_promise< Q_RESULT_OF( Fn ) >::value
+	q::is_promise< q::result_of_t< Fn > >::value
 	and
-	q::result_of< Fn >::argument_types
+	q::result_of_t< Fn >::argument_types
 	::template is_convertible_to< q::arguments< T > >::value,
 	observable< T >
 >::type

@@ -196,11 +196,15 @@ public:
 
 	template< typename U, typename Queue >
 	static typename std::enable_if<
-		std::is_same< std::vector< T >, typename std::decay< U >::type >::value // TODO: Change into q::is_container of some kind
-		,
+		q::is_container_v< std::decay_t< U > >
+		and
+		std::is_same<
+			objectify_t< typename std::decay_t< U >::value_type >,
+			objectify_t< T >
+		>::value,
 		observable< T >
 	>::type
-	from( U&& container, Queue&& queue = nullptr );
+	from( U&& container, Queue&& queue );
 
 	template< typename Queue, typename Tag, typename U = T >
 	static typename std::enable_if<
@@ -297,18 +301,18 @@ public:
 
 	template< typename Fn >
 	static typename std::enable_if<
-		!q::is_promise< Q_RESULT_OF( Fn ) >::value
+		!q::is_promise< q::result_of_t< Fn > >::value
 		and
-		std::is_same< Q_RESULT_OF( Fn ), T >::value,
+		std::is_same< q::result_of_t< Fn >, T >::value,
 		observable< T >
 	>::type
 	start( Fn&& fn, queue_options options );
 
 	template< typename Fn >
 	static typename std::enable_if<
-		q::is_promise< Q_RESULT_OF( Fn ) >::value
+		q::is_promise< q::result_of_t< Fn > >::value
 		and
-		q::result_of< Fn >::argument_types
+		q::result_of_t< Fn >::argument_types
 		::template is_convertible_to< q::arguments< T > >::value,
 		observable< T >
 	>::type

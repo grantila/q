@@ -29,13 +29,18 @@ from( q::channel< T > channel )
 template< typename T >
 template< typename U, typename Queue >
 inline typename std::enable_if<
-	std::is_same< std::vector< T >, typename std::decay< U >::type >::value,
+	q::is_container_v< std::decay_t< U > >
+	and
+	std::is_same<
+		objectify_t< typename std::decay_t< U >::value_type >,
+		objectify_t< T >
+	>::value,
 	observable< T >
 >::type
 observable< T >::
 from( U&& container, Queue&& queue )
 {
-	auto channel_ = q::channel< T >( queue, container.size( ) );
+	auto channel_ = channel_type( queue, container.size( ) );
 	auto writable = channel_.get_writable( );
 	for ( auto& val : container )
 		writable.send( val );
@@ -55,6 +60,7 @@ from(
 	Queue&& queue
 )
 {
+	// TODO: Change to typename Iterator, and checking Iterator::value_type
 	throw "not implemented yet";
 }
 

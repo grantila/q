@@ -23,7 +23,7 @@ template< typename T >
 inline observable< T > observable< T >::
 empty( const q::queue_ptr& queue )
 {
-	q::channel< T > channel_( queue, 0 );
+	channel_type channel_( queue, 0 );
 	channel_.get_writable( ).close( );
 	return observable< T >( channel_ );
 }

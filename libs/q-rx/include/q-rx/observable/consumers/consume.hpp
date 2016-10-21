@@ -218,7 +218,7 @@ consume( Fn&& fn, base_options options )
 {
 	typedef std::shared_ptr< detail::observable_readable< T > >
 		readable_type;
-	typedef typename std::decay< Fn >::type fn_type;
+	typedef decayed_function_t< Fn > fn_type;
 
 	typedef detail::consume_context< fn_type, readable_type > context_type;
 
@@ -258,12 +258,12 @@ typename std::enable_if<
 observable< T >::
 consume( Fn&& fn, base_options options )
 {
-/* */
+/*
 	// TODO: Start using the generic consumption helper:
 
 	typedef std::shared_ptr< detail::observable_readable< T > >
 		readable_type;
-	typedef typename std::decay< Fn >::type fn_type;
+	typedef decayed_function_t< Fn > fn_type;
 
 	typedef detail::consume_context< fn_type, readable_type > context_type;
 
@@ -274,7 +274,7 @@ consume( Fn&& fn, base_options options )
 
 	return context->consume( );
 /* */
-/*
+/* */
 	typedef std::shared_ptr< detail::observable_readable< T > >
 		readable_type;
 	typedef typename q::objectify< typename std::decay< Fn >::type >::type
@@ -353,7 +353,7 @@ typename std::enable_if<
 observable< T >::
 consume( Fn&& fn, base_options options )
 {
-	std::decay_t< Fn > _fn{ std::forward< Fn >( fn ) };
+	decayed_function_t< Fn > _fn{ std::forward< Fn >( fn ) };
 
 	return consume( [ fn{ std::move( _fn ) } ]( void_t ) mutable
 	{
