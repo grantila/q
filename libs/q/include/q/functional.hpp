@@ -313,6 +313,16 @@ template< typename Fn >
 using is_function_t = typename Q_IS_FUNCTION( Fn );
 
 template< typename Fn >
+using signature_ptr_of_t = typename ::q::function_traits< Fn >::signature_ptr;
+
+template< typename Fn >
+using member_signature_ptr_of_t =
+	typename ::q::function_traits< Fn >::member_signature_ptr;
+
+template< typename Fn >
+using std_function_of_t = typename ::q::function_traits< Fn >::function_type;
+
+template< typename Fn >
 using is_memberfunction_t = typename Q_IS_MEMBERFUNCTION( Fn );
 
 template< typename Fn >
