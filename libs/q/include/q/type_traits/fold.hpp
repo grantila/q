@@ -38,22 +38,22 @@ struct fold<
 	Fold,
 	Nil
 >
-: Fold<
-	typename q::arguments< Elements... >::first_type,
-	typename fold<
-		typename q::arguments< Elements... >::rest_arguments,
-		Fold,
-		Nil
-	>::type
->
-{ };
+{
+	typedef typename Fold<
+		typename q::arguments< Elements... >::first_type,
+		typename fold<
+			typename q::arguments< Elements... >::rest_arguments,
+			Fold,
+			Nil
+		>::type
+	>::type type;
+};
 
 template<
 	template< typename, typename > class Fold,
 	class Nil
 >
 struct fold< q::arguments< >, Fold, Nil >
-: Nil
 {
 	typedef Nil type;
 };
@@ -71,8 +71,16 @@ template<
 	class Nil
 >
 struct fold
-: detail::fold< Elements, Fold, Nil >
-{ };
+{
+	typedef typename detail::fold< Elements, Fold, Nil >::type type;
+};
+
+template<
+	typename Elements,
+	template< typename, typename > class Fold,
+	class Nil
+>
+using fold_t = typename fold< Elements, Fold, Nil >::type;
 
 } // namespace q
 

@@ -28,9 +28,9 @@ template<
 	class Nil,
 	template< typename, typename > class Generator,
 	class DifferingSize,
-	bool SameSize = From::size == To::size
+	bool SameSize = From::size::value == To::size::value
 >
-struct two_fold;
+struct _two_fold;
 
 template<
 	typename... From,
@@ -40,7 +40,7 @@ template<
 	template< typename, typename > class Generator,
 	class DifferingSize
 >
-struct two_fold<
+struct _two_fold<
 	q::arguments< From... >,
 	q::arguments< To... >,
 	Fold,
@@ -49,8 +49,9 @@ struct two_fold<
 	DifferingSize,
 	false
 >
-: DifferingSize
-{ };
+{
+	typedef DifferingSize type;
+};
 
 template<
 	typename... From,
@@ -60,7 +61,7 @@ template<
 	template< typename, typename > class Generator,
 	class DifferingSize
 >
-struct two_fold<
+struct _two_fold<
 	q::arguments< From... >,
 	q::arguments< To... >,
 	Fold,
@@ -69,22 +70,23 @@ struct two_fold<
 	DifferingSize,
 	true
 >
-: Fold<
-	Generator<
-		typename q::arguments< From... >::first_type,
-		typename q::arguments< To... >::first_type
-	>,
-	two_fold<
-		typename q::arguments< From... >::rest_arguments,
-		typename q::arguments< To... >::rest_arguments,
-		Fold,
-		Nil,
-		Generator,
-		DifferingSize,
-		sizeof...( From ) == sizeof...( To )
-	>
->
-{ };
+{
+	typedef typename Fold<
+		typename Generator<
+			typename q::arguments< From... >::first_type,
+			typename q::arguments< To... >::first_type
+		>::type,
+		typename _two_fold<
+			typename q::arguments< From... >::rest_arguments,
+			typename q::arguments< To... >::rest_arguments,
+			Fold,
+			Nil,
+			Generator,
+			DifferingSize,
+			sizeof...( From ) == sizeof...( To )
+		>::type
+	>::type type;
+};
 
 template<
 	template< typename, typename > class Fold,
@@ -92,7 +94,7 @@ template<
 	template< typename, typename > class Generator,
 	class DifferingSize
 >
-struct two_fold<
+struct _two_fold<
 	q::arguments< >,
 	q::arguments< >,
 	Fold,
@@ -101,8 +103,9 @@ struct two_fold<
 	DifferingSize,
 	true
 >
-: Nil
-{ };
+{
+	typedef Nil type;
+};
 
 } // namespace detail
 
@@ -115,17 +118,8 @@ template<
 	class DifferingSize
 >
 struct two_fold
-: detail::two_fold<
-	From,
-	To,
-	Fold,
-	Nil,
-	Generator,
-	DifferingSize,
-	From::size::value == To::size::value
->
 {
-	typedef detail::two_fold<
+	typedef typename detail::_two_fold<
 		From,
 		To,
 		Fold,
@@ -133,8 +127,20 @@ struct two_fold
 		Generator,
 		DifferingSize,
 		From::size::value == To::size::value
-	> type;
+	>::type type;
 };
+
+template<
+	typename From,
+	typename To,
+	template< typename, typename > class Fold,
+	class Nil,
+	template< typename, typename > class Generator,
+	class DifferingSize
+>
+using two_fold_t = typename two_fold<
+	From, To, Fold, Nil, Generator, DifferingSize
+>::type;
 
 } // namespace q
 

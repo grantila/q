@@ -41,12 +41,12 @@ struct hierarchically_generic_operator
 
 	template< typename A, bool B >
 	struct fold_type< A, std::integral_constant< bool, B > >
-	: LogicOp< Operator< A >, bool_type< B > >
+	: LogicOp< Operator< A >, bool_type_t< B > >
 	{ };
 
 	template< bool A, typename B >
 	struct fold_type< std::integral_constant< bool, A >, B >
-	: LogicOp< bool_type< A >, Operator< B > >
+	: LogicOp< bool_type_t< A >, Operator< B > >
 	{ };
 
 	template< bool A, bool B >
@@ -54,7 +54,7 @@ struct hierarchically_generic_operator
 		std::integral_constant< bool, A >,
 		std::integral_constant< bool, B >
 	>
-	: LogicOp< bool_type< A >, bool_type< B > >
+	: LogicOp< bool_type_t< A >, bool_type_t< B > >
 	{ };
 
 	template< typename... A, typename B >
@@ -68,7 +68,7 @@ struct hierarchically_generic_operator
 		std::integral_constant< bool, B >
 	>
 	: hierarchically_satisfies_condition<
-		Operator, LogicOp, Nil, A..., bool_type< B >
+		Operator, LogicOp, Nil, A..., bool_type_t< B >
 	>
 	{ };
 
@@ -78,7 +78,7 @@ struct hierarchically_generic_operator
 		std::tuple< B... >
 	>
 	: hierarchically_satisfies_condition<
-		Operator, LogicOp, Nil, bool_type< A >, B...
+		Operator, LogicOp, Nil, bool_type_t< A >, B...
 	>
 	{ };
 
@@ -100,34 +100,68 @@ template<
 	typename... T
 >
 struct hierarchically_satisfies_condition
-: fold<
-	q::arguments< T... >,
-	hierarchically_generic_operator<
-		Operator, LogicOp, Nil
-	>::template fold_type,
-	Nil
->
-{ };
+{
+	typedef fold_t<
+		q::arguments< T... >,
+		hierarchically_generic_operator<
+			Operator, LogicOp, Nil
+		>::template fold_type,
+		Nil
+	> type;
+};
 
 template< template< typename > class Operator, typename... T >
 struct hierarchically_satisfies_all_conditions
-: hierarchically_satisfies_condition<
-	Operator,
-	logic_and,
-	std::true_type,
-	T...
->
-{ };
+{
+	typedef typename hierarchically_satisfies_condition<
+		Operator,
+		logic_and,
+		std::true_type,
+		T...
+	>::type type;
+};
 
 template< template< typename > class Operator, typename... T >
 struct hierarchically_satisfies_any_condition
-: hierarchically_satisfies_condition<
-	Operator,
-	logic_or,
-	std::false_type,
-	T...
+{
+	typedef typename hierarchically_satisfies_condition<
+		Operator,
+		logic_or,
+		std::false_type,
+		T...
+	>::type type;
+};
+
+// Type aliases
+
+template<
+	template< typename > class Operator,
+	template< typename, typename > class LogicOp,
+	typename Nil,
+	typename... T
 >
-{ };
+using hierarchically_satisfies_condition_t =
+	typename hierarchically_satisfies_condition<
+		Operator, LogicOp, Nil, T...
+	>::type;
+
+template<
+	template< typename > class Operator,
+	typename... T
+>
+using hierarchically_satisfies_all_conditions_t =
+	typename hierarchically_satisfies_all_conditions<
+		Operator, T...
+	>::type;
+
+template<
+	template< typename > class Operator,
+	typename... T
+>
+using hierarchically_satisfies_any_condition_t =
+	typename hierarchically_satisfies_any_condition<
+		Operator, T...
+	>::type;
 
 } // namespace q
 

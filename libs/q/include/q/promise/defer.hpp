@@ -65,7 +65,7 @@ public:
 	typename std::enable_if<
 		sizeof...( T ) == 1
 		and
-		::q::is_argument_same_or_convertible<
+		::q::is_argument_same_or_convertible_t<
 			::q::arguments< _T >,
 			arguments_type
 		>::value
@@ -109,7 +109,7 @@ public:
 			>::value
 		)
 		and
-		::q::is_argument_same_or_convertible<
+		::q::is_argument_same_or_convertible_t<
 			q::arguments< Args... >,
 			q::arguments< T... >
 		>::value
@@ -183,7 +183,7 @@ public:
 	typename std::enable_if<
 		( sizeof...( T ) > 0 )
 		and
-		Q_RESULT_OF_AS_ARGUMENT( Fn )::template equals<
+		::q::result_of_as_argument_t< Fn >::template same<
 			::q::arguments< T... >
 		>::value
 		and
@@ -219,12 +219,7 @@ public:
 		and
 		tuple_arguments_t< Args >
 			::template is_convertible_to<
-				Q_ARGUMENTS_OF( Fn )
-			>::value
-		and
-		!tuple_arguments_t< Args >
-			::template equals<
-				::q::arguments< void_t >
+				arguments_of_t< Fn >
 			>::value
 	>::type
 	set_by_fun( Fn&& fn, Args&& args )
@@ -250,7 +245,7 @@ public:
 	typename std::enable_if<
 		( sizeof...( T ) > 0 )
 		and
-		Q_RESULT_OF_AS_ARGUMENT( Fn )::template equals<
+		::q::result_of_as_argument_t< Fn >::template same<
 			::q::arguments< T... >
 		>::value
 		and
@@ -258,7 +253,7 @@ public:
 		and
 		tuple_arguments_t< Args >
 			::template is_convertible_to_incl_void<
-				Q_ARGUMENTS_OF( Fn )
+				::q::arguments_of_t< Fn >
 			>::value
 	>::type
 	set_by_fun( Fn&& fn, Args&& args )
@@ -323,7 +318,7 @@ public:
 	typename std::enable_if<
 		arguments<
 			typename std::decay< Args >::type...
-		>::template equals< q::arguments< std::tuple< > > >::value
+		>::template same< q::arguments< std::tuple< > > >::value
 		and
 		Q_ARITY_OF( Fn ) == 0
 		and
@@ -351,13 +346,19 @@ public:
 		tuple_arguments_t<
 			typename std::decay< Args >::type
 		>::template is_convertible_to_incl_void<
-			Q_ARGUMENTS_OF( Fn )
+			arguments_of_t< Fn >
 		>::value
 		and
-		!std::is_same<
-			typename std::decay< first_argument_of_t< Fn > >::type,
-			void_t
-		>::value
+		(
+			tuple_arguments_t<
+				typename std::decay< Args >::type
+			>::template same< arguments< void_t > >::value
+			or
+			!std::is_same<
+				typename std::decay< first_argument_of_t< Fn > >::type,
+				void_t
+			>::value
+		)
 		and
 		::q::is_promise< Q_RESULT_OF( Fn ) >::value
 	>::type
@@ -379,7 +380,8 @@ public:
 	}
 
 	/**
-	 * fn( tuple< > ) = fn( tuple< void_t > )
+	 * ( tuple< > )      -> fn( tuple< void_t > )
+	 * ( tuple< void > ) -> fn( tuple< void_t > )
 	 */
 	template< typename Fn, typename Args >
 	typename std::enable_if<
@@ -391,10 +393,21 @@ public:
 		and
 		arguments_of_t< Fn >::size::value == 1
 		and
-		std::is_same<
-			typename std::decay< first_argument_of_t< Fn > >::type,
-			std::tuple< void_t >
-		>::value
+		(
+			std::is_same<
+				typename std::decay<
+					first_argument_of_t< Fn >
+				>::type,
+				std::tuple< void_t >
+			>::value
+			or
+			std::is_same<
+				typename std::decay<
+					first_argument_of_t< Fn >
+				>::type,
+				std::tuple< void_t&& >
+			>::value
+		)
 	>::type
 	set_by_fun( Fn&& fn, Args&& args )
 	{
@@ -405,7 +418,8 @@ public:
 	}
 
 	/**
-	 * fn( tuple< > ) -> fn( void_t )
+	 * ( tuple< > )      -> fn( void_t )
+	 * ( tuple< void > ) -> fn( void_t )
 	 */
 	template< typename Fn, typename Args >
 	typename std::enable_if<
@@ -413,12 +427,7 @@ public:
 		and
 		tuple_arguments_t<
 			typename std::decay< Args >::type
-		>::empty_or_voidish::value
-		and
-		!std::is_same<
-			typename std::decay< Args >::type,
-			void_t
-		>::value
+		>::empty_or_void::value
 		and
 		arguments_of_t< Fn >::size::value == 1
 		and
@@ -433,17 +442,20 @@ public:
 	}
 
 	/**
-	 * fn( tuple< void_t > ) -> fn( )
+	 * ( tuple< void > )   -> fn( )
+	 * ( tuple< void_t > ) -> fn( )
 	 */
 	template< typename Fn, typename Args >
 	typename std::enable_if<
 		is_tuple< typename std::decay< Args >::type >::value
 		and
+		std::tuple_size<
+			typename std::decay< Args >::type
+		>::value == 1
+		and
 		tuple_arguments_t<
 			typename std::decay< Args >::type
-		>::template equals<
-			arguments< void_t >
-		>::value
+		>::empty_or_voidish::value
 		and
 		arguments_of_t< Fn >::empty::value
 	>::type

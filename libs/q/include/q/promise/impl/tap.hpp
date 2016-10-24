@@ -160,7 +160,7 @@ typename std::enable_if<
 	and
 	first_argument_is_tuple< Fn >::value
 	and
-	::q::is_argument_same_or_convertible_incl_void<
+	::q::is_argument_same_or_convertible_incl_void_t<
 		arguments< Args... >,
 		tuple_arguments_t< first_argument_of_t< Fn > >
 	>::value
@@ -222,7 +222,7 @@ typename std::enable_if<
 	and
 	first_argument_is_tuple< Fn >::value
 	and
-	::q::is_argument_same_or_convertible_incl_void<
+	::q::is_argument_same_or_convertible_incl_void_t<
 		arguments< Args... >,
 		tuple_arguments_t< first_argument_of_t< Fn > >
 	>::value

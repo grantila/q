@@ -30,7 +30,7 @@ public:
 		"Promises of references aren't allowed"
 	);
 
-	typedef bool_type< Shared >                   shared_type;
+	typedef bool_type_t< Shared >                 shared_type;
 	typedef arguments< Args... >                  argument_types;
 	typedef std::tuple< Args... >                 tuple_type;
 	typedef generic_promise< Shared, tuple_type > this_type;
@@ -61,7 +61,7 @@ public:
 
 	template< typename... T >
 	struct is_valid_arguments
-	: ::q::is_argument_same_or_convertible_incl_void<
+	: ::q::is_argument_same_or_convertible_incl_void_t<
 		argument_types,
 		arguments< T... >
 	>
@@ -69,7 +69,7 @@ public:
 
 	template< typename... T >
 	struct is_valid_arguments< arguments< T... > >
-	: ::q::is_argument_same_or_convertible_incl_void<
+	: ::q::is_argument_same_or_convertible_incl_void_t<
 		argument_types,
 		arguments< T... >
 	>
@@ -167,7 +167,7 @@ public:
 		and
 		first_argument_is_tuple< Fn >::value
 		and
-		::q::is_argument_same_or_convertible_incl_void<
+		::q::is_argument_same_or_convertible_incl_void_t<
 			arguments< Args... >,
 			tuple_arguments_t< first_argument_of_t< Fn > >
 		>::value
@@ -208,7 +208,7 @@ public:
 		and
 		first_argument_is_tuple< Fn >::value
 		and
-		::q::is_argument_same_or_convertible_incl_void<
+		::q::is_argument_same_or_convertible_incl_void_t<
 			argument_types,
 			tuple_arguments_t< first_argument_of_t< Fn > >
 		>::value
@@ -405,7 +405,7 @@ public:
 		and
 		first_argument_is_tuple< Fn >::value
 		and
-		::q::is_argument_same_or_convertible_incl_void<
+		::q::is_argument_same_or_convertible_incl_void_t<
 			argument_types,
 			tuple_arguments_t< first_argument_of_t< Fn > >
 		>::value
@@ -426,7 +426,7 @@ public:
 		and
 		first_argument_is_tuple< Fn >::value
 		and
-		::q::is_argument_same_or_convertible_incl_void<
+		::q::is_argument_same_or_convertible_incl_void_t<
 			argument_types,
 			tuple_arguments_t< first_argument_of_t< Fn > >
 		>::value

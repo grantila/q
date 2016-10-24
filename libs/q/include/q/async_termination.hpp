@@ -38,7 +38,7 @@ class sync_termination_interface< q::arguments< Args... > >
 public:
 	template< typename... FnArgs >
 	typename std::enable_if<
-		::q::is_argument_same_or_convertible<
+		::q::is_argument_same_or_convertible_t<
 			q::arguments< FnArgs... >,
 			q::arguments< Args... >
 		>::value
@@ -66,7 +66,7 @@ class async_termination_interface< q::arguments< Args... >, Completion >
 public:
 	template< typename... FnArgs >
 	typename std::enable_if<
-		::q::is_argument_same_or_convertible<
+		::q::is_argument_same_or_convertible_t<
 			q::arguments< FnArgs... >,
 			q::arguments< Args... >
 		>::value,
@@ -87,7 +87,7 @@ class async_termination
 {
 public:
 	typedef typename ::q::tuple_arguments_t< Completion >
-		::template apply_t< ::q::detail::defer > defer_type;
+		::template apply< ::q::detail::defer > defer_type;
 
 	virtual ~async_termination( ) { }
 
@@ -115,7 +115,7 @@ protected:
 
 	template< typename... Args >
 	typename std::enable_if<
-		::q::is_argument_same_or_convertible<
+		::q::is_argument_same_or_convertible_t<
 			::q::arguments< Args... >,
 			::q::tuple_arguments_t< Completion >
 		>::value
@@ -136,7 +136,7 @@ private:
 template< typename... Args, typename Completion >
 template< typename... FnArgs >
 typename std::enable_if<
-	::q::is_argument_same_or_convertible<
+	::q::is_argument_same_or_convertible_t<
 		q::arguments< FnArgs... >,
 		q::arguments< Args... >
 	>::value,

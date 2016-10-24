@@ -55,7 +55,7 @@ typename std::enable_if<
 with( const queue_ptr& queue, Tuple&& t )
 {
 	typedef typename tuple_arguments_t< typename std::decay< Tuple >::type >
-		::template apply_t< detail::defer > defer_type;
+		::template apply< detail::defer > defer_type;
 	auto deferred = ::q::make_shared< defer_type >( queue );
 
 	deferred->set_value( std::forward< Tuple >( t ) );

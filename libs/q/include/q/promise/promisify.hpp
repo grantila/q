@@ -33,8 +33,7 @@ struct promisifier< Ret, ::q::arguments< Args... > >
 		::q::arguments< Ret >
 	>::type arguments_type;
 	typedef typename arguments_type::tuple_type tuple_type;
-	typedef typename arguments_type::template apply< defer >::type
-		defer_type;
+	typedef typename arguments_type::template apply< defer > defer_type;
 
 	template< typename Fn >
 	static std::function< promise< tuple_type >( Args... ) >

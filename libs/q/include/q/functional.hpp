@@ -58,19 +58,19 @@
 	>::value
 
 #define Q_ARGUMENTS_ARE( Fn, ... ) \
-	::q::is_argument_same< \
+	::q::is_argument_same_t< \
 		Q_ARGUMENTS_OF( Fn ), \
 		::q::arguments< __VA_ARGS__ > \
 	>
 
 #define Q_ARGUMENTS_ARE_CONVERTIBLE_FROM( Fn, ... ) \
-	::q::is_argument_same_or_convertible< \
+	::q::is_argument_same_or_convertible_t< \
 		::q::arguments< __VA_ARGS__ >, \
 		Q_ARGUMENTS_OF( Fn ) \
 	>
 
 #define Q_ARGUMENTS_ARE_CONVERTIBLE_FROM_INCL_VOID( Fn, ... ) \
-	::q::is_argument_same_or_convertible_incl_void< \
+	::q::is_argument_same_or_convertible_incl_void_t< \
 		::q::arguments< __VA_ARGS__ >, \
 		Q_ARGUMENTS_OF( Fn ) \
 	>
@@ -79,7 +79,7 @@
 	typename ::q::function_traits< Fn >::memberclass_type
 
 #define Q_IS_MEMBERFUNCTION( Fn ) \
-	::q::bool_type< !std::is_void< Q_MEMBERCLASS_OF( Fn ) >::value >
+	::q::bool_type_t< !std::is_void< Q_MEMBERCLASS_OF( Fn ) >::value >
 
 #define Q_IS_FUNCTION( Fn ) \
 	::q::function_traits< Fn >::valid
@@ -360,21 +360,21 @@ using memberclass_of_t = Q_MEMBERCLASS_OF( Fn );
 
 template< typename Fn, typename... Args >
 using arguments_of_are_t =
-	::q::is_argument_same<
+	::q::is_argument_same_t<
 		arguments_of_t< Fn >,
 		::q::arguments< Args... >
 	>;
 
 template< typename Fn, typename... Args >
 using arguments_of_are_convertible_from_t =
-	::q::is_argument_same_or_convertible<
+	::q::is_argument_same_or_convertible_t<
 		::q::arguments< Args... >,
 		arguments_of_t< Fn >
 	>;
 
 template< typename Fn, typename... Args >
 using arguments_of_are_convertible_from_incl_void_t =
-	::q::is_argument_same_or_convertible_incl_void<
+	::q::is_argument_same_or_convertible_incl_void_t<
 		::q::arguments< Args... >,
 		arguments_of_t< Fn >
 	>;
@@ -403,7 +403,7 @@ struct first_argument_is_tuple
 
 template< typename Fn >
 struct first_argument_is_tuple< Fn, true >
-: bool_type< first_argument_is_tuple_t< Fn >::value >
+: bool_type_t< first_argument_is_tuple_t< Fn >::value >
 { };
 
 #ifdef LIBQ_WITH_CPP14
@@ -450,7 +450,7 @@ template< typename Fn >
 typename std::enable_if<
 	is_function_t< Fn >::value
 	and
-	is_convertible_to< Fn, signature_ptr_of_t< Fn > >::value,
+	is_convertible_to_t< Fn, signature_ptr_of_t< Fn > >::value,
 	signature_ptr_of_t< Fn >
 >::type
 decay_function( Fn&& fn )
@@ -463,7 +463,7 @@ template< typename Fn >
 typename std::enable_if<
 	is_function_t< Fn >::value
 	and
-	is_convertible_to< Fn, member_signature_ptr_of_t< Fn > >::value,
+	is_convertible_to_t< Fn, member_signature_ptr_of_t< Fn > >::value,
 	signature_ptr_of_t< Fn >
 >::type
 decay_function( Fn&& fn )
@@ -476,11 +476,11 @@ template< typename Fn >
 typename std::enable_if<
 	is_function_t< Fn >::value
 	and
-	!is_convertible_to< Fn, signature_ptr_of_t< Fn > >::value
+	!is_convertible_to_t< Fn, signature_ptr_of_t< Fn > >::value
 	and
-	!is_convertible_to< Fn, member_signature_ptr_of_t< Fn > >::value
+	!is_convertible_to_t< Fn, member_signature_ptr_of_t< Fn > >::value
 	and
-	is_convertible_to< Fn, std_function_of_t< Fn > >::value,
+	is_convertible_to_t< Fn, std_function_of_t< Fn > >::value,
 	std_function_of_t< Fn >
 >::type
 decay_function( Fn&& fn )
@@ -496,7 +496,66 @@ struct decayed_function
 };
 
 template< typename Fn >
+struct decayed_function< Fn& >
+: decayed_function< Fn >
+{ };
+
+template< typename Fn >
+struct decayed_function< const Fn >
+: decayed_function< Fn >
+{ };
+
+template< typename Fn >
 using decayed_function_t = typename decayed_function< Fn >::type;
+
+namespace detail {
+
+template< typename Fn1, typename Fn2 >
+struct function_cmp
+{
+	typedef bool_type_t<
+		arguments_of_t< Fn1 >
+		::template equals< arguments_of_t< Fn2 > >::value
+		and
+		result_of_as_argument_t< Fn1 >
+		::template equals< result_of_as_argument_t< Fn2 > >::value
+	> equal;
+
+	typedef bool_type_t<
+		arguments_of_t< Fn1 >
+		::template map< functional_type< std::decay >::of_t >
+		::template equals<
+			typename arguments_of_t< Fn2 >
+			::template map< functional_type< std::decay >::of_t >
+		>::value
+		and
+		result_of_as_argument_t< Fn1 >
+		::template map< functional_type< std::decay >::of_t >
+		::template equals<
+			typename result_of_as_argument_t< Fn2 >
+			::template map< functional_type< std::decay >::of_t >
+		>::value
+	> same_type;
+};
+
+} // namespace detail
+
+template< typename Fn1, typename Fn2 >
+using function_equal_t = typename detail::function_cmp< Fn1, Fn2 >::equal;
+
+template< typename Fn1, typename Fn2 >
+using function_same_type_t =
+	typename detail::function_cmp< Fn1, Fn2 >::same_type;
+
+#ifdef LIBQ_WITH_CPP14
+
+template< typename Fn1, typename Fn2 >
+constexpr bool function_equal_v = function_equal_t< Fn1, Fn2 >::value;
+
+template< typename Fn1, typename Fn2 >
+constexpr bool function_same_type_v = function_same_type_t< Fn1, Fn2 >::value;
+
+#endif // LIBQ_WITH_CPP14
 
 
 template< typename Fn, typename... Args >
@@ -710,7 +769,7 @@ typename std::enable_if<
 	and
 	( Q_RESULT_OF_AS_ARGUMENT( InnerFn )::size::value > 0 )
 	and
-	::q::is_argument_same_or_convertible<
+	::q::is_argument_same_or_convertible_t<
 		Q_RESULT_OF_AS_ARGUMENT_TYPE( InnerFn ),
 		Q_ARGUMENTS_OF( Fn )
 	>::value
