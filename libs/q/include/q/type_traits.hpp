@@ -32,7 +32,7 @@ namespace q {
 
 template< typename... T >
 struct is_nothrow_default_constructible
-: hierarchically_satisfies_all_conditions<
+: hierarchically_satisfies_all_conditions_t<
 	std::is_nothrow_default_constructible,
 	T...
 >
@@ -45,7 +45,7 @@ struct is_nothrow_default_constructible< void >
 
 template< typename... T >
 struct is_copy_constructible
-: hierarchically_satisfies_all_conditions<
+: hierarchically_satisfies_all_conditions_t<
 	std::is_copy_constructible,
 	T...
 >
@@ -58,7 +58,7 @@ struct is_copy_constructible< void >
 
 template< typename... T >
 struct is_nothrow_copy_constructible
-: hierarchically_satisfies_all_conditions<
+: hierarchically_satisfies_all_conditions_t<
 	std::is_nothrow_copy_constructible,
 	T...
 >
@@ -71,7 +71,7 @@ struct is_nothrow_copy_constructible< void >
 
 template< typename... T >
 struct is_copy_assignable
-: hierarchically_satisfies_all_conditions<
+: hierarchically_satisfies_all_conditions_t<
 	std::is_copy_assignable,
 	T...
 >
@@ -84,7 +84,7 @@ struct is_copy_assignable< void >
 
 template< typename... T >
 struct is_move_constructible
-: hierarchically_satisfies_all_conditions<
+: hierarchically_satisfies_all_conditions_t<
 	std::is_move_constructible,
 	T...
 >
@@ -103,7 +103,7 @@ struct is_move_constructible< void >
  */
 template< template< typename > class Operator, typename... T >
 struct satisfies_all
-: fold<
+: fold_t<
 	q::arguments< T... >,
 	generic_operator<
 		Operator, logic_and
@@ -117,7 +117,7 @@ namespace detail {
 
 template< typename T, typename... Args >
 struct are_all_same
-: fold<
+: fold_t<
 	q::arguments< Args... >,
 	generic_operator<
 		same< T >::template as, logic_and
@@ -154,39 +154,9 @@ template< typename Tuple >
 using tuple_arguments_t = typename tuple_arguments< Tuple >::type::this_type;
 
 
-/**
- * Determines if a tuple can be unpacked (and moved/copied) into a set of
- * arguments defined with a @c q::arguments wrapper.
- */
-template< typename Tuple, class Args >
-struct tuple_convertible_to_arguments
-: public detail::tuple_convertible_to_arguments< Tuple, Args >
-{ };
-
-/**
- * Determines if a tuple can be unpacked (and moved/copied) into a set of
- * arguments.
- */
-template< typename Tuple, typename... Args >
-struct tuple_unpackable_to
-: public tuple_convertible_to_arguments< Tuple, arguments< Args... > >
-{ };
-
-/**
- * Determines if a tuple can be unpacked (and moved/copied) into a set of
- * arguments defined by another tuple.
- */
-template< typename TupleFrom, typename TupleTo >
-struct tuple_convertible_to_tuple
-: public detail::tuple_convertible_to_arguments<
-	TupleFrom,
-	typename tuple_arguments< TupleTo >::this_type
->
-{ };
-
 template< class... T >
 struct any_type_is_a_reference
-: fold<
+: fold_t<
 	q::arguments< T... >,
 	generic_operator<
 		std::is_reference, logic_or
@@ -197,7 +167,7 @@ struct any_type_is_a_reference
 
 template< class... T >
 struct all_types_are_non_references
-: bool_type< !any_type_is_a_reference< T... >::value >
+: bool_type_t< !any_type_is_a_reference< T... >::value >
 { };
 
 template< std::size_t... Indices >

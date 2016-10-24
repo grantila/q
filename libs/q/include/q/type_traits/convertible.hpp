@@ -21,8 +21,14 @@ namespace q {
 
 template< typename From, typename To >
 struct is_convertible_to
-: logic_or< is_same_type< From, To >, std::is_convertible< From, To > >
-{ };
+{
+	typedef logic_or<
+		is_same_type< From, To >, std::is_convertible< From, To >
+	> type;
+};
+
+template< typename From, typename To >
+using is_convertible_to_t = typename is_convertible_to< From, To >::type;
 
 } // namespace q
 

@@ -6,38 +6,38 @@
 
 TEST( functional, is_argument_same )
 {
-	typedef q::is_argument_same<
+	typedef q::is_argument_same_t<
 		q::arguments< char, int >,
 		q::arguments< char, int >
 	> ias_type;
 	const ias_type::value_type is_same_1 = ias_type::value;
 
-	const bool is_same_2 = q::is_argument_same<
+	const bool is_same_2 = q::is_argument_same_t<
 		q::arguments< >,
 		q::arguments< >
 	>::value;
 
-	const bool is_same_3 = q::is_argument_same<
+	const bool is_same_3 = q::is_argument_same_t<
 		q::arguments< const double >,
 		q::arguments< double >
 	>::value;
 
-	const bool is_not_same_1 = q::is_argument_same<
+	const bool is_not_same_1 = q::is_argument_same_t<
 		q::arguments< char, long >,
 		q::arguments< char, int >
 	>::value;
 
-	const bool is_not_same_2 = q::is_argument_same<
+	const bool is_not_same_2 = q::is_argument_same_t<
 		q::arguments< char, int, double >,
 		q::arguments< char, int >
 	>::value;
 
-	const bool is_not_same_3 = q::is_argument_same<
+	const bool is_not_same_3 = q::is_argument_same_t<
 		q::arguments< double >,
 		q::arguments< >
 	>::value;
 
-	const bool is_not_same_4 = q::is_argument_same<
+	const bool is_not_same_4 = q::is_argument_same_t<
 		q::arguments< const double& >,
 		q::arguments< double& >
 	>::value;
@@ -275,7 +275,7 @@ TEST( functional, result_of_as_argument )
 	auto fn = [ ]( int, long ) { return true; };
 	typedef q::result_of_as_argument_t< decltype( fn ) > test;
 	auto expectation =
-		q::is_argument_same< test, q::arguments< bool > >::value;
+		q::is_argument_same_t< test, q::arguments< bool > >::value;
 	EXPECT_TRUE( expectation );
 }
 
@@ -292,7 +292,7 @@ TEST( functional, arguments_of )
 	auto fn = [ ]( int, long ) { return true; };
 	typedef q::arguments_of_t< decltype( fn ) > test;
 	auto expectation =
-		q::is_argument_same< test, q::arguments< int, long > >::value;
+		q::is_argument_same_t< test, q::arguments< int, long > >::value;
 	EXPECT_TRUE( expectation );
 }
 
@@ -314,6 +314,418 @@ TEST( functional, memberclass_of )
 	typedef q::memberclass_of_t< decltype( &C::fn ) > test;
 	EXPECT_TRUE( ( std::is_same< test, C >::value ) );
 	EXPECT_FALSE( ( std::is_same< test, D >::value ) );
+}
+
+TEST( functional, function_equals_basics )
+{
+	auto fn_void_void = [ ]( ) { };
+	auto fn_void_int = [ ]( int ) { };
+	auto fn_int_void = [ ]( ) -> int { return 0; };
+	auto fn_int_int = [ ]( int ) -> int { return 0; };
+
+	int foo = 0;
+
+	auto cap_fn_void_void = [ foo ]( ) { };
+	auto cap_fn_void_int = [ foo ]( int ) { };
+	auto cap_fn_int_void = [ foo ]( ) -> int { return 0; };
+	auto cap_fn_int_int = [ foo ]( int ) -> int { return 0; };
+
+
+	EXPECT_TRUE( (
+		q::function_equal_t<
+			decltype( fn_void_void ),
+			decltype( fn_void_void )
+		>::value
+	) );
+
+	EXPECT_TRUE( (
+		q::function_equal_t<
+			decltype( fn_void_int ),
+			decltype( fn_void_int )
+		>::value
+	) );
+
+	EXPECT_TRUE( (
+		q::function_equal_t<
+			decltype( fn_int_void ),
+			decltype( fn_int_void )
+		>::value
+	) );
+
+	EXPECT_TRUE( (
+		q::function_equal_t<
+			decltype( fn_int_int ),
+			decltype( fn_int_int )
+		>::value
+	) );
+
+	EXPECT_TRUE( (
+		q::function_equal_t<
+			decltype( cap_fn_void_void ),
+			decltype( cap_fn_void_void )
+		>::value
+	) );
+
+	EXPECT_TRUE( (
+		q::function_equal_t<
+			decltype( cap_fn_void_int ),
+			decltype( cap_fn_void_int )
+		>::value
+	) );
+
+	EXPECT_TRUE( (
+		q::function_equal_t<
+			decltype( cap_fn_int_void ),
+			decltype( cap_fn_int_void )
+		>::value
+	) );
+
+	EXPECT_TRUE( (
+		q::function_equal_t<
+			decltype( cap_fn_int_int ),
+			decltype( cap_fn_int_int )
+		>::value
+	) );
+
+	EXPECT_TRUE( (
+		q::function_equal_t<
+			decltype( fn_void_void ),
+			decltype( cap_fn_void_void )
+		>::value
+	) );
+
+	EXPECT_TRUE( (
+		q::function_equal_t<
+			decltype( fn_void_int ),
+			decltype( cap_fn_void_int )
+		>::value
+	) );
+
+	EXPECT_TRUE( (
+		q::function_equal_t<
+			decltype( fn_int_void ),
+			decltype( cap_fn_int_void )
+		>::value
+	) );
+
+	EXPECT_TRUE( (
+		q::function_equal_t<
+			decltype( fn_int_int ),
+			decltype( cap_fn_int_int )
+		>::value
+	) );
+
+	EXPECT_TRUE( (
+		q::function_same_type_t<
+			decltype( fn_void_void ),
+			decltype( fn_void_void )
+		>::value
+	) );
+
+	EXPECT_TRUE( (
+		q::function_same_type_t<
+			decltype( fn_void_int ),
+			decltype( fn_void_int )
+		>::value
+	) );
+
+	EXPECT_TRUE( (
+		q::function_same_type_t<
+			decltype( fn_int_void ),
+			decltype( fn_int_void )
+		>::value
+	) );
+
+	EXPECT_TRUE( (
+		q::function_same_type_t<
+			decltype( fn_int_int ),
+			decltype( fn_int_int )
+		>::value
+	) );
+
+	EXPECT_TRUE( (
+		q::function_same_type_t<
+			decltype( cap_fn_void_void ),
+			decltype( cap_fn_void_void )
+		>::value
+	) );
+
+	EXPECT_TRUE( (
+		q::function_same_type_t<
+			decltype( cap_fn_void_int ),
+			decltype( cap_fn_void_int )
+		>::value
+	) );
+
+	EXPECT_TRUE( (
+		q::function_same_type_t<
+			decltype( cap_fn_int_void ),
+			decltype( cap_fn_int_void )
+		>::value
+	) );
+
+	EXPECT_TRUE( (
+		q::function_same_type_t<
+			decltype( cap_fn_int_int ),
+			decltype( cap_fn_int_int )
+		>::value
+	) );
+
+	EXPECT_TRUE( (
+		q::function_same_type_t<
+			decltype( fn_void_void ),
+			decltype( cap_fn_void_void )
+		>::value
+	) );
+
+	EXPECT_TRUE( (
+		q::function_same_type_t<
+			decltype( fn_void_int ),
+			decltype( cap_fn_void_int )
+		>::value
+	) );
+
+	EXPECT_TRUE( (
+		q::function_same_type_t<
+			decltype( fn_int_void ),
+			decltype( cap_fn_int_void )
+		>::value
+	) );
+
+	EXPECT_TRUE( (
+		q::function_same_type_t<
+			decltype( fn_int_int ),
+			decltype( cap_fn_int_int )
+		>::value
+	) );
+
+
+	// Non-capturing functions comparisons
+	EXPECT_FALSE( (
+		q::function_equal_t<
+			decltype( fn_void_void ),
+			decltype( fn_void_int )
+		>::value
+	) );
+
+	EXPECT_FALSE( (
+		q::function_equal_t<
+			decltype( fn_void_void ),
+			decltype( fn_int_void )
+		>::value
+	) );
+
+	EXPECT_FALSE( (
+		q::function_equal_t<
+			decltype( fn_void_void ),
+			decltype( fn_int_int )
+		>::value
+	) );
+
+	EXPECT_FALSE( (
+		q::function_equal_t<
+			decltype( fn_void_int ),
+			decltype( fn_int_void )
+		>::value
+	) );
+
+	EXPECT_FALSE( (
+		q::function_equal_t<
+			decltype( fn_void_int ),
+			decltype( fn_int_int )
+		>::value
+	) );
+
+	EXPECT_FALSE( (
+		q::function_equal_t<
+			decltype( fn_int_void ),
+			decltype( fn_int_int )
+		>::value
+	) );
+
+	EXPECT_FALSE( (
+		q::function_same_type_t<
+			decltype( fn_void_void ),
+			decltype( fn_void_int )
+		>::value
+	) );
+
+	EXPECT_FALSE( (
+		q::function_same_type_t<
+			decltype( fn_void_void ),
+			decltype( fn_int_void )
+		>::value
+	) );
+
+	EXPECT_FALSE( (
+		q::function_same_type_t<
+			decltype( fn_void_void ),
+			decltype( fn_int_int )
+		>::value
+	) );
+
+	EXPECT_FALSE( (
+		q::function_same_type_t<
+			decltype( fn_void_int ),
+			decltype( fn_int_void )
+		>::value
+	) );
+
+	EXPECT_FALSE( (
+		q::function_same_type_t<
+			decltype( fn_void_int ),
+			decltype( fn_int_int )
+		>::value
+	) );
+
+	EXPECT_FALSE( (
+		q::function_same_type_t<
+			decltype( fn_int_void ),
+			decltype( fn_int_int )
+		>::value
+	) );
+
+	// Capturing functions comparisons
+	EXPECT_FALSE( (
+		q::function_equal_t<
+			decltype( cap_fn_void_void ),
+			decltype( cap_fn_void_int )
+		>::value
+	) );
+
+	EXPECT_FALSE( (
+		q::function_equal_t<
+			decltype( cap_fn_void_void ),
+			decltype( cap_fn_int_void )
+		>::value
+	) );
+
+	EXPECT_FALSE( (
+		q::function_equal_t<
+			decltype( cap_fn_void_void ),
+			decltype( cap_fn_int_int )
+		>::value
+	) );
+
+	EXPECT_FALSE( (
+		q::function_equal_t<
+			decltype( cap_fn_void_int ),
+			decltype( cap_fn_int_void )
+		>::value
+	) );
+
+	EXPECT_FALSE( (
+		q::function_equal_t<
+			decltype( cap_fn_void_int ),
+			decltype( cap_fn_int_int )
+		>::value
+	) );
+
+	EXPECT_FALSE( (
+		q::function_equal_t<
+			decltype( cap_fn_int_void ),
+			decltype( cap_fn_int_int )
+		>::value
+	) );
+
+	EXPECT_FALSE( (
+		q::function_same_type_t<
+			decltype( cap_fn_void_void ),
+			decltype( cap_fn_void_int )
+		>::value
+	) );
+
+	EXPECT_FALSE( (
+		q::function_same_type_t<
+			decltype( cap_fn_void_void ),
+			decltype( cap_fn_int_void )
+		>::value
+	) );
+
+	EXPECT_FALSE( (
+		q::function_same_type_t<
+			decltype( cap_fn_void_void ),
+			decltype( cap_fn_int_int )
+		>::value
+	) );
+
+	EXPECT_FALSE( (
+		q::function_same_type_t<
+			decltype( cap_fn_void_int ),
+			decltype( cap_fn_int_void )
+		>::value
+	) );
+
+	EXPECT_FALSE( (
+		q::function_same_type_t<
+			decltype( cap_fn_void_int ),
+			decltype( cap_fn_int_int )
+		>::value
+	) );
+
+	EXPECT_FALSE( (
+		q::function_same_type_t<
+			decltype( cap_fn_int_void ),
+			decltype( cap_fn_int_int )
+		>::value
+	) );
+}
+
+
+TEST( functional, function_equals_same_type )
+{
+	auto fn_void_int = [ ]( int ) { };
+	auto fn_int_void = [ ]( ) -> int { return 0; };
+	auto fn_int_int = [ ]( int ) -> int { return 0; };
+
+	auto ref_fn_void_int = [ ]( int&& ) { };
+	auto ref_fn_int_void = [ ]( )
+		-> int&& { int i = 0; return std::move( i ); };
+	auto ref_fn_int_int = [ ]( int&& )
+		-> int&& { int i = 0; return std::move( i ); };
+
+
+	EXPECT_TRUE( (
+		q::function_same_type_t<
+			decltype( fn_void_int ),
+			decltype( ref_fn_void_int )
+		>::value
+	) );
+
+	EXPECT_TRUE( (
+		q::function_same_type_t<
+			decltype( fn_int_void ),
+			decltype( ref_fn_int_void )
+		>::value
+	) );
+
+	EXPECT_TRUE( (
+		q::function_same_type_t<
+			decltype( fn_int_int ),
+			decltype( ref_fn_int_int )
+		>::value
+	) );
+
+	EXPECT_FALSE( (
+		q::function_equal_t<
+			decltype( fn_void_int ),
+			decltype( ref_fn_void_int )
+		>::value
+	) );
+
+	EXPECT_FALSE( (
+		q::function_equal_t<
+			decltype( fn_int_void ),
+			decltype( ref_fn_int_void )
+		>::value
+	) );
+
+	EXPECT_FALSE( (
+		q::function_equal_t<
+			decltype( fn_int_int ),
+			decltype( ref_fn_int_int )
+		>::value
+	) );
 }
 
 #ifdef LIBQ_WITH_CPP14

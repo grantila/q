@@ -56,9 +56,10 @@ constexpr bool is_promise_v = is_promise< T >::value;
 
 #endif // LIBQ_WITH_CPP14
 
+// TODO: Make _t and _v
 template< class... T >
 struct are_promises
-: fold<
+: fold_t<
 	q::arguments< T... >,
 	generic_operator<
 		is_promise, logic_and

@@ -33,7 +33,51 @@ template< typename T > void ignore_result( T&& ) { }
 template< typename T > void ignore_parameter( T&& ) { }
 template< typename T > void unused_variable( T&& ) { }
 
+/**
+ * q::bool_type is std::true_type if value is true, otherwise q::bool_type is
+ * std::false_type.
+ */
+template< bool value >
+struct bool_type
+: std::integral_constant< bool, value > // TODO: Remove
+{
+	typedef typename std::integral_constant< bool, value >::type type;
+};
+
+template< bool value >
+using bool_type_t = typename bool_type< value >::type;
+
 struct void_t { };
+
+template< typename T >
+struct is_void_t
+{
+	typedef std::is_same< typename std::decay< T >::type, void_t > type;
+};
+
+template< typename T >
+struct is_voidish
+{
+	typedef bool_type_t<
+		is_void_t< T >::type::value or std::is_void< T >::value
+	> type;
+};
+
+template< typename T >
+using is_void_t_t = typename is_void_t< T >::type;
+
+template< typename T >
+using is_voidish_t = typename is_voidish< T >::type;
+
+#ifdef LIBQ_WITH_CPP14
+
+template< typename T >
+constexpr bool is_void_t_v = is_void_t_t< T >::value;
+
+template< typename T >
+constexpr bool is_voidish_v = is_voidish_t< T >::value;
+
+#endif // LIBQ_WITH_CPP14
 
 template< typename T >
 struct objectify
@@ -77,15 +121,6 @@ struct functional_type
 };
 
 /**
- * q::bool_type is std::true_type if value is true, otherwise q::bool_type is
- * std::false_type.
- */
-template< bool value >
-struct bool_type
-: std::integral_constant< bool, value >
-{ };
-
-/**
  * Negates the meaning of is_* meta classes, such as std::is_void< >.
  *
  * The usage to invert e.g. std::is_void< T > would be:
@@ -99,11 +134,11 @@ struct negate
 	template< typename... Args >
 	struct of
 	{
-		typedef bool_type< !T< Args... >::value > type;
+		typedef bool_type_t< !T< Args... >::value > type;
 	};
 
 	template< typename... Args >
-	using of_t = bool_type< !T< Args... >::value >;
+	using of_t = bool_type_t< !T< Args... >::value >;
 
 #	ifdef LIBQ_WITH_CPP14
 
@@ -148,6 +183,28 @@ struct is_same_type
 { };
 
 /**
+ * Similar to std::is_same, although this one disregards constness and
+ * references.
+ */
+template<
+	typename A,
+	typename B >
+struct is_same_type_or_voidish
+: bool_type_t<
+	std::is_same<
+		typename std::remove_reference<
+			typename std::decay< A >::type
+		>::type,
+		typename std::remove_reference<
+			typename std::decay< B >::type
+		>::type
+	>::value
+	or
+	( is_voidish_t< A >::value and is_voidish_t< B >::value )
+>
+{ };
+
+/**
  * Composable is_same_type
  */
 template< typename A >
@@ -188,7 +245,7 @@ struct is_empty_tuple< std::tuple< > >
 
 template< typename T >
 struct is_copyable
-: bool_type<
+: bool_type_t<
 	std::is_copy_constructible< T >::value ||
 	std::is_copy_assignable< T >::value
 >
@@ -211,7 +268,7 @@ struct is_move_constructible;
 
 template< typename T >
 struct is_nothrow_copyable
-: bool_type<
+: bool_type_t<
 	q::is_nothrow_copy_constructible< T >::value ||
 	std::is_nothrow_copy_assignable< T >::value
 >
@@ -219,7 +276,7 @@ struct is_nothrow_copyable
 
 template< typename T >
 struct is_movable
-: bool_type<
+: bool_type_t<
 	q::is_move_constructible< T >::value ||
 	std::is_move_assignable< T >::value
 >
@@ -227,7 +284,7 @@ struct is_movable
 
 template< typename T >
 struct is_nothrow_movable
-: bool_type<
+: bool_type_t<
 	std::is_nothrow_move_constructible< T >::value ||
 	std::is_nothrow_move_assignable< T >::value
 >
@@ -235,7 +292,7 @@ struct is_nothrow_movable
 
 template< typename T >
 struct is_copyable_or_movable
-: bool_type<
+: bool_type_t<
 	is_copyable< T >::value ||
 	is_movable< T >::value
 >
@@ -243,7 +300,7 @@ struct is_copyable_or_movable
 
 template< typename T >
 struct is_nothrow_copyable_or_movable
-: bool_type<
+: bool_type_t<
 	is_nothrow_copyable< T >::value ||
 	is_nothrow_movable< T >::value
 >
@@ -271,7 +328,7 @@ struct is_unique_pointer< std::unique_ptr< T > >
 
 template< typename T >
 struct is_pointer_like
-: bool_type<
+: bool_type_t<
 	std::is_pointer< T >::value ||
 	is_shared_pointer< T >::value ||
 	is_unique_pointer< T >::value
@@ -303,7 +360,7 @@ struct remove_rvalue_reference< T&& >
  */
 template< typename T >
 struct is_char_array
-: public bool_type<
+: public bool_type_t<
 	std::is_array< typename remove_cv_ref< T >::type >::value &&
 	std::is_same<
 		typename remove_cv_ref<
@@ -321,7 +378,7 @@ struct is_char_array
  */
 template< typename T >
 struct is_char_pointer
-: public bool_type<
+: public bool_type_t<
 	std::is_pointer< typename remove_cv_ref< T >::type >::value &&
 	std::is_same<
 		typename remove_cv_ref<
@@ -339,7 +396,7 @@ struct is_char_pointer
  */
 template< typename T >
 struct is_c_string
-: public bool_type< is_char_array< T >::value or is_char_pointer< T >::value >
+: public bool_type_t< is_char_array< T >::value or is_char_pointer< T >::value >
 { };
 
 template< typename T >

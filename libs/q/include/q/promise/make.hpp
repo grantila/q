@@ -125,7 +125,7 @@ typename std::enable_if<
 make_promise( const queue_ptr& queue, Fn&& fn )
 {
 	auto deferred = Q_RESULT_OF_AS_ARGUMENT( Fn )
-		::template apply< ::q::detail::defer >::type
+		::template apply< ::q::detail::defer >
 		::construct( queue );
 
 	Q_MAKE_MOVABLE( fn );
@@ -146,7 +146,7 @@ typename std::enable_if<
 make_promise_sync( const queue_ptr& queue, Fn&& fn )
 {
 	auto deferred = Q_RESULT_OF_AS_ARGUMENT( Fn )
-		::template apply< ::q::detail::defer >::type
+		::template apply< ::q::detail::defer >
 		::construct( queue );
 
 	deferred->set_by_fun( std::forward< Fn >( fn ) );
@@ -182,7 +182,7 @@ make_promise( const ::q::queue_ptr& queue, Fn&& fn )
 	>::type                                  value_types;
 	typedef typename value_types::template apply<
 		detail::resolve_helper
-	>::type                                  resolve_helper;
+	>                                        resolve_helper;
 
 	auto helper = std::make_shared< resolve_helper >( queue );
 
@@ -215,7 +215,7 @@ make_promise_sync( const ::q::queue_ptr& queue, Fn&& fn )
 	>::type                                  value_types;
 	typedef typename value_types::template apply<
 		detail::resolve_helper
-	>::type                                  resolve_helper;
+	>                                        resolve_helper;
 
 	auto helper = std::make_shared< resolve_helper >( queue );
 

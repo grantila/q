@@ -157,9 +157,9 @@ public:
 	typedef arguments< typename strip_required< T >::type... >
 		stripped_arguments;
 	typedef typename arguments< T... >
-		::template filter< is_required >::type
-		::template map< strip_required >::type
-		::template map< std::decay >::type
+		::template filter< is_required >
+		::template map< functional_type< strip_required >::of_t >
+		::template map< functional_type< std::decay >::of_t >
 		required_arguments;
 
 	typedef bit_flags_of_types< typename strip_required< T >::type... >
@@ -193,7 +193,7 @@ public:
 	{
 		static_assert(
 			arguments< typename std::decay< Args >::type... >
-			::template contains_all< required_arguments >::value,
+			::template contains< required_arguments >::value,
 			"All required options not provided"
 		);
 

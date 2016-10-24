@@ -21,15 +21,17 @@ namespace q {
 
 template< typename A, typename B >
 struct logic_and
-: q::bool_type< A::value && B::value >
 {
+	typedef bool_type_t< A::value && B::value > type;
+	static constexpr bool value = type::value;
 	typedef std::true_type nil_type;
 };
 
 template< typename A, typename B >
 struct logic_or
-: q::bool_type< A::value || B::value >
 {
+	typedef bool_type_t< A::value || B::value > type;
+	static constexpr bool value = type::value;
 	typedef std::false_type nil_type;
 };
 
@@ -37,7 +39,7 @@ template< typename T, bool MetaValue = true >
 struct wrapped_value
 : T
 {
-	typedef q::bool_type< MetaValue > meta;
+	typedef q::bool_type_t< MetaValue > meta;
 };
 
 template< typename T >
@@ -85,12 +87,12 @@ struct generic_operator
 
 	template< typename A, bool B >
 	struct fold_type< A, std::integral_constant< bool, B > >
-	: LogicOp< Operator< A >, bool_type< B > >
+	: LogicOp< Operator< A >, bool_type_t< B > >
 	{ };
 
 	template< bool A, typename B >
 	struct fold_type< std::integral_constant< bool, A >, B >
-	: LogicOp< bool_type< A >, Operator< B > >
+	: LogicOp< bool_type_t< A >, Operator< B > >
 	{ };
 
 	template< bool A, bool B >
@@ -98,7 +100,7 @@ struct generic_operator
 		std::integral_constant< bool, A >,
 		std::integral_constant< bool, B >
 	>
-	: LogicOp< bool_type< A >, bool_type< B > >
+	: LogicOp< bool_type_t< A >, bool_type_t< B > >
 	{ };
 };
 

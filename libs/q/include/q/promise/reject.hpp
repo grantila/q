@@ -35,8 +35,7 @@ typename std::enable_if<
 >::type
 reject( const queue_ptr& queue, E&& e )
 {
-	typedef typename Arguments::template apply< detail::defer >::type
-		defer_type;
+	typedef typename Arguments::template apply< detail::defer > defer_type;
 
 	auto deferred = ::q::make_shared< defer_type >( queue );
 
@@ -52,8 +51,7 @@ typename std::enable_if<
 >::type
 reject( const queue_ptr& queue, E&& e )
 {
-	typedef typename Arguments::template apply< detail::defer >::type
-		defer_type;
+	typedef typename Arguments::template apply< detail::defer > defer_type;
 
 	auto deferred = ::q::make_shared< defer_type >( queue );
 
