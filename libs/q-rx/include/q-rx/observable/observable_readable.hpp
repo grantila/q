@@ -80,6 +80,59 @@ struct observable_readable_traits< void >
 		q::readable< q::shared_promise< std::tuple< > > >;
 };
 
+namespace detail {
+
+struct tag_1 { };
+struct tag_2 { };
+struct tag_3 { };
+struct tag_4 { };
+
+template< typename A, typename B, typename C, typename D >
+struct observable_readable_tag
+{
+	template<
+		typename T,
+		bool IsA = function_same_type_v< T, A >,
+		bool IsB = function_same_type_v< T, B >,
+		bool IsC = function_same_type_v< T, C >,
+		bool IsD = function_same_type_v< T, D >
+	>
+	struct of
+	{
+		typedef std::false_type valid;
+	};
+
+	template< typename T, bool X, bool Y, bool Z >
+	struct of< T, true, X, Y, Z >
+	{
+		typedef std::true_type valid;
+		typedef detail::tag_1 type;
+	};
+
+	template< typename T, bool X, bool Y, bool Z >
+	struct of< T, X, true, Y, Z >
+	{
+		typedef std::true_type valid;
+		typedef detail::tag_2 type;
+	};
+
+	template< typename T, bool X, bool Y, bool Z >
+	struct of< T, X, Y, true, Z >
+	{
+		typedef std::true_type valid;
+		typedef detail::tag_3 type;
+	};
+
+	template< typename T, bool X, bool Y, bool Z >
+	struct of< T, X, Y, Z, true >
+	{
+		typedef std::true_type valid;
+		typedef detail::tag_4 type;
+	};
+};
+
+} // namespace detail
+
 template< typename T >
 struct observable_readable_objectified
 {
@@ -92,11 +145,25 @@ struct observable_readable_objectified
 	using async_receiver_type_tuple = typename observable_readable_traits< T >
 		::async_receiver_type_tuple;
 
-	virtual q::promise< std::tuple< > >
-	receive( receive_type&& fn, queue_ptr queue ) = 0;
+	typedef detail::observable_readable_tag<
+		receive_type,
+		receiver_type_tuple,
+		async_receive_type,
+		async_receiver_type_tuple
+	> get_tag;
 
 	virtual q::promise< std::tuple< > >
-	receive( receiver_type_tuple&& fn, queue_ptr queue ) = 0;
+	_receive( receive_type&& fn, queue_ptr queue, detail::tag_1 ) = 0;
+
+	virtual q::promise< std::tuple< > >
+	_receive( receiver_type_tuple&& fn, queue_ptr queue, detail::tag_2 ) = 0;
+
+	virtual q::promise< std::tuple< > >
+	_receive( async_receive_type&& fn, queue_ptr queue, detail::tag_3 ) = 0;
+
+	virtual q::promise< std::tuple< > >
+	_receive( async_receiver_type_tuple&& fn, queue_ptr queue, detail::tag_4 )
+		= 0;
 };
 
 template< >
@@ -112,11 +179,27 @@ struct observable_readable_objectified< void >
 		typename observable_readable_traits< void >
 		::async_receiver_type_objectified;
 
-	virtual q::promise< std::tuple< > >
-	receive( receive_type&& fn, queue_ptr queue ) = 0;
+	typedef detail::observable_readable_tag<
+		receive_type,
+		receive_type_objectified,
+		async_receive_type,
+		async_receive_type_objectified
+	> get_tag;
 
 	virtual q::promise< std::tuple< > >
-	receive( receive_type_objectified&& fn, queue_ptr queue ) = 0;
+	_receive( receive_type&& fn, queue_ptr queue, detail::tag_1 ) = 0;
+
+	virtual q::promise< std::tuple< > >
+	_receive( receive_type_objectified&& fn, queue_ptr queue, detail::tag_2 )
+		= 0;
+
+	virtual q::promise< std::tuple< > >
+	_receive( async_receive_type&& fn, queue_ptr queue, detail::tag_3 ) = 0;
+
+	virtual q::promise< std::tuple< > >
+	_receive(
+		async_receive_type_objectified&& fn, queue_ptr queue, detail::tag_4 )
+		= 0;
 };
 
 template< >
@@ -132,11 +215,25 @@ struct observable_readable_objectified< void_t >
 		typename observable_readable_traits< void_t >
 		::async_receiver_type_void;
 
-	virtual q::promise< std::tuple< > >
-	receive( receive_type&& fn, queue_ptr queue ) = 0;
+	typedef detail::observable_readable_tag<
+		receive_type,
+		receive_type_void,
+		async_receive_type,
+		async_receive_type_void
+	> get_tag;
 
 	virtual q::promise< std::tuple< > >
-	receive( receive_type_void&& fn, queue_ptr queue ) = 0;
+	_receive( receive_type&& fn, queue_ptr queue, detail::tag_1 ) = 0;
+
+	virtual q::promise< std::tuple< > >
+	_receive( receive_type_void&& fn, queue_ptr queue, detail::tag_2 ) = 0;
+
+	virtual q::promise< std::tuple< > >
+	_receive( async_receive_type&& fn, queue_ptr queue, detail::tag_3 ) = 0;
+
+	virtual q::promise< std::tuple< > >
+	_receive( async_receive_type_void&& fn, queue_ptr queue, detail::tag_4 )
+		= 0;
 };
 
 template< typename T >
@@ -144,7 +241,25 @@ class observable_readable
 : public observable_readable_objectified< T >
 {
 public:
-	using observable_readable_objectified< T >::receive;
+	using observable_readable_objectified< T >::_receive;
+	using typename observable_readable_objectified< T >::get_tag;
+
+	template< typename Fn >
+	typename std::enable_if<
+		get_tag::template of< decayed_function_t< Fn > >::valid::value,
+		q::promise< std::tuple< > >
+	>::type
+	receive( Fn&& fn, queue_ptr queue )
+	{
+		typedef typename get_tag
+			::template of< decayed_function_t< Fn > >::type tag;
+
+		return _receive(
+			std::forward< Fn >( fn ),
+			std::move( queue ),
+			tag( )
+		);
+	}
 
 	virtual ~observable_readable( ) { }
 
@@ -181,14 +296,32 @@ public:
 	{ }
 
 	q::promise< std::tuple< > >
-	receive( receive_type&& fn, queue_ptr queue ) override
+	_receive( receive_type&& fn, queue_ptr queue, detail::tag_1 )
+	override
 	{
 		return readable_.receive( )
 		.then( std::move( fn ), std::move( queue ) );
 	}
 
 	q::promise< std::tuple< > >
-	receive( receiver_type_tuple&& fn, queue_ptr queue ) override
+	_receive( receiver_type_tuple&& fn, queue_ptr queue, detail::tag_2 )
+	override
+	{
+		return readable_.receive( )
+		.then( std::move( fn ), std::move( queue ) );
+	}
+
+	q::promise< std::tuple< > >
+	_receive( async_receive_type&& fn, queue_ptr queue, detail::tag_3 )
+	override
+	{
+		return readable_.receive( )
+		.then( std::move( fn ), std::move( queue ) );
+	}
+
+	q::promise< std::tuple< > >
+	_receive( async_receiver_type_tuple&& fn, queue_ptr queue, detail::tag_4 )
+	override
 	{
 		return readable_.receive( )
 		.then( std::move( fn ), std::move( queue ) );
@@ -240,14 +373,33 @@ public:
 	{ }
 
 	q::promise< std::tuple< > >
-	receive( receive_type&& fn, queue_ptr queue ) override
+	_receive( receive_type&& fn, queue_ptr queue, detail::tag_1 )
+	override
 	{
 		return readable_.receive( )
 		.then( std::move( fn ), std::move( queue ) );
 	}
 
 	q::promise< std::tuple< > >
-	receive( receive_type_objectified&& fn, queue_ptr queue ) override
+	_receive( receive_type_objectified&& fn, queue_ptr queue, detail::tag_2 )
+	override
+	{
+		return readable_.receive( )
+		.then( std::move( fn ), std::move( queue ) );
+	}
+
+	q::promise< std::tuple< > >
+	_receive( async_receive_type&& fn, queue_ptr queue, detail::tag_3 )
+	override
+	{
+		return readable_.receive( )
+		.then( std::move( fn ), std::move( queue ) );
+	}
+
+	q::promise< std::tuple< > >
+	_receive(
+		async_receive_type_objectified&& fn, queue_ptr queue, detail::tag_4 )
+	override
 	{
 		return readable_.receive( )
 		.then( std::move( fn ), std::move( queue ) );
@@ -299,14 +451,32 @@ public:
 	{ }
 
 	q::promise< std::tuple< > >
-	receive( receive_type&& fn, queue_ptr queue ) override
+	_receive( receive_type&& fn, queue_ptr queue, detail::tag_1 )
+	override
 	{
 		return readable_.receive( )
 		.then( std::move( fn ), std::move( queue ) );
 	}
 
 	q::promise< std::tuple< > >
-	receive( receiver_type_void&& fn, queue_ptr queue ) override
+	_receive( receiver_type_void&& fn, queue_ptr queue, detail::tag_2 )
+	override
+	{
+		return readable_.receive( )
+		.then( std::move( fn ), std::move( queue ) );
+	}
+
+	q::promise< std::tuple< > >
+	_receive( async_receive_type&& fn, queue_ptr queue, detail::tag_3 )
+	override
+	{
+		return readable_.receive( )
+		.then( std::move( fn ), std::move( queue ) );
+	}
+
+	q::promise< std::tuple< > >
+	_receive( async_receiver_type_void&& fn, queue_ptr queue, detail::tag_4 )
+	override
 	{
 		return readable_.receive( )
 		.then( std::move( fn ), std::move( queue ) );
@@ -358,7 +528,8 @@ public:
 	{ }
 
 	q::promise< std::tuple< > >
-	receive( receive_type&& fn, queue_ptr queue ) override
+	_receive( receive_type&& fn, queue_ptr queue, detail::tag_1 )
+	override
 	{
 		return readable_.receive( )
 		.then( [ fn{ std::move( fn ) } ]( q::expect< T >&& exp )
@@ -368,7 +539,26 @@ public:
 	}
 
 	q::promise< std::tuple< > >
-	receive( receiver_type_tuple&& fn, queue_ptr queue ) override
+	_receive( receiver_type_tuple&& fn, queue_ptr queue, detail::tag_2 )
+	override
+	{
+		Q_THROW( 1 ); // Just for 'override' compile-time reasons
+	}
+
+	q::promise< std::tuple< > >
+	_receive( async_receive_type&& fn, queue_ptr queue, detail::tag_3 )
+	override
+	{
+		return readable_.receive( )
+		.then( [ fn{ std::move( fn ) } ]( q::expect< T >&& exp )
+		{
+			return fn( exp.consume( ) );
+		}, std::move( queue ) );
+	}
+
+	q::promise< std::tuple< > >
+	_receive( async_receiver_type_tuple&& fn, queue_ptr queue, detail::tag_4 )
+	override
 	{
 		Q_THROW( 1 ); // Just for 'override' compile-time reasons
 	}
@@ -419,7 +609,8 @@ public:
 	{ }
 
 	q::promise< std::tuple< > >
-	receive( receive_type&& fn, queue_ptr queue ) override
+	_receive( receive_type&& fn, queue_ptr queue, detail::tag_1 )
+	override
 	{
 		return readable_.receive( )
 		.then( [ fn{ std::move( fn ) } ]( q::expect< void >&& exp )
@@ -430,7 +621,36 @@ public:
 	}
 
 	q::promise< std::tuple< > >
-	receive( receive_type_objectified&& fn, queue_ptr queue ) override
+	_receive(
+		receive_type_objectified&& fn, queue_ptr queue, detail::tag_2 )
+	override
+	{
+		return readable_.receive( )
+		.then( [ fn{ std::move( fn ) } ]( q::expect< void >&& exp )
+		{
+			exp.consume( );
+			return fn( void_t( ) );
+		}, std::move( queue ) );
+	}
+
+	q::promise< std::tuple< > >
+	_receive( async_receive_type&& fn, queue_ptr queue, detail::tag_3 )
+	override
+	{
+		return readable_.receive( )
+		.then( [ fn{ std::move( fn ) } ]( q::expect< void >&& exp )
+		{
+			exp.consume( );
+			return fn( );
+		}, std::move( queue ) );
+	}
+
+	q::promise< std::tuple< > >
+	_receive(
+		async_receive_type_objectified&& fn,
+		queue_ptr queue,
+		detail::tag_4 )
+	override
 	{
 		return readable_.receive( )
 		.then( [ fn{ std::move( fn ) } ]( q::expect< void >&& exp )
@@ -486,7 +706,8 @@ public:
 	{ }
 
 	q::promise< std::tuple< > >
-	receive( receive_type&& fn, queue_ptr queue ) override
+	_receive( receive_type&& fn, queue_ptr queue, detail::tag_1 )
+	override
 	{
 		return readable_.receive( )
 		.then( [ fn{ std::move( fn ) } ]( q::expect< void_t >&& exp )
@@ -496,7 +717,32 @@ public:
 	}
 
 	q::promise< std::tuple< > >
-	receive( receive_type_void&& fn, queue_ptr queue ) override
+	_receive( receive_type_void&& fn, queue_ptr queue, detail::tag_2 )
+	override
+	{
+		return readable_.receive( )
+		.then( [ fn{ std::move( fn ) } ]( q::expect< void_t >&& exp )
+		{
+			exp.consume( );
+			return fn( );
+		}, std::move( queue ) );
+	}
+
+	q::promise< std::tuple< > >
+	_receive( async_receive_type&& fn, queue_ptr queue, detail::tag_3 )
+	override
+	{
+		return readable_.receive( )
+		.then( [ fn{ std::move( fn ) } ]( q::expect< void_t >&& exp )
+		{
+			return fn( exp.consume( ) );
+		}, std::move( queue ) );
+	}
+
+	q::promise< std::tuple< > >
+	_receive(
+		async_receive_type_void&& fn, queue_ptr queue, detail::tag_4 )
+	override
 	{
 		return readable_.receive( )
 		.then( [ fn{ std::move( fn ) } ]( q::expect< void_t >&& exp )
@@ -552,14 +798,35 @@ public:
 	{ }
 
 	q::promise< std::tuple< > >
-	receive( receive_type&& fn, queue_ptr queue ) override
+	_receive( receive_type&& fn, queue_ptr queue, detail::tag_1 )
+	override
 	{
 		return readable_.receive( )
 		.then( std::move( fn ), std::move( queue ) );
 	}
 
 	q::promise< std::tuple< > >
-	receive( receiver_type_tuple&& fn, queue_ptr queue ) override
+	_receive( receiver_type_tuple&& fn, queue_ptr queue, detail::tag_2 )
+	override
+	{
+		return readable_.receive( )
+		.then( std::move( fn ), std::move( queue ) );
+	}
+
+	q::promise< std::tuple< > >
+	_receive( async_receive_type&& fn, queue_ptr queue, detail::tag_3 )
+	override
+	{
+		return readable_.receive( )
+		.then( std::move( fn ), std::move( queue ) );
+	}
+
+	q::promise< std::tuple< > >
+	_receive(
+		async_receiver_type_tuple&& fn,
+		queue_ptr queue,
+		detail::tag_4 )
+	override
 	{
 		return readable_.receive( )
 		.then( std::move( fn ), std::move( queue ) );
@@ -611,14 +878,38 @@ public:
 	{ }
 
 	q::promise< std::tuple< > >
-	receive( receive_type&& fn, queue_ptr queue ) override
+	_receive( receive_type&& fn, queue_ptr queue, detail::tag_1 )
+	override
 	{
 		return readable_.receive( )
 		.then( std::move( fn ), std::move( queue ) );
 	}
 
 	q::promise< std::tuple< > >
-	receive( receive_type_objectified&& fn, queue_ptr queue ) override
+	_receive(
+		receive_type_objectified&& fn, queue_ptr queue, detail::tag_2
+	)
+	override
+	{
+		return readable_.receive( )
+		.then( std::move( fn ), std::move( queue ) );
+	}
+
+	q::promise< std::tuple< > >
+	_receive( async_receive_type&& fn, queue_ptr queue, detail::tag_3 )
+	override
+	{
+		return readable_.receive( )
+		.then( std::move( fn ), std::move( queue ) );
+	}
+
+	q::promise< std::tuple< > >
+	_receive(
+		async_receive_type_objectified&& fn,
+		queue_ptr queue,
+		detail::tag_4
+	)
+	override
 	{
 		return readable_.receive( )
 		.then( std::move( fn ), std::move( queue ) );
@@ -670,14 +961,34 @@ public:
 	{ }
 
 	q::promise< std::tuple< > >
-	receive( receive_type&& fn, queue_ptr queue ) override
+	_receive( receive_type&& fn, queue_ptr queue, detail::tag_1 )
+	override
 	{
 		return readable_.receive( )
 		.then( std::move( fn ), std::move( queue ) );
 	}
 
 	q::promise< std::tuple< > >
-	receive( receive_type_void&& fn, queue_ptr queue ) override
+	_receive( receive_type_void&& fn, queue_ptr queue, detail::tag_2 )
+	override
+	{
+		return readable_.receive( )
+		.then( std::move( fn ), std::move( queue ) );
+	}
+
+	q::promise< std::tuple< > >
+	_receive( async_receive_type&& fn, queue_ptr queue, detail::tag_3 )
+	override
+	{
+		return readable_.receive( )
+		.then( std::move( fn ), std::move( queue ) );
+	}
+
+	q::promise< std::tuple< > >
+	_receive(
+		async_receive_type_void&& fn, queue_ptr queue, detail::tag_4
+	)
+	override
 	{
 		return readable_.receive( )
 		.then( std::move( fn ), std::move( queue ) );
@@ -732,14 +1043,36 @@ public:
 	{ }
 
 	q::promise< std::tuple< > >
-	receive( receive_type&& fn, queue_ptr queue ) override
+	_receive( receive_type&& fn, queue_ptr queue, detail::tag_1 )
+	override
 	{
 		return readable_.receive( )
 		.then( std::move( fn ), std::move( queue ) );
 	}
 
 	q::promise< std::tuple< > >
-	receive( receiver_type_tuple&& fn, queue_ptr queue ) override
+	_receive( receiver_type_tuple&& fn, queue_ptr queue, detail::tag_2 )
+	override
+	{
+		return readable_.receive( )
+		.then( std::move( fn ), std::move( queue ) );
+	}
+
+	q::promise< std::tuple< > >
+	_receive( async_receive_type&& fn, queue_ptr queue, detail::tag_3 )
+	override
+	{
+		return readable_.receive( )
+		.then( std::move( fn ), std::move( queue ) );
+	}
+
+	q::promise< std::tuple< > >
+	_receive(
+		async_receiver_type_tuple&& fn,
+		queue_ptr queue,
+		detail::tag_4
+	)
+	override
 	{
 		return readable_.receive( )
 		.then( std::move( fn ), std::move( queue ) );
@@ -794,14 +1127,40 @@ public:
 	{ }
 
 	q::promise< std::tuple< > >
-	receive( receive_type&& fn, queue_ptr queue ) override
+	_receive( receive_type&& fn, queue_ptr queue, detail::tag_1 )
+	override
 	{
 		return readable_.receive( )
 		.then( std::move( fn ), std::move( queue ) );
 	}
 
 	q::promise< std::tuple< > >
-	receive( receive_type_objectified&& fn, queue_ptr queue ) override
+	_receive(
+		receive_type_objectified&& fn,
+		queue_ptr queue,
+		detail::tag_2
+	)
+	override
+	{
+		return readable_.receive( )
+		.then( std::move( fn ), std::move( queue ) );
+	}
+
+	q::promise< std::tuple< > >
+	_receive( async_receive_type&& fn, queue_ptr queue, detail::tag_3 )
+	override
+	{
+		return readable_.receive( )
+		.then( std::move( fn ), std::move( queue ) );
+	}
+
+	q::promise< std::tuple< > >
+	_receive(
+		async_receive_type_objectified&& fn,
+		queue_ptr queue,
+		detail::tag_4
+	)
+	override
 	{
 		return readable_.receive( )
 		.then( std::move( fn ), std::move( queue ) );
@@ -856,14 +1215,33 @@ public:
 	{ }
 
 	q::promise< std::tuple< > >
-	receive( receive_type&& fn, queue_ptr queue ) override
+	_receive( receive_type&& fn, queue_ptr queue, detail::tag_1 )
+	override
 	{
 		return readable_.receive( )
 		.then( std::move( fn ), std::move( queue ) );
 	}
 
 	q::promise< std::tuple< > >
-	receive( receive_type_void&& fn, queue_ptr queue ) override
+	_receive( receive_type_void&& fn, queue_ptr queue, detail::tag_2 )
+	override
+	{
+		return readable_.receive( )
+		.then( std::move( fn ), std::move( queue ) );
+	}
+
+	q::promise< std::tuple< > >
+	_receive( async_receive_type&& fn, queue_ptr queue, detail::tag_3 )
+	override
+	{
+		return readable_.receive( )
+		.then( std::move( fn ), std::move( queue ) );
+	}
+
+	q::promise< std::tuple< > >
+	_receive(
+		async_receive_type_void&& fn, queue_ptr queue, detail::tag_4 )
+	override
 	{
 		return readable_.receive( )
 		.then( std::move( fn ), std::move( queue ) );

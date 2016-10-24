@@ -74,7 +74,7 @@ struct consume_context
 		worker->recursive_consumer = [ self, worker ]( )
 		{
 			auto fn = *self->fn;
-			self->readable->receive( fn, self->queue )
+			self->readable->receive( std::move( fn ), self->queue )
 			.then( [ worker ]( )
 			{
 				// No error, there might be
