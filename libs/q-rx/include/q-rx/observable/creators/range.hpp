@@ -69,7 +69,7 @@ range( U&& start, std::size_t count, create_options options )
 
 		writable.set_resume_notification( try_write );
 
-		try_write( );
+		queue->push( try_write );
 	}
 
 	return observable< T >( channel_ );
@@ -122,10 +122,8 @@ range( std::size_t count, create_options options )
 
 		writable.set_resume_notification( try_write );
 
-		try_write( );
+		queue->push( try_write );
 	}
-
-	writable.close( );
 
 	return observable< T >( channel_ );
 }
