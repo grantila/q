@@ -19,7 +19,7 @@
 
 #include <q/timer.hpp>
 
-#include <set>
+#include <map>
 
 namespace q {
 
@@ -75,12 +75,17 @@ template<
 class time_set
 {
 public:
-	typedef std::tuple< timer::point_type, T > element_type;
+	typedef std::pair< timer::point_type, T > element_type;
+
+	static_assert(
+		!std::is_reference< T >::value, "References not allowed" );
 
 	void push( timer::point_type time, T t )
 	{
-		set_.emplace(
-			std::make_tuple( std::move( time ), std::move( t ) ) );
+		element_type elem{ std::move( time ), std::move( t ) };
+		map_.insert( std::move( elem ) );
+
+		bool b = 1;
 	}
 
 	bool exists_before_or_at(
@@ -89,41 +94,40 @@ public:
 		if ( empty( ) )
 			return false;
 
-		return !( std::get< 0 >( *set_.begin( ) ) > time );
+		return !( map_.begin( )->first > time );
 	}
 
 	typename IfEmpty::type pop( )
 	{
-		auto iter = set_.begin( );
+		auto iter = map_.begin( );
 
-		if ( iter == set_.end( ) )
+		if ( iter == map_.end( ) )
 			return IfEmpty::empty( );
 
-		T value = std::move( std::get< 1 >( *iter ) );
+		T value = std::move( iter->second );
 
-		set_.erase( iter );
+		map_.erase( iter );
 
 		return IfEmpty::value( std::move( value ) );
 	}
 
 	timer::duration_type next_time( )
 	{
-		auto iter = set_.begin( );
+		auto iter = map_.begin( );
 
-		if ( iter == set_.end( ) )
+		if ( iter == map_.end( ) )
 			timer::duration_type::max( );
 
-		return std::get< 0 >( *iter ) -
-			timer::point_type::clock::now( );
+		return iter->first - timer::point_type::clock::now( );
 	}
 
 	bool empty( ) const
 	{
-		return set_.empty( );
+		return map_.empty( );
 	}
 
 private:
-	std::multiset< element_type, LessThan > set_;
+	std::multimap< timer::point_type, T > map_;
 };
 
 } // namespace q

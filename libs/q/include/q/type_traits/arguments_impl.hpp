@@ -19,56 +19,119 @@
 
 namespace q {
 
-namespace detail {
-
-template< typename Tuple, class Args >
-struct tuple_convertible_to_arguments
-: public std::true_type
+template< typename A, typename B >
+struct is_argument_exactly_same
 {
-//	forward_decay
-	// TODO: Implement
+	typedef two_fold_t<
+		A,
+		B,
+		q::logic_and,
+		std::true_type,
+		std::is_same,
+		std::false_type
+	> type;
 };
 
-} // namespace detail
+template< typename A, typename B >
+using is_argument_exactly_same_t =
+	typename is_argument_exactly_same< A, B >::type;
+
+#ifdef LIBQ_WITH_CPP14
+
+template< typename A, typename B >
+constexpr bool is_argument_exactly_same_v =
+	is_argument_exactly_same_t< A, B >::value;
+
+#endif // LIBQ_WITH_CPP14
+
 
 template< typename A, typename B >
 struct is_argument_same
-: two_fold< A, B, q::logic_and, std::true_type, q::is_same_type, std::false_type >
-{ };
+{
+	typedef two_fold_t<
+		A,
+		B,
+		q::logic_and,
+		std::true_type,
+		q::is_same_type,
+		std::false_type
+	> type;
+};
+
+template< typename A, typename B >
+using is_argument_same_t = typename is_argument_same< A, B >::type;
+
+#ifdef LIBQ_WITH_CPP14
+
+template< typename A, typename B >
+constexpr bool is_argument_same_v = is_argument_same_t< A, B >::value;
+
+#endif // LIBQ_WITH_CPP14
+
 
 template< typename A, typename B >
 struct is_argument_same_or_convertible
-: bool_type<
-	( A::empty_or_void::value and B::empty_or_void::value )
-	or
-	two_fold<
-		A,
-		B,
-		q::logic_and,
-		std::true_type,
-		q::is_convertible_to, std::false_type
-	>::value
->
-{ };
+{
+	typedef bool_type_t<
+		( A::empty_or_void::value and B::empty_or_void::value )
+		or
+		two_fold_t<
+			A,
+			B,
+			q::logic_and,
+			std::true_type,
+			q::is_convertible_to,
+			std::false_type
+		>::value
+	> type;
+};
+
+template< typename A, typename B >
+using is_argument_same_or_convertible_t =
+	typename is_argument_same_or_convertible< A, B >::type;
+
+#ifdef LIBQ_WITH_CPP14
+
+template< typename A, typename B >
+constexpr bool is_argument_same_or_convertible_v =
+	is_argument_same_or_convertible_t< A, B >::value;
+
+#endif // LIBQ_WITH_CPP14
+
 
 template< typename A, typename B >
 struct is_argument_same_or_convertible_incl_void
-: bool_type<
-	( A::empty_or_voidish::value and B::empty_or_voidish::value )
-	or
-	two_fold<
-		A,
-		B,
-		q::logic_and,
-		std::true_type,
-		q::is_convertible_to, std::false_type
-	>::value
->
-{ };
+{
+	typedef bool_type_t<
+		( A::empty_or_voidish::value and B::empty_or_voidish::value )
+		or
+		two_fold_t<
+			A,
+			B,
+			q::logic_and,
+			std::true_type,
+			q::is_convertible_to,
+			std::false_type
+		>::value
+	> type;
+};
+
+template< typename A, typename B >
+using is_argument_same_or_convertible_incl_void_t =
+	typename is_argument_same_or_convertible_incl_void< A, B >::type;
+
+#ifdef LIBQ_WITH_CPP14
+
+template< typename A, typename B >
+constexpr bool is_argument_same_or_convertible_incl_void_v =
+	is_argument_same_or_convertible_incl_void_t< A, B >::value;
+
+#endif // LIBQ_WITH_CPP14
+
 
 template< typename Superset, typename Subset >
 struct argument_contains_all
-: fold<
+: fold_t<
 	Subset,
 	generic_operator<
 		Superset::template has, logic_and
@@ -103,11 +166,11 @@ struct merge_two_arguments< ::q::arguments< A... >, ::q::arguments< B... > >
 template< template< typename... > class T, typename... Arguments >
 struct merge
 {
-	typedef typename fold<
+	typedef typename fold_t<
 		q::arguments< Arguments... >,
 		detail::merge_two_arguments,
 		q::arguments< >
-	>::template apply< T >::type type;
+	>::template apply< T > type;
 };
 
 
@@ -116,9 +179,9 @@ struct are_all_unique;
 
 template< typename First, typename... Rest >
 struct are_all_unique< First, Rest... >
-: ::q::bool_type<
+: ::q::bool_type_t<
 	arguments< Rest... >
-		::template filter< same< First >::template as >::type
+		::template filter< same< First >::template as >
 		::empty::value
 	and
 	are_all_unique< Rest... >::value

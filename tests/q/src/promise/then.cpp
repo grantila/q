@@ -23,14 +23,27 @@ TEST_F( then, values_to_value )
 	);
 }
 
+TEST_F( then, void_as_void )
+{
+	run(
+		q::with( queue )
+		.then( EXPECT_CALL_WRAPPER( [ ]( ) { } ) )
+	);
+}
+
 TEST_F( then, void_as_void_t )
 {
 	run(
 		q::with( queue )
-		.then( EXPECT_CALL_WRAPPER(
-		[ ]( q::void_t )
-		{
-		} ) )
+		.then( EXPECT_CALL_WRAPPER( [ ]( q::void_t ) { } ) )
+	);
+}
+
+TEST_F( then, void_as_void_t_const_ref )
+{
+	run(
+		q::with( queue )
+		.then( EXPECT_CALL_WRAPPER( [ ]( const q::void_t& ) { } ) )
 	);
 }
 
@@ -38,10 +51,143 @@ TEST_F( then, void_as_void_t_ref_ref )
 {
 	run(
 		q::with( queue )
+		.then( EXPECT_CALL_WRAPPER( [ ]( q::void_t&& ) { } ) )
+	);
+}
+
+TEST_F( then, void_as_void_async )
+{
+	run(
+		q::with( queue )
 		.then( EXPECT_CALL_WRAPPER(
-		[ ]( q::void_t&& )
-		{
-		} ) )
+			[ this ]( )
+			{
+				return q::with( queue );
+			}
+		) )
+	);
+}
+
+TEST_F( then, void_as_void_t_async )
+{
+	run(
+		q::with( queue )
+		.then( EXPECT_CALL_WRAPPER(
+			[ this ]( q::void_t )
+			{
+				return q::with( queue );
+			}
+		) )
+	);
+}
+
+TEST_F( then, void_as_void_t_const_ref_async )
+{
+	run(
+		q::with( queue )
+		.then( EXPECT_CALL_WRAPPER(
+			[ this ]( const q::void_t& )
+			{
+				return q::with( queue );
+			}
+		) )
+	);
+}
+
+TEST_F( then, void_as_void_t_ref_ref_async )
+{
+	run(
+		q::with( queue )
+		.then( EXPECT_CALL_WRAPPER(
+			[ this ]( q::void_t&& )
+			{
+				return q::with( queue );
+			}
+		) )
+	);
+}
+
+TEST_F( then, void_t_as_void )
+{
+	run(
+		q::with( queue, q::void_t( ) )
+		.then( EXPECT_CALL_WRAPPER( [ ]( ) { } ) )
+	);
+}
+
+TEST_F( then, void_t_as_void_t )
+{
+	run(
+		q::with( queue, q::void_t( ) )
+		.then( EXPECT_CALL_WRAPPER( [ ]( q::void_t ) { } ) )
+	);
+}
+
+TEST_F( then, void_t_as_void_t_const_ref )
+{
+	run(
+		q::with( queue, q::void_t( ) )
+		.then( EXPECT_CALL_WRAPPER( [ ]( const q::void_t& ) { } ) )
+	);
+}
+
+TEST_F( then, void_t_as_void_t_ref_ref )
+{
+	run(
+		q::with( queue, q::void_t( ) )
+		.then( EXPECT_CALL_WRAPPER( [ ]( q::void_t&& ) { } ) )
+	);
+}
+
+TEST_F( then, void_t_as_void_async )
+{
+	run(
+		q::with( queue, q::void_t( ) )
+		.then( EXPECT_CALL_WRAPPER(
+			[ this ]( )
+			{
+				return q::with( queue );
+			}
+		) )
+	);
+}
+
+TEST_F( then, void_t_as_void_t_async )
+{
+	run(
+		q::with( queue, q::void_t( ) )
+		.then( EXPECT_CALL_WRAPPER(
+			[ this ]( q::void_t )
+			{
+				return q::with( queue );
+			}
+		) )
+	);
+}
+
+TEST_F( then, void_t_as_void_t_const_ref_async )
+{
+	run(
+		q::with( queue, q::void_t( ) )
+		.then( EXPECT_CALL_WRAPPER(
+			[ this ]( const q::void_t& )
+			{
+				return q::with( queue );
+			}
+		) )
+	);
+}
+
+TEST_F( then, void_t_as_void_t_ref_ref_async )
+{
+	run(
+		q::with( queue, q::void_t( ) )
+		.then( EXPECT_CALL_WRAPPER(
+			[ this ]( q::void_t&& )
+			{
+				return q::with( queue );
+			}
+		) )
 	);
 }
 
