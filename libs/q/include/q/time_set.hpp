@@ -84,8 +84,6 @@ public:
 	{
 		element_type elem{ std::move( time ), std::move( t ) };
 		map_.insert( std::move( elem ) );
-
-		bool b = 1;
 	}
 
 	bool exists_before_or_at(

@@ -535,3 +535,197 @@ TEST_F( channel, channel_shared_promise_specialization_rejection )
 
 	run( std::move( promise ) );
 }
+
+TEST_F( channel, channel_pipe_void )
+{
+	q::channel< > ch_a( queue, 3 );
+	q::channel< > ch_b( queue, 2 );
+
+	auto readable_a = ch_a.get_readable( );
+	auto writable_a = ch_a.get_writable( );
+
+	auto readable_b = ch_b.get_readable( );
+	auto writable_b = ch_b.get_writable( );
+
+	auto rejected_promise = q::make_promise( queue, [ ]( ) -> int
+	{
+		Q_THROW( test_exception( ) );
+	} ).share( );
+
+	for ( int i = 0; i < 5; ++i )
+		writable_a.send( );
+
+	readable_a.pipe( writable_b );
+
+	for ( int i = 0; i < 5; ++i )
+		writable_a.send( );
+
+	writable_a.close( );
+
+	typedef std::function< q::promise< std::tuple< > >( ) > fun_type;
+	auto receive = std::make_shared< fun_type >( );
+	*receive = EXPECT_N_CALLS_WRAPPER( 11, (
+		[ receive, readable_b ]( ) mutable
+		{
+			return readable_b.receive( )
+			.then( [ receive ]( )
+			{
+				return ( *receive )( );
+			} );
+		}
+	) );
+
+	run(
+		( *receive )( )
+		.fail( EXPECT_CALL_WRAPPER(
+			[ ]( q::channel_closed_exception ){ }
+		) )
+	);
+}
+
+TEST_F( channel, channel_pipe_void_with_error )
+{
+	q::channel< > ch_a( queue, 3 );
+	q::channel< > ch_b( queue, 2 );
+
+	auto readable_a = ch_a.get_readable( );
+	auto writable_a = ch_a.get_writable( );
+
+	auto readable_b = ch_b.get_readable( );
+	auto writable_b = ch_b.get_writable( );
+
+	auto rejected_promise = q::make_promise( queue, [ ]( ) -> int
+	{
+		Q_THROW( test_exception( ) );
+	} ).share( );
+
+	for ( int i = 0; i < 5; ++i )
+		writable_a.send( );
+
+	readable_a.pipe( writable_b );
+
+	for ( int i = 0; i < 5; ++i )
+		writable_a.send( );
+
+	writable_a.close( Error( ) );
+
+	typedef std::function< q::promise< std::tuple< > >( ) > fun_type;
+	auto receive = std::make_shared< fun_type >( );
+	*receive = EXPECT_N_CALLS_WRAPPER( 11, (
+		[ receive, readable_b ]( ) mutable
+		{
+			return readable_b.receive( )
+			.then( [ receive ]( )
+			{
+				return ( *receive )( );
+			} );
+		}
+	) );
+
+	run(
+		( *receive )( )
+		.fail( EXPECT_CALL_WRAPPER( [ ]( const Error& ){ } ) )
+	);
+}
+
+TEST_F( channel, channel_pipe_int )
+{
+	q::channel< int > ch_a( queue, 3 );
+	q::channel< int > ch_b( queue, 2 );
+
+	auto readable_a = ch_a.get_readable( );
+	auto writable_a = ch_a.get_writable( );
+
+	auto readable_b = ch_b.get_readable( );
+	auto writable_b = ch_b.get_writable( );
+
+	auto rejected_promise = q::make_promise( queue, [ ]( ) -> int
+	{
+		Q_THROW( test_exception( ) );
+	} ).share( );
+
+	for ( int i = 0; i < 5; ++i )
+		writable_a.send( i );
+
+	readable_a.pipe( writable_b );
+
+	for ( int i = 5; i < 10; ++i )
+		writable_a.send( i );
+
+	writable_a.close( );
+
+	int counter = 0;
+
+	typedef std::function< q::promise< std::tuple< > >( ) > fun_type;
+	auto receive = std::make_shared< fun_type >( );
+	*receive = EXPECT_N_CALLS_WRAPPER( 11, (
+		[ receive, readable_b, &counter ]( ) mutable
+		{
+			return readable_b.receive( )
+			.then( [ receive, &counter ]( int val )
+			{
+				EXPECT_EQ( val, counter );
+				++counter;
+
+				return ( *receive )( );
+			} );
+		}
+	) );
+
+	run(
+		( *receive )( )
+		.fail( EXPECT_CALL_WRAPPER(
+			[ ]( q::channel_closed_exception ){ }
+		) )
+	);
+}
+
+TEST_F( channel, channel_pipe_int_with_error )
+{
+	q::channel< int > ch_a( queue, 3 );
+	q::channel< int > ch_b( queue, 2 );
+
+	auto readable_a = ch_a.get_readable( );
+	auto writable_a = ch_a.get_writable( );
+
+	auto readable_b = ch_b.get_readable( );
+	auto writable_b = ch_b.get_writable( );
+
+	auto rejected_promise = q::make_promise( queue, [ ]( ) -> int
+	{
+		Q_THROW( test_exception( ) );
+	} ).share( );
+
+	for ( int i = 0; i < 5; ++i )
+		writable_a.send( i );
+
+	readable_a.pipe( writable_b );
+
+	for ( int i = 5; i < 10; ++i )
+		writable_a.send( i );
+
+	writable_a.close( Error( ) );
+
+	int counter = 0;
+
+	typedef std::function< q::promise< std::tuple< > >( ) > fun_type;
+	auto receive = std::make_shared< fun_type >( );
+	*receive = EXPECT_N_CALLS_WRAPPER( 11, (
+		[ receive, readable_b, &counter ]( ) mutable
+		{
+			return readable_b.receive( )
+			.then( [ receive, &counter ]( int val )
+			{
+				EXPECT_EQ( val, counter );
+				++counter;
+
+				return ( *receive )( );
+			} );
+		}
+	) );
+
+	run(
+		( *receive )( )
+		.fail( EXPECT_CALL_WRAPPER( [ ]( const Error& ){ } ) )
+	);
+}
