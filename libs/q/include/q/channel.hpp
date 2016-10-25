@@ -494,6 +494,10 @@ class readable
 public:
 	typedef typename detail::channel_traits< T... >::type traits;
 
+	using is_promise = typename traits::is_promise;
+	using promise_type = typename traits::promise_type;
+	using tuple_type = typename promise_type::tuple_type;
+
 	readable( ) = default;
 	readable( const readable& ) = default;
 	readable( readable&& ) = default;
@@ -501,20 +505,20 @@ public:
 	readable& operator=( const readable& ) = default;
 	readable& operator=( readable&& ) = default;
 
-	template< bool IsPromise = traits::is_promise::value >
+	template< bool IsPromise = is_promise::value >
 	typename std::enable_if<
 		!IsPromise,
-		typename traits::promise_type
+		promise_type
 	>::type
 	receive( )
 	{
 		return shared_channel_->receive( );
 	}
 
-	template< bool IsPromise = traits::is_promise::value >
+	template< bool IsPromise = is_promise::value >
 	typename std::enable_if<
 		IsPromise,
-		typename traits::promise_type
+		promise_type
 	>::type
 	receive( )
 	{
@@ -522,12 +526,12 @@ public:
 
 		return maybe_share( shared_channel_->receive( )
 		.then( [ shared_channel ](
-			typename traits::promise_type&& promise
+			promise_type&& promise
 		)
 		{
 			return promise
 			.fail( [ shared_channel ]( std::exception_ptr e )
-			-> typename traits::promise_type
+			-> promise_type
 			{
 				shared_channel->close_sync( e );
 				shared_channel->clear( );
@@ -535,6 +539,79 @@ public:
 					shared_channel->get_exception( ) );
 			} );
 		} ) );
+	}
+
+	void pipe( writable< T... > writable )
+	{
+		auto try_send = std::make_shared< std::function< void( ) > >( );
+		auto readable = *this;
+
+		auto close = [ try_send, writable ]( ) mutable
+		{
+			writable.unset_resume_notification( );
+			writable.close( );
+			try_send.reset( );
+		};
+
+		auto abort = [ try_send, writable ]( std::exception_ptr err )
+		mutable
+		{
+			writable.unset_resume_notification( );
+			writable.close( err );
+			try_send.reset( );
+		};
+
+		// This must not run on multiple threads in parallel
+		*try_send = [ try_send, readable, writable, close, abort ]( )
+		mutable
+		{
+			if ( writable.should_send( ) )
+			{
+				readable.receive( )
+				.then( [ = ]( tuple_type&& data ) mutable
+				{
+					// Send through
+					writable.send( std::move( data ) );
+
+					// Recurse
+					( *try_send )( );
+				} )
+				.fail( [ close ]( const channel_closed_exception& )
+				mutable
+				{
+					close( );
+				} )
+				.fail( [ abort ]( std::exception_ptr err )
+				mutable
+				{
+					abort( err );
+				} );
+			}
+			else if ( writable.is_closed( ) )
+			{
+				auto err = writable.get_exception( );
+
+				if ( err )
+					readable.close( err );
+				else
+					readable.close( );
+
+				close( );
+			}
+			else
+			{
+				auto resume = [ try_send, writable ]( ) mutable
+				{
+					writable.unset_resume_notification( );
+					( *try_send )( );
+				};
+
+				writable.set_resume_notification( resume, true );
+			}
+		};
+
+		writable.unset_resume_notification( );
+		( *try_send )( );
 	}
 
 	std::size_t buffer_count( ) const
@@ -599,7 +676,7 @@ private:
 	template< typename Promise, bool Shared = traits::is_shared::value >
 	typename std::enable_if<
 		!Shared,
-		typename traits::promise_type
+		promise_type
 	>::type
 	maybe_share( Promise&& promise )
 	{
@@ -609,7 +686,7 @@ private:
 	template< typename Promise, bool Shared = traits::is_shared::value >
 	typename std::enable_if<
 		Shared,
-		typename traits::promise_type
+		promise_type
 	>::type
 	maybe_share( Promise&& promise )
 	{
