@@ -21,43 +21,55 @@ namespace q {
 
 namespace detail {
 
+
+template< bool Shared, typename... T >
+struct make_promise_type
+{
+	typedef ::q::promise< std::tuple< T... > > type;
+};
+template< typename... T >
+struct make_promise_type< true, T... >
+{
+	typedef ::q::shared_promise< std::tuple< T... > > type;
+};
+template< bool Shared, typename... T >
+using make_promise_type_t = typename make_promise_type< Shared, T... >::type;
+
+
 template< bool Shared, typename... Args >
 class generic_promise< Shared, std::tuple< Args... > >
 {
+
 public:
 	static_assert(
 		q::all_types_are_non_references< Args... >::value,
 		"Promises of references aren't allowed"
 	);
 
-	typedef bool_type_t< Shared >                 shared_type;
-	typedef arguments< Args... >                  argument_types;
-	typedef std::tuple< Args... >                 tuple_type;
-	typedef generic_promise< Shared, tuple_type > this_type;
-	typedef promise< tuple_type >                 unique_this_type;
-	typedef shared_promise< tuple_type >          shared_this_type;
-	typedef typename std::conditional<
-		Shared,
-		shared_this_type,
-		unique_this_type
-	>::type                                       promise_this_type;
-	typedef promise_state< tuple_type, Shared >   state_type;
-	typedef promise_state< tuple_type, false >    unique_state_type;
-	typedef unique_this_type                      promise_type;
-	typedef shared_this_type                      shared_promise_type;
-	typedef ::q::expect< tuple_type >             tuple_expect_type;
+	typedef bool_type_t< Shared >                  shared_type;
+	typedef arguments< Args... >                   argument_types;
+	typedef std::tuple< Args... >                  tuple_type;
+	typedef generic_promise< Shared, tuple_type >  this_type;
+	typedef promise< tuple_type >                  unique_this_type;
+	typedef shared_promise< tuple_type >           shared_this_type;
+	typedef make_promise_type_t< Shared, Args... > promise_this_type;
+	typedef promise_state< tuple_type, Shared >    state_type;
+	typedef promise_state< tuple_type, false >     unique_state_type;
+	typedef unique_this_type                       promise_type;
+	typedef shared_this_type                       shared_promise_type;
+	typedef ::q::expect< tuple_type >              tuple_expect_type;
 	typedef typename std::conditional<
 		sizeof...( Args ) < 2,
 		::q::expect<
 			typename ::q::arguments< Args..., void >::first_type
 		>,
 		void
-	>::type                                       short_expect_type;
+	>::type                                        short_expect_type;
 	typedef typename std::conditional<
 		sizeof...( Args ) < 2,
 		typename ::q::arguments< Args..., void >::first_type,
 		tuple_type
-	>::type                                       first_or_all_types;
+	>::type                                        first_or_all_types;
 
 	template< typename... T >
 	struct is_valid_arguments
@@ -625,6 +637,15 @@ public:
 	{
 		return reflect_tuple( );
 	}
+
+	template< typename... U, typename _V = void >
+	typename std::enable_if<
+		std::is_void< _V >::value
+		and
+		argument_types::empty::value,
+		promise< std::tuple< U... > >
+	>::type
+	forward( U&&... values );
 
 	void done( )
 	{
