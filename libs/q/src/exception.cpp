@@ -16,8 +16,6 @@
 
 #include <q/exception.hpp>
 
-#include <q/stacktrace.hpp> // TODO: Remove
-
 #include <iostream>
 
 namespace q {
@@ -29,9 +27,7 @@ struct exception::pimpl
 
 exception::exception( )
 : pimpl_( std::make_shared< pimpl >( ) )
-{
-	*this << get_stacktrace( );
-}
+{ }
 
 exception::~exception( )
 { }
