@@ -135,6 +135,40 @@ reflect( )
 	return deferred->get_promise( );
 }
 
+template< bool Shared, typename... Args >
+template< typename... U, typename _V >
+typename std::enable_if<
+	std::is_void< _V >::value
+	and
+	generic_promise< Shared, std::tuple< Args... > >
+		::argument_types::empty::value,
+	promise< std::tuple< U... > >
+>::type
+generic_promise< Shared, std::tuple< Args... > >::
+forward( U&&... values )
+{
+	auto deferred = ::q::make_shared< detail::defer< U... > >(
+		get_queue( ) );
+	auto state = state_;
+
+	auto tup = std::make_tuple( std::forward< U >( values )... );
+	Q_MAKE_MOVABLE( tup );
+
+	auto perform = [ Q_MOVABLE_MOVE( tup ), deferred, state ]( ) mutable
+	{
+		auto value = state->consume( );
+		if ( value.has_exception( ) )
+			// Redirect exception
+			deferred->set_exception( value.exception( ) );
+		else
+			deferred->set_value( Q_MOVABLE_CONSUME( tup ) );
+	};
+
+	state_->signal( )->push( std::move( perform ), get_queue( ) );
+
+	return deferred->get_promise( );
+}
+
 } } // namespace detail, namespace q
 
 namespace q {

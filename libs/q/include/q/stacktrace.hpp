@@ -17,11 +17,9 @@
 #ifndef LIBQ_STACKTRACE_HPP
 #define LIBQ_STACKTRACE_HPP
 
-#include <q/types.hpp>
-#include <q/async_termination.hpp>
-
 #include <iosfwd>
 #include <vector>
+#include <string>
 
 namespace q {
 

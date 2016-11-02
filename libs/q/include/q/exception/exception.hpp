@@ -20,6 +20,7 @@
 #include <q/pp.hpp>
 #include <q/types.hpp>
 #include <q/type_traits.hpp>
+#include <q/stacktrace.hpp>
 
 #include <exception>
 #include <vector>
@@ -29,6 +30,9 @@
 #include <functional>
 
 #define Q_THROW( ... ) \
+	throw ::q::add_exception_properties_with_stacktrace( __VA_ARGS__ )
+
+#define Q_THROW_NO_STACKTRACE( ... ) \
 	throw ::q::add_exception_properties( __VA_ARGS__ )
 
 #define Q_MAKE_SIMPLE_EXCEPTION( Name ) \
@@ -238,28 +242,90 @@ private:
 	std::shared_ptr< pimpl > pimpl_;
 };
 
+template<
+	typename E,
+	bool Value =
+		std::is_same<
+			::q::exception,
+			typename std::decay< E >::type
+		>::value
+		or
+		std::is_base_of<
+			::q::exception,
+			typename std::decay< E >::type
+		>::value
+>
+struct is_q_exception
+: bool_type< Value >
+{ };
+
 std::ostream& operator<<( std::ostream&, const exception& );
 
+namespace detail {
+
+template< typename E >
+static void _add_exception_properties( E& e )
+{ }
+
 template< typename E, typename Arg, typename... Args >
-static typename std::enable_if<
-	std::is_rvalue_reference< E&& >::value,
-	E
->::type
-add_exception_properties( E&& e, Arg&& first, Args&&... args )
+static void _add_exception_properties( E& e, Arg&& first, Args&&... args )
 {
 	e << std::forward< Arg >( first );
 
-	return add_exception_properties(
-		std::forward< E >( e ),
-		std::forward< Args >( args )... );
+	_add_exception_properties( e, std::forward< Args >( args )... );
 }
 
-template< typename E >
+} // namespace detail
+
+template< typename E, typename... Args >
 static typename std::enable_if<
+	is_q_exception< E >::value
+	and
 	std::is_rvalue_reference< E&& >::value,
 	E
 >::type
-add_exception_properties( E&& e )
+add_exception_properties( E&& e, Args&&... args )
+{
+	detail::_add_exception_properties( e, std::forward< Args >( args )... );
+
+	return e;
+}
+
+template< typename E, typename... Args >
+static typename std::enable_if<
+	is_q_exception< E >::value
+	and
+	std::is_rvalue_reference< E&& >::value,
+	E
+>::type
+add_exception_properties_with_stacktrace( E&& e, Args&&... args )
+{
+	detail::_add_exception_properties(
+		e, get_stacktrace( ), std::forward< Args >( args )... );
+
+	return e;
+}
+
+template< typename E, typename... Args >
+static typename std::enable_if<
+	!is_q_exception< E >::value
+	and
+	std::is_rvalue_reference< E&& >::value,
+	E
+>::type
+add_exception_properties( E&& e, Args&&... args )
+{
+	return e;
+}
+
+template< typename E, typename... Args >
+static typename std::enable_if<
+	!is_q_exception< E >::value
+	and
+	std::is_rvalue_reference< E&& >::value,
+	E
+>::type
+add_exception_properties_with_stacktrace( E&& e, Args&&... args )
 {
 	return e;
 }
