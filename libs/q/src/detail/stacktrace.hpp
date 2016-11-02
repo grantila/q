@@ -19,6 +19,7 @@
 
 #include <q/stacktrace.hpp>
 #include <cstring>
+#include <cstdlib>
 
 namespace q {
 
