@@ -163,9 +163,10 @@ void benchmark_tasks_on_threadpool( std::size_t iterations, bool parallel )
 	auto bg_queue = q::make_shared< q::queue >( 0 );
 	auto bg_sched = q::make_shared< q::direct_scheduler >( tp );
 
-	auto start = [ bd2, bg_sched, bg_queue ]( )
+	auto start = [ tp, bd2, bg_sched, bg_queue ]( )
 	{
 		bg_sched->add_queue( bg_queue );
+		tp->start( );
 		bd2->start( );
 	};
 	auto stop = [ bd2, tp ]( )
