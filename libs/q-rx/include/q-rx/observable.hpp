@@ -17,6 +17,10 @@
 #ifndef LIBQ_RX_OBSERVABLE_HPP
 #define LIBQ_RX_OBSERVABLE_HPP
 
+// Standard libraries requried by observable operators
+#include <map>
+#include <unordered_map>
+
 #include <q/functional.hpp>
 #include <q/promise.hpp>
 #include <q/channel.hpp>
@@ -25,6 +29,8 @@
 #include <q/timer.hpp>
 
 #include <q-rx/types.hpp>
+#include <q-rx/core/core.hpp>
+
 #include <q-rx/observable/core.hpp>
 #include <q-rx/observable/observable_readable.hpp>
 #include <q-rx/observable/observable.hpp>
@@ -41,6 +47,7 @@
 #include <q-rx/observable/creators/with.hpp>
 
 #include <q-rx/observable/transformers/buffer.hpp>
+#include <q-rx/observable/transformers/group_by.hpp>
 #include <q-rx/observable/transformers/map.hpp>
 
 #include <q-rx/observable/consumers/consume.hpp>

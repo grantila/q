@@ -394,6 +394,102 @@ public:
 	);
 
 	/************************************************
+	 * Transformers: GroupBy
+	 ***********************************************/
+
+	/**
+	 * group_by of hashed key from synchronous operand.
+	 */
+	template< typename Operator = fake_operator, typename Fn >
+	std::enable_if_t<
+		should_hash_v<
+			std::decay_t< q::result_of_t< Fn > >,
+			Operator
+		>
+		and
+		!q::is_promise< q::result_of_t< Fn > >::value
+		and
+		!q::result_of_as_argument_t< Fn >::empty_or_voidish::value,
+		observable< std::tuple<
+			std::decay_t< q::result_of_t< Fn > >,
+			observable< T >
+		> >
+	>
+	group_by( Fn&& fn, work_options options = work_options( ) );
+
+	/**
+	 * group_by of comparable key from synchronous operand.
+	 */
+	template< typename Operator = fake_operator, typename Fn >
+	std::enable_if_t<
+		!should_hash_v<
+			std::decay_t< q::result_of_t< Fn > >,
+			Operator
+		>
+		and
+		!q::is_promise< q::result_of_t< Fn > >::value
+		and
+		!q::result_of_as_argument_t< Fn >::empty_or_voidish::value,
+		observable< std::tuple<
+			std::decay_t< q::result_of_t< Fn > >,
+			observable< T >
+		> >
+	>
+	group_by( Fn&& fn, work_options options = work_options( ) );
+
+	/**
+	 * group_by of hashed key from asynchronous operand.
+	 */
+	template< typename Operator = fake_operator, typename Fn >
+	std::enable_if_t<
+		should_hash_v<
+			std::decay_t<
+				typename q::result_of_t< Fn >
+					::first_or_all_types
+			>,
+			Operator
+		>
+		and
+		q::is_promise< q::result_of_t< Fn > >::value
+		and
+		!q::result_of_t< Fn >::argument_types::empty_or_voidish::value,
+		observable< std::tuple<
+			std::decay_t<
+				typename q::result_of_t< Fn >
+					::first_or_all_types
+			>,
+			observable< T >
+		> >
+	>
+	group_by( Fn&& fn, work_options options = work_options( ) );
+
+	/**
+	 * group_by of comparable key from asynchronous operand.
+	 */
+	template< typename Operator = fake_operator, typename Fn >
+	std::enable_if_t<
+		!should_hash_v<
+			std::decay_t<
+				typename q::result_of_t< Fn >
+					::first_or_all_types
+			>,
+			Operator
+		>
+		and
+		q::is_promise< q::result_of_t< Fn > >::value
+		and
+		!q::result_of_t< Fn >::argument_types::empty_or_voidish::value,
+		observable< std::tuple<
+			std::decay_t<
+				typename q::result_of_t< Fn >
+					::first_or_all_types
+			>,
+			observable< T >
+		> >
+	>
+	group_by( Fn&& fn, work_options options = work_options( ) );
+
+	/************************************************
 	 * Transformers: Map
 	 ***********************************************/
 

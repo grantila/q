@@ -66,6 +66,28 @@ typedef q::options<
 	backlog
 > combine_options;
 
+typedef q::options<
+	queue_ptr,
+	q::defaultable< q::queue_ptr >,
+	q::concurrency,
+	backlog
+> work_options;
+
+template< typename T, typename U = std::decay_t< T > >
+struct is_observable
+{
+	typedef std::false_type type;
+};
+template< typename T, typename Element >
+struct is_observable< T, observable< Element > >
+{
+	typedef std::true_type type;
+};
+template< typename T >
+using is_observable_t = typename is_observable< T >::type;
+template< typename T >
+constexpr bool is_observable_v = is_observable< T >::type::value;
+
 namespace detail {
 
 template< typename T, std::size_t Size = std::tuple_size< T >::value >
