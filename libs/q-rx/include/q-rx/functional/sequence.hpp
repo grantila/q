@@ -25,7 +25,7 @@ namespace q { namespace rx { namespace f {
 
 template< typename T >
 typename std::enable_if<
-	is_observable< T >::value,
+	is_observable_v< T >,
 	typename T::value_type
 >::type
 accumulate( T&& sequence )
@@ -39,7 +39,7 @@ accumulate( T&& sequence )
 
 template< typename T >
 typename std::enable_if<
-	is_observable< T >::value,
+	is_observable_v< T >,
 	T
 >::type
 adjacent_difference( T&& sequence )

@@ -25,15 +25,15 @@ namespace q { namespace rx {
 template< typename T >
 template< typename Fn >
 typename std::enable_if<
-	q::arguments_of_are_convertible_from_incl_void< Fn, T >
+	q::arguments_of_are_convertible_from_incl_void_v< Fn, T >
 	and
-	!q::is_promise< Q_RESULT_OF( Fn ) >::value,
-	observable< Q_RESULT_OF( Fn ) >
+	!q::is_promise< q::result_of_t< Fn > >::value,
+	observable< q::result_of_t< Fn > >
 >::type
 observable< T >::
 map( Fn&& fn, base_options options )
 {
-	typedef Q_RESULT_OF( Fn ) Out;
+	typedef q::result_of_t< Fn > Out;
 	typedef typename std::conditional<
 		std::is_void< Out >::value,
 		std::tuple< >,
@@ -83,11 +83,11 @@ map( Fn&& fn, base_options options )
 template< typename T >
 template< typename Fn >
 typename std::enable_if<
-	q::arguments_of_are_convertible_from_incl_void< Fn, T >
+	q::arguments_of_are_convertible_from_incl_void_v< Fn, T >
 	and
-	q::is_promise< Q_RESULT_OF( Fn ) >::value,
+	q::is_promise< q::result_of_t< Fn > >::value,
 	typename detail::tuple_to_observable<
-		typename ::q::result_of< Fn >::tuple_type
+		typename ::q::result_of_t< Fn >::tuple_type
 	>::type
 >::type
 observable< T >::
