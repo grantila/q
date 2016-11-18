@@ -324,6 +324,18 @@ public:
 
 
 	/**********************************************************************
+	 * Generic operator, not part of ReactiveX
+	 *********************************************************************/
+
+	template< typename Operator >
+	observable< typename Operator::element_type >
+	generic_perform(
+		std::shared_ptr< Operator > performer,
+		queue_ptr next_queue
+	);
+
+
+	/**********************************************************************
 	 * Transformers
 	 *********************************************************************/
 
