@@ -982,6 +982,20 @@ class backpressure
 {
 public:
 	template< typename... T >
+	static promise< std::tuple< > > await_writable(
+		const queue_ptr& queue, writable< T... > writable
+	)
+	{
+		if ( writable.should_send( ) )
+			return q::with( queue );
+
+		auto backp = q::make_shared< backpressure >( queue );
+		backp->add_once( writable );
+
+		return backp->get_promise( );
+	}
+
+	template< typename... T >
 	void add_once( writable< T... > writable )
 	{
 		auto self = shared_from_this( );
