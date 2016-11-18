@@ -19,6 +19,57 @@
 
 namespace q { namespace rx {
 
+namespace {
+
+template< typename from_type, typename fn_type, typename _element_type >
+struct map_context
+: public std::enable_shared_from_this<
+	map_context< from_type, fn_type, _element_type >
+>
+{
+	// Generic perform traits
+	typedef _element_type element_type;
+//	typedef generic_perform_sync execution;
+
+	typedef map_context< from_type, fn_type, element_type > this_type;
+	using traits = typename detail::observable_types< element_type >;
+	typedef typename traits::channel_type out_channel_type;
+	typedef typename traits::writable_type out_writable_type;
+	typedef objectify< from_type > void_safe_type;
+
+	std::shared_ptr< this_type > self_;
+	queue_ptr queue_;
+	fn_type fn_;
+	out_writable_type writable_;
+
+	template< typename Fn >
+	map_context(
+		queue_ptr&& queue,
+		q::concurrency concurrency,
+		Fn&& fn
+	)
+	: queue_( std::move( queue ) )
+	, fn_( std::forward< Fn >( fn ) )
+	{ }
+
+	void setup( out_writable_type writable )
+	{
+		writable_ = std::move( writable );
+	}
+
+	promise< std::tuple< > > on_data( from_type&& in )
+	{
+		writable_.send( fn_( std::move( in ) ) );
+
+		return backpressure::await_writable( queue_, writable_ );
+	}
+
+	// TODO: Implement concurrency
+	// TODO: Implement back pressure handling
+};
+
+} // anonymous namespace
+
 /**
  * ( In ) -> Out
  */
@@ -33,48 +84,29 @@ typename std::enable_if<
 observable< T >::
 map( Fn&& fn, base_options options )
 {
-	typedef q::result_of_t< Fn > Out;
-	typedef typename std::conditional<
-		std::is_void< Out >::value,
-		std::tuple< >,
-		std::tuple< Out >
-	>::type out_tuple_type;
-	typedef q::promise< out_tuple_type > out_promise_type;
+	typedef q::result_of_t< Fn > element_type;
 
 	auto next_queue = options.get< q::defaultable< q::queue_ptr > >(
 		q::set_default( readable_->get_queue( ) ) ).value;
 	auto queue = options.get< q::queue_ptr >( next_queue );
-	auto concurrency = options.get< q::concurrency >( 1 );
+	auto concurrency = options.get< q::concurrency >( );
 
-	::q::channel< out_promise_type > ch( next_queue, concurrency );
+	// TODO: We can inline the map-function with the consumption
+	const bool inline_map_function = get_queue( ) == queue;
 
-	// TODO: Implement concurrency
-	// TODO: Implement back pressure handling
+	typedef map_context<
+		T,
+		std::decay_t< Fn >,
+		element_type
+	> context_type;
 
-	auto writable = ch.get_writable( );
+	auto ctx = std::make_shared< context_type >(
+		std::move( queue ),
+		concurrency,
+		std::forward< Fn >( fn )
+	);
 
-	consume( [ queue, writable, fn ]( void_safe_type t ) mutable
-	{
-		auto deferred = ::q::detail::defer< out_tuple_type >
-			::construct( queue );
-
-		writable.send( deferred->get_promise( ) );
-
-		queue->push( [ deferred, fn, t{ std::move( t ) } ]( )
-		{
-			deferred->set_by_fun( fn, std::move( t ) );
-		} );
-	} )
-	.then( [ writable ]( ) mutable
-	{
-		writable.close( );
-	} )
-	.fail( [ writable ]( std::exception_ptr e ) mutable
-	{
-		writable.close( e );
-	} );
-
-	return observable< Out >( ch.get_readable( ) );
+	return generic_perform( ctx, std::move( next_queue ) );
 }
 
 /**

@@ -510,10 +510,10 @@ public:
 	 */
 	template< typename Fn >
 	typename std::enable_if<
-		q::arguments_of_are_convertible_from_incl_void< Fn, T >
+		q::arguments_of_are_convertible_from_incl_void_v< Fn, T >
 		and
-		!q::is_promise< Q_RESULT_OF( Fn ) >::value,
-		observable< Q_RESULT_OF( Fn ) >
+		!q::is_promise< q::result_of_t< Fn > >::value,
+		observable< q::result_of_t< Fn > >
 	>::type
 	map( Fn&& fn, base_options options = base_options( ) );
 
@@ -522,11 +522,11 @@ public:
 	 */
 	template< typename Fn >
 	typename std::enable_if<
-		q::arguments_of_are_convertible_from_incl_void< Fn, T >
+		q::arguments_of_are_convertible_from_incl_void_v< Fn, T >
 		and
-		q::is_promise< Q_RESULT_OF( Fn ) >::value,
+		q::is_promise< q::result_of_t< Fn > >::value,
 		typename detail::tuple_to_observable<
-			typename ::q::result_of< Fn >::tuple_type
+			typename ::q::result_of_t< Fn >::tuple_type
 		>::type
 	>::type
 	map( Fn&& fn, base_options options = base_options( ) );
@@ -628,6 +628,11 @@ public:
 	T onNext( );
 	std::exception_ptr onError( );
 	void onComplete( );
+
+	const queue_ptr& get_queue( ) const
+	{
+		return readable_->get_queue( );
+	}
 
 private:
 	template< typename Queue >
