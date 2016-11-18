@@ -35,6 +35,8 @@
 #include <q-rx/observable/observable_readable.hpp>
 #include <q-rx/observable/observable.hpp>
 
+#include <q-rx/observable/observable_generic_perform.hpp>
+
 #include <q-rx/observable/creators/create.hpp>
 #include <q-rx/observable/creators/empty.hpp>
 #include <q-rx/observable/creators/never.hpp>

@@ -78,7 +78,7 @@ namespace detail {
 template< typename T, typename = std::false_type >
 struct generic_perform_has_on_close
 {
-	typedef std::false_type type;
+	typedef void no;
 };
 template< typename T >
 struct generic_perform_has_on_close<
@@ -86,14 +86,15 @@ struct generic_perform_has_on_close<
 	std::enable_if_t< is_function_v< typename T::on_close > >
 >
 {
-	typedef is_function_t< typename T::on_close > type;
+	typedef void yes;
 };
 
-template< typename T, typename Writable >
-typename std::enable_if<
-	generic_perform_has_on_close< T >::type::value,
-	q::result_of_t< typename T::on_close >
->::type
+template<
+	typename T,
+	typename Writable,
+	typename generic_perform_has_on_close< T >::yes* = nullptr
+>
+auto
 generic_perform_on_close( Writable&& writable, std::shared_ptr< T > performer )
 {
 	return [ performer{ std::move( performer ) } ]( ) mutable
@@ -102,10 +103,12 @@ generic_perform_on_close( Writable&& writable, std::shared_ptr< T > performer )
 	};
 }
 
-template< typename T, typename Writable >
-typename std::enable_if<
-	!generic_perform_has_on_close< T >::type::value
->::type
+template<
+	typename T,
+	typename Writable,
+	typename generic_perform_has_on_close< T >::no* = nullptr
+>
+auto
 generic_perform_on_close( Writable&& writable, std::shared_ptr< T > performer )
 {
 	return [ writable{ std::forward< Writable >( writable ) } ]( ) mutable
@@ -117,7 +120,7 @@ generic_perform_on_close( Writable&& writable, std::shared_ptr< T > performer )
 template< typename T, typename = std::false_type >
 struct generic_perform_has_on_error
 {
-	typedef std::false_type type;
+	typedef void no;
 };
 template< typename T >
 struct generic_perform_has_on_error<
@@ -125,14 +128,15 @@ struct generic_perform_has_on_error<
 	std::enable_if_t< is_function_v< typename T::on_error > >
 >
 {
-	typedef is_function_t< typename T::on_error > type;
+	typedef void yes;
 };
 
-template< typename T, typename Writable >
-typename std::enable_if<
-	generic_perform_has_on_error< T >::type::value,
-	q::result_of_t< typename T::on_error >
->::type
+template<
+	typename T,
+	typename Writable,
+	typename generic_perform_has_on_error< T >::yes* = nullptr
+>
+auto
 generic_perform_on_error( Writable&& writable, std::shared_ptr< T > performer )
 {
 	return [ performer{ std::move( performer ) } ]( std::exception_ptr e )
@@ -142,10 +146,12 @@ generic_perform_on_error( Writable&& writable, std::shared_ptr< T > performer )
 	};
 }
 
-template< typename T, typename Writable >
-typename std::enable_if<
-	!generic_perform_has_on_error< T >::type::value
->::type
+template<
+	typename T,
+	typename Writable,
+	typename generic_perform_has_on_error< T >::no* = nullptr
+>
+auto
 generic_perform_on_error( Writable&& writable, std::shared_ptr< T > performer )
 {
 	return [ writable{ std::forward< Writable >( writable ) } ]
@@ -166,30 +172,34 @@ template< typename T >
 template< typename Operator >
 observable< typename Operator::element_type >
 observable< T >::
-generic_perform( std::shared_ptr< T > performer, queue_ptr next_queue )
+generic_perform( std::shared_ptr< Operator > performer, queue_ptr next_queue )
 {
-	typename T::channel_type out_channel_type;
+	typedef typename Operator::element_type element_type;
+	using traits = typename detail::observable_types< element_type >;
+	typedef typename traits::channel_type out_channel_type;
 
-	out_channel_type _channel( std::move( next_queue ) );
+	// TODO: Implement concurrency
+	// TODO: Make better default backlog
 
-	auto queue = queue_;
+	out_channel_type _channel(
+		std::move( next_queue ), Q_RX_DEFAULT_BACKLOG );
+
 	auto writable = _channel.get_writable( );
 
 	performer->setup( std::move( writable ) );
 
-	auto closer = generic_perform_on_close( writable, performer );
-	auto on_error = generic_perform_on_error( writable, performer );
-
-	consume(
-		[ queue, writable, performer ]
-		( void_safe_type t ) mutable
+	auto on_data = [ writable, performer ]( void_safe_type t ) mutable
 	{
 		return performer->on_data( std::move( t ) );
-	} )
-	.then( closer )
-	.fail( on_error );
+	};
+	auto on_close = detail::generic_perform_on_close( writable, performer );
+	auto on_error = detail::generic_perform_on_error( writable, performer );
 
-	return observable< element_type >( channel_.get_readable( ) );
+	consume( std::move( on_data ) )
+	.then( std::move( on_close ) )
+	.fail( std::move( on_error ) );
+
+	return observable< element_type >( _channel.get_readable( ) );
 }
 
 } } // namespace rx, namespace q
