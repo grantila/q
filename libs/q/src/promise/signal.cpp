@@ -65,7 +65,7 @@ void promise_signal::done( ) noexcept
 		pimpl_->done_ = true;
 	}
 
-	for ( auto item : pimpl_->items_ )
+	for ( auto& item : pimpl_->items_ )
 	{
 		if ( item.synchronous_ )
 			item.task_( );

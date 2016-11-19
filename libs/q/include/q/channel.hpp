@@ -279,9 +279,9 @@ public:
 		return !paused_ && !closed_;
 	}
 
-	void set_resume_notification( task fn, bool trigger_now )
+	void set_resume_notification( shared_task fn, bool trigger_now )
 	{
-		task notification;
+		shared_task notification;
 
 		{
 			Q_AUTO_UNIQUE_LOCK( mutex_ );
@@ -298,7 +298,7 @@ public:
 
 	void unset_resume_notification( )
 	{
-		set_resume_notification( task( ), false );
+		set_resume_notification( shared_task( ), false );
 	}
 
 	/**
@@ -457,7 +457,7 @@ private:
 	std::atomic< bool > paused_;
 	const std::size_t buffer_count_;
 	const std::size_t resume_count_;
-	task resume_notification_;
+	shared_task resume_notification_;
 	std::vector< scope > scopes_;
 };
 
@@ -843,7 +843,7 @@ public:
 		return shared_channel_->should_send( );
 	}
 
-	void set_resume_notification( task fn, bool trigger_now = false )
+	void set_resume_notification( shared_task fn, bool trigger_now = false )
 	{
 		shared_channel_->set_resume_notification(
 			std::move( fn ), trigger_now );

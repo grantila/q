@@ -172,7 +172,7 @@ void threadpool::start( )
 
 				timer_task _task = pimpl_->task_fetcher_
 					? pimpl_->task_fetcher_( )
-					: task( );
+					: timer_task( );
 
 				if ( !pimpl_->running_ && !_task )
 					break;
@@ -199,17 +199,19 @@ void threadpool::start( )
 
 				if ( pimpl_->running_ && !_task )
 				{
-					auto next = pimpl_->timer_tasks_
-						.next_time( );
+					if ( !pimpl_->timer_tasks_.empty( ) )
+					{
+						auto next = pimpl_->timer_tasks_
+							.next_time( );
 
-					if (
-						_task.is_timed( ) &&
-						next != duration_max
-					)
-						pimpl_->cond_.wait_for(
-							lock, next );
-					else
-						pimpl_->cond_.wait( lock );
+						if ( next != duration_max )
+						{
+							pimpl_->cond_.wait_for(
+								lock, next );
+							continue;
+						}
+					}
+					pimpl_->cond_.wait( lock );
 				}
 			}
 			while ( true );

@@ -78,7 +78,7 @@ void queue::push( task&& task, timer::point_type wait_until )
 		Q_AUTO_UNIQUE_LOCK( pimpl_->mutex_, Q_HERE, "queue::push(2)" );
 
 		timer_task tt( std::move( task ), std::move( wait_until ) );
-		pimpl_->timer_task_queue_.push( tt );
+		pimpl_->timer_task_queue_.push( std::move( tt ) );
 
 		notifyer = pimpl_->notify_;
 	}

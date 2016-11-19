@@ -86,7 +86,7 @@ void blocking_dispatcher::start( )
 
 		timer_task _task = pimpl_->task_fetcher_
 			? pimpl_->task_fetcher_( )
-			: task( );
+			: timer_task( );
 
 		if ( !pimpl_->running_ && !_task )
 			break;

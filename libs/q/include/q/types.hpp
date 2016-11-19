@@ -18,6 +18,7 @@
 #define LIBQ_TYPES_HPP
 
 #include <q/pp.hpp>
+#include <q/function.hpp>
 
 #include <memory>
 #include <functional>
@@ -137,7 +138,8 @@ class scheduler;
 
 typedef int priority_t;
 
-typedef std::function< void( void ) noexcept > task;
+typedef q::unique_function< void( void ) noexcept > task;
+typedef q::function< void( void ) noexcept > shared_task;
 
 // Execution context
 

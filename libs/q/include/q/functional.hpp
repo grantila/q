@@ -238,6 +238,10 @@ struct function_traits
 		Fn
 	>::using_call_operator                       using_call_operator;
 
+	typedef bool_type<
+		!using_call_operator::value
+	>                                            plain;
+
 	// TODO: GCC Seems to not allow this using statement, which is why the
 	// typedef is necessary.
 	//using typename detail::function_traits< Fn >::match;
@@ -305,12 +309,17 @@ struct function_traits
 	/**
 	 * If this is a member function, is_const is std::true_type if it is a
 	 * const member function. Is std::false_type otherwise.
+	 * This also affects capturing lambas, where is_const will be
+	 * std::false_type if the lambda is `mutable` otherwise std::true_type.
 	 */
 	typedef typename match::is_const             is_const;
 };
 
 template< typename Fn >
 using is_function_t = typename Q_IS_FUNCTION( Fn );
+
+template< typename Fn >
+using is_plain_function_t = typename ::q::function_traits< Fn >::plain;
 
 template< typename Fn >
 using signature_ptr_of_t = typename ::q::function_traits< Fn >::signature_ptr;
@@ -330,6 +339,14 @@ using arity_of_t = typename ::q::function_traits< Fn >::arity;
 
 template< typename Fn >
 using is_const_of_t = typename ::q::function_traits< Fn >::is_const;
+
+// Mutable are function objects with non-const call operators
+template< typename Fn >
+using is_mutable_of_t = bool_type<
+	!::q::function_traits< Fn >::is_const::value
+	and
+	::q::function_traits< Fn >::using_call_operator::value
+>;
 
 template< typename Fn >
 using result_of_t = Q_RESULT_OF( Fn );
@@ -412,6 +429,9 @@ template< typename Fn >
 constexpr bool is_function_v = is_function_t< Fn >::value;
 
 template< typename Fn >
+constexpr bool is_plain_function_v = is_plain_function_t< Fn >::value;
+
+template< typename Fn >
 constexpr bool is_memberfunction_v = is_memberfunction_t< Fn >::value;
 
 template< typename Fn >
@@ -419,6 +439,9 @@ constexpr std::size_t arity_of_v = arity_of_t< Fn >::value;
 
 template< typename Fn >
 constexpr bool is_const_of_v = is_const_of_t< Fn >::value;
+
+template< typename Fn >
+constexpr bool is_mutable_of_v = is_mutable_of_t< Fn >::value;
 
 template< typename Fn, typename... Args >
 constexpr bool arguments_of_are_v = arguments_of_are_t< Fn, Args... >::value;

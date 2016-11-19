@@ -74,6 +74,9 @@
 #	define Q_NODISCARD
 #endif
 
+#define LIBQ_ASSUMED_CACHE_LINE_SIZE_( ) ( 8 * sizeof( std::intptr_t ) )
+#define LIBQ_ASSUMED_CACHE_LINE_SIZE LIBQ_ASSUMED_CACHE_LINE_SIZE_( )
+
 #define Q_MAX( a, b ) ( ( a < b ) ? b : a )
 #define Q_MIN( a, b ) ( ( a < b ) ? a : b )
 
