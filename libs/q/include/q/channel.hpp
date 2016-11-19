@@ -114,7 +114,9 @@ struct pipe_helper< arguments< From... >, arguments< To... > >
 	{
 		typedef typename traits::inner_tuple_type tuple_type;
 
-		auto try_send = std::make_shared< std::function< void( ) > >( );
+		typedef q::custom_function< void( ), true, 22 > send_type;
+
+		auto try_send = std::make_shared< send_type >( );
 
 		auto close = [ try_send, w ]( ) mutable
 		{
@@ -199,6 +201,10 @@ public:
 	typedef arguments< T... >      arguments_type;
 	typedef shared_channel< T... > self_type;
 
+	// TODO: Combine the two derived types in one union, with enough space
+	//       for both and a pointer to the base type (similar to
+	//       q::function) and potentially store them in a vector to reduce
+	//       heap allocations.
 	struct waiter_type
 	{
 		virtual ~waiter_type( ) { }

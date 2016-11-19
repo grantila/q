@@ -75,7 +75,7 @@ class queue
 {
 public:
 	typedef timer_task element_type;
-	typedef std::function< void( void ) > notify_type;
+	typedef q::function< void( ) > notify_type;
 
 	static queue_ptr construct( priority_t priority );
 

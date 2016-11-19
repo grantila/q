@@ -18,7 +18,7 @@
 #define LIBQ_TEST_SPY_HPP
 
 #include <q/type_traits.hpp>
-#include <q/functional.hpp>
+#include <q/function.hpp>
 
 #include <vector>
 #include <atomic>
@@ -166,7 +166,7 @@ public:
 
 private:
 	std::shared_ptr< call_spy_counter > counter_;
-	std::function< Ret( Args... ) > fn_;
+	q::function< Ret( Args... ) > fn_;
 };
 
 class spy_maker

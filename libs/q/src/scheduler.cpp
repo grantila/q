@@ -217,7 +217,11 @@ void priority_scheduler::add_queue( queue_ptr queue )
 {
 	pimpl_->queues_.add( queue->priority( ), queue_ptr( queue ) );
 
-	queue->set_consumer( std::bind( &priority_scheduler::poke, this ) );
+	event_dispatcher_ptr ed = pimpl_->event_dispatcher_;
+	queue->set_consumer( [ ed ]( )
+	{
+		ed->notify( );
+	} );
 
 	auto _this = shared_from_this( );
 
@@ -265,8 +269,11 @@ void direct_scheduler::add_queue( queue_ptr queue )
 	{
 		pimpl_->queue_ = queue;
 
-		queue->set_consumer(
-			std::bind( &direct_scheduler::poke, this ) );
+		event_dispatcher_ptr ed = pimpl_->event_dispatcher_;
+		queue->set_consumer( [ ed ]( )
+		{
+			ed->notify( );
+		} );
 	}
 	else
 	{
