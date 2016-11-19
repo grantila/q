@@ -80,7 +80,7 @@ buffer( std::size_t count, std::size_t stride, combine_options options )
 			writable.set_resume_notification(
 				[ back_pressure_writable ]( ) mutable
 				{
-					back_pressure_writable.send( );
+					ignore_result( back_pressure_writable.send( ) );
 				}
 			);
 		}
@@ -95,14 +95,11 @@ buffer( std::size_t count, std::size_t stride, combine_options options )
 			if ( !buf.empty( ) )
 			{
 				// There is an unsent last chunk of data.
-				try
-				{
-					writable.send( std::move( buf ) );
-				}
 				// We ignore the errors, since upstream is
 				// already closed, and have no chance to signal
 				// errors.
-				catch ( std::exception_ptr e ) { }
+				ignore_result(
+					writable.send( std::move( buf ) ) );
 				reset( false );
 			}
 
@@ -137,12 +134,11 @@ buffer( std::size_t count, std::size_t stride, combine_options options )
 				std::rethrow_exception(
 					writable.get_exception( ) );
 
-			try
+			if ( writable.send( std::move( buf ) ) )
 			{
-				writable.send( std::move( buf ) );
 				reset( );
 			}
-			catch ( std::exception_ptr err )
+			else
 			{
 				// Reset to not leave a moved vector dangling
 				reset( );
@@ -240,12 +236,15 @@ buffer( observable< void > closing_observable, combine_options options )
 			back_pressure_readable = bp.get_readable( );
 			auto back_pressure_writable = bp.get_writable( );
 
+			auto notification = [ back_pressure_writable ]( )
+			mutable
+			{
+				ignore_result(
+					back_pressure_writable.send( ) );
+			};
+
 			writable.set_resume_notification(
-				[ back_pressure_writable ]( ) mutable
-				{
-					back_pressure_writable.send( );
-				}
-			);
+				std::move( notification ) );
 		}
 
 		~context( )

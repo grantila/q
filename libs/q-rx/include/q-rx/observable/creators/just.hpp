@@ -22,14 +22,17 @@ namespace q { namespace rx {
 namespace {
 
 template< typename T >
-static void append_writable( q::writable< T >& w )
-{ }
+static bool append_writable( q::writable< T >& w )
+{
+	return true;
+}
 
 template< typename T, typename First, typename... Rest >
-static void append_writable( q::writable< T >& w, First&& first, Rest&&... rest )
+static bool append_writable( q::writable< T >& w, First&& first, Rest&&... rest )
 {
-	w.send( std::forward< First >( first ) );
-	append_writable( w, std::forward< Rest >( rest )... );
+	if ( !w.send( std::forward< First >( first ) ) )
+		return false;
+	return append_writable( w, std::forward< Rest >( rest )... );
 }
 
 } // anonymous namespace
@@ -49,9 +52,8 @@ just( const queue_ptr& queue, U&&... values )
 	q::channel< T > channel_( queue, sizeof...( U ) );
 	q::writable< T > writable = channel_.get_writable( );
 
-	append_writable( writable, std::forward< U >( values )... );
-
-	writable.close( );
+	if ( append_writable( writable, std::forward< U >( values )... ) )
+		writable.close( );
 
 	return observable< T >( channel_ );
 }

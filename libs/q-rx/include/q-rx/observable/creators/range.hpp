@@ -44,7 +44,8 @@ range( U&& start, std::size_t count, create_options options )
 	if ( !options.has< backlog >( ) )
 	{
 		for ( std::size_t i = 0; i < count; ++i )
-			writable.send( start++ );
+			if ( !writable.send( start++ ) )
+				break;
 
 		writable.close( );
 	}
@@ -58,7 +59,10 @@ range( U&& start, std::size_t count, create_options options )
 			for ( ; *cur < count; ++*cur )
 			{
 				if ( writable.should_send( ) )
-					writable.send( ( *val )++ );
+				{
+					if ( !writable.send( ( *val )++ ) )
+						break;
+				}
 				else
 					break;
 			}
@@ -98,7 +102,8 @@ range( std::size_t count, create_options options )
 	if ( !options.has< backlog >( ) )
 	{
 		for ( std::size_t i = 0; i < count; ++i )
-			writable.send( );
+			if ( !writable.send( ) )
+				break;
 
 		writable.close( );
 	}
@@ -111,7 +116,10 @@ range( std::size_t count, create_options options )
 			for ( ; *cur < count; ++*cur )
 			{
 				if ( writable.should_send( ) )
-					writable.send( );
+				{
+					if ( !writable.send( ) )
+						break;
+				}
 				else
 					break;
 			}

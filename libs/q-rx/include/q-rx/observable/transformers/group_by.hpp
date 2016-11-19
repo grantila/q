@@ -205,8 +205,8 @@ struct group_by_context
 
 			writable = channel.get_writable( );
 
-			outer_writable_.send(
-				key, inner_observable( channel ) );
+			ignore_result( outer_writable_.send(
+				key, inner_observable( channel ) ) );
 
 			if ( !outer_writable_.should_send( ) )
 			{
@@ -231,7 +231,7 @@ struct group_by_context
 			}
 		}
 
-		writable.send( std::move( value ) );
+		ignore_result( writable.send( std::move( value ) ) );
 
 		if ( !writable.should_send( ) )
 		{

@@ -60,15 +60,15 @@ inline observable< T >::observer::observer( q::writable< T > writable )
 { }
 
 template< typename T >
-inline void observable< T >::observer::on_next( T&& t )
+inline bool observable< T >::observer::on_next( T&& t )
 {
-	writable_.send( std::move( t ) );
+	return writable_.send( std::move( t ) );
 }
 
 template< typename T >
-inline void observable< T >::observer::on_next( const T& t )
+inline bool observable< T >::observer::on_next( const T& t )
 {
-	writable_.send( t );
+	return writable_.send( t );
 }
 
 template< typename T >

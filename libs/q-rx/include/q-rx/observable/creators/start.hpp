@@ -22,16 +22,16 @@ namespace q { namespace rx {
 namespace {
 
 template< typename Writable, typename Fn >
-void write_by_fun( Writable& writable, Fn&& fn )
+bool write_by_fun( Writable& writable, Fn&& fn )
 {
-	writable.send( fn( ) );
+	return writable.send( fn( ) );
 }
 
 template< typename Fn >
-void write_by_fun( q::writable< > writable, Fn&& fn )
+bool write_by_fun( q::writable< > writable, Fn&& fn )
 {
 	fn( );
-	writable.send( );
+	return writable.send( );
 }
 
 template< typename T, typename Writable, typename Promise >
@@ -41,8 +41,8 @@ write_by_fun_async( Writable writable, Promise&& promise )
 	promise
 	.then( [ writable ]( T&& t ) mutable
 	{
-		writable.send( std::move( t ) );
-		writable.close( );
+		if ( writable.send( std::move( t ) ) )
+			writable.close( );
 	} )
 	.fail( [ writable ]( std::exception_ptr e ) mutable
 	{
@@ -57,8 +57,8 @@ write_by_fun_async( q::writable< > writable, Promise&& promise )
 	promise
 	.then( [ writable ]( ) mutable
 	{
-		writable.send( );
-		writable.close( );
+		if ( writable.send( ) )
+			writable.close( );
 	} )
 	.fail( [ writable ]( std::exception_ptr e ) mutable
 	{

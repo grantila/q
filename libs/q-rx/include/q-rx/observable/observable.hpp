@@ -164,8 +164,8 @@ public:
 		observer( const observer& ) = default;
 		observer( q::writable< T > writable );
 
-		void on_next( T&& t );
-		void on_next( const T& t );
+		Q_NODISCARD bool on_next( T&& t );
+		Q_NODISCARD bool on_next( const T& t );
 		void on_completed( );
 		template< typename Error >
 		void on_error( Error&& error );

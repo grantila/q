@@ -8,9 +8,9 @@ TEST_F( ob_create_create, with_data_success )
 	auto o_create = q::rx::observable< int >::create(
 		[ ]( auto observer )
 		{
-			observer.on_next( 1 );
-			observer.on_next( 2 );
-			observer.on_next( 3 );
+			q::ignore_result( observer.on_next( 1 ) );
+			q::ignore_result( observer.on_next( 2 ) );
+			q::ignore_result( observer.on_next( 3 ) );
 			observer.on_completed( );
 		},
 		{ queue }
@@ -32,9 +32,9 @@ TEST_F( ob_create_create, with_data_failed )
 	auto o_create = q::rx::observable< int >::create(
 		[ ]( auto observer )
 		{
-			observer.on_next( 1 );
-			observer.on_next( 2 );
-			observer.on_next( 3 );
+			q::ignore_result( observer.on_next( 1 ) );
+			q::ignore_result( observer.on_next( 2 ) );
+			q::ignore_result( observer.on_next( 3 ) );
 			observer.on_error( Error( ) );
 		},
 		{ queue }

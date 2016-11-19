@@ -77,7 +77,8 @@ repeat( std::size_t limit, combine_options options )
 		{
 			do
 			{
-				writable.send( values[ next_index++ ] );
+				if ( !writable.send( values[ next_index++ ] ) )
+					break;
 				if ( next_index == values.size( ) )
 				{
 					next_index = 0;
@@ -134,7 +135,7 @@ repeat( std::size_t limit, combine_options options )
 
 	writable.set_resume_notification( [ ctx ]
 	{
-		ctx->writable_back_pressure.send( );
+		ignore_result( ctx->writable_back_pressure.send( ) );
 	} );
 
 	// First, we consume all elements from the input, with the asynchronous
@@ -151,7 +152,9 @@ repeat( std::size_t limit, combine_options options )
 	{
 		ctx->readable_back_pressure.clear( );
 
-		ctx->writable.send( t );
+		if ( !ctx->writable.send( t ) )
+			return reject< arguments< > >(
+				ctx->queue, ctx->writable.get_exception( ) );
 		ctx->values.push_back( std::move( t ) );
 
 		if ( ctx->writable.should_send( ) )
