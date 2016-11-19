@@ -84,8 +84,7 @@ public:
 
 	void push( timer::point_type time, T t )
 	{
-		element_type elem{ std::move( time ), std::move( t ) };
-		map_.insert( std::move( elem ) );
+		map_.emplace( std::move( time ), std::move( t ) );
 	}
 
 	bool exists_before_or_at(
@@ -97,7 +96,7 @@ public:
 		return !( map_.begin( )->first > time );
 	}
 
-	typename IfEmpty::type pop( )
+	T pop( )
 	{
 		auto iter = map_.begin( );
 
@@ -119,7 +118,7 @@ public:
 		auto iter = map_.begin( );
 
 		if ( iter == map_.end( ) )
-			timer::duration_type::max( );
+			return timer::duration_type::max( );
 
 		return iter->first - timer::point_type::clock::now( );
 	}
