@@ -78,6 +78,14 @@ auto make_lambda_11_size( ) -> lambda< Mutable, payload< Size, Copyable > >
 
 void plain( ) { ++call_count; }
 
+TEST( function, nullptr )
+{
+	q::unique_function< void( ) > uf_uninitialized( nullptr );
+	q::function< void( ) > f_uninitialized( nullptr );
+	q::unused_variable( uf_uninitialized );
+	q::unused_variable( f_uninitialized );
+}
+
 TEST( function, unique_function_arguments )
 {
 	q::unique_function< void( ) >

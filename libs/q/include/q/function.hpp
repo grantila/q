@@ -444,6 +444,10 @@ public:
 	: method_( function_storage::uninitialized )
 	{ }
 
+	any_function( std::nullptr_t ) noexcept
+	: method_( function_storage::uninitialized )
+	{ }
+
 	template< typename Fn >
 	any_function(
 		Fn&& fn,
