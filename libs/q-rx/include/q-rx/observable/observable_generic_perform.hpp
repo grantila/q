@@ -186,7 +186,7 @@ generic_perform( std::shared_ptr< Operator > performer, queue_ptr next_queue )
 
 	auto writable = _channel.get_writable( );
 
-	performer->setup( std::move( writable ) );
+	performer->setup( writable );
 
 	auto on_data = [ writable, performer ]( void_safe_type t ) mutable
 	{
