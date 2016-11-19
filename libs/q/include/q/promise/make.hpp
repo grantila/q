@@ -130,7 +130,7 @@ make_promise( const queue_ptr& queue, Fn&& fn )
 
 	Q_MAKE_MOVABLE( fn );
 
-	queue->push( [ deferred, Q_MOVABLE_MOVE( fn ) ]( ) mutable
+	queue->push( [ deferred, Q_MOVABLE_FORWARD( fn ) ]( ) mutable
 	{
 		deferred->set_by_fun( Q_MOVABLE_CONSUME( fn ) );
 	} );
@@ -188,7 +188,7 @@ make_promise( const ::q::queue_ptr& queue, Fn&& fn )
 
 	Q_MAKE_MOVABLE( fn );
 
-	queue->push( [ helper, Q_MOVABLE_MOVE( fn ) ]( ) mutable
+	queue->push( [ helper, Q_MOVABLE_FORWARD( fn ) ]( ) mutable
 	{
 		helper->run( Q_MOVABLE_CONSUME( fn ) );
 	} );
@@ -236,7 +236,7 @@ make_promise_of( const ::q::queue_ptr& queue, Fn&& fn )
 
 	auto deferred = q::detail::defer< tuple_type >::construct( queue );
 
-	queue->push( [ deferred, Q_MOVABLE_MOVE( fn ) ]( ) mutable
+	queue->push( [ deferred, Q_MOVABLE_FORWARD( fn ) ]( ) mutable
 	{
 		auto resolve = [ deferred ]( Args&&... args )
 		{

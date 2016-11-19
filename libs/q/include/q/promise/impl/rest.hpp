@@ -34,7 +34,7 @@ then( Logger&& logger, Queue&& queue )
 {
 	Q_MAKE_MOVABLE( logger );
 
-	auto fn = [ Q_MOVABLE_MOVE( logger ) ]( tuple_type args ) -> void
+	auto fn = [ Q_MOVABLE_FORWARD( logger ) ]( tuple_type args ) -> void
 	{
 		call_with_args_by_tuple( Q_MOVABLE_CONSUME( logger ), args );
 	};

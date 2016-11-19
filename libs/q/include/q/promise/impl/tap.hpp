@@ -47,7 +47,7 @@ tap( Fn&& fn, Queue&& queue )
 	Q_MAKE_MOVABLE( fn );
 	auto state = state_;
 
-	auto perform = [ deferred, Q_MOVABLE_MOVE( fn ), state ]( ) mutable
+	auto perform = [ deferred, Q_MOVABLE_FORWARD( fn ), state ]( ) mutable
 	{
 		auto value = state->consume( );
 
@@ -109,7 +109,7 @@ tap( Fn&& fn, Queue&& queue )
 	Q_MAKE_MOVABLE( fn );
 	auto state = state_;
 
-	auto perform = [ deferred, Q_MOVABLE_MOVE( fn ), state ]( ) mutable
+	auto perform = [ deferred, Q_MOVABLE_FORWARD( fn ), state ]( ) mutable
 	{
 		auto value = state->consume( );
 
@@ -180,7 +180,7 @@ tap( Fn&& fn, Queue&& queue )
 	Q_MAKE_MOVABLE( fn );
 	auto state = state_;
 
-	auto perform = [ deferred, Q_MOVABLE_MOVE( fn ), state ]( ) mutable
+	auto perform = [ deferred, Q_MOVABLE_FORWARD( fn ), state ]( ) mutable
 	{
 		auto value = state->consume( );
 
@@ -242,7 +242,7 @@ tap( Fn&& fn, Queue&& queue )
 	Q_MAKE_MOVABLE( fn );
 	auto state = state_;
 
-	auto perform = [ deferred, Q_MOVABLE_MOVE( fn ), state ]( ) mutable
+	auto perform = [ deferred, Q_MOVABLE_FORWARD( fn ), state ]( ) mutable
 	{
 		auto value = state->consume( );
 
