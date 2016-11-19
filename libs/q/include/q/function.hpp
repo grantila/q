@@ -64,9 +64,6 @@
 #	define LIBQ__FUNCTION_INLINE_ALIGN LIBQ_ASSUMED_CACHE_LINE_SIZE
 #endif
 #define LIBQ__FUNCTION_INLINE_STATE_SIZE sizeof( std::ptrdiff_t )
-#define LIBQ__FUNCTION_INLINE_DATA_SIZE_( ) \
-	( LIBQ__FUNCTION_INLINE_SIZE - 2 * LIBQ__FUNCTION_INLINE_STATE_SIZE )
-#define LIBQ__FUNCTION_INLINE_DATA_SIZE LIBQ__FUNCTION_INLINE_DATA_SIZE_( )
 
 namespace q {
 
@@ -374,11 +371,15 @@ template< typename T >
 function_size_recorder< T > function_size_recorder< T >::instance;
 #endif // Q_RECORD_FUNCTION_STATS
 
-template< typename Signature, bool Shared, std::size_t DataSize >
+template< typename Signature, bool Shared, std::size_t TotalSize >
 class alignas( LIBQ__FUNCTION_INLINE_ALIGN ) any_function
 {
 public:
-	using this_type = any_function< Signature, Shared, DataSize >;
+	typedef std::integral_constant<
+		std::size_t,
+		TotalSize - 2 * LIBQ__FUNCTION_INLINE_STATE_SIZE
+	> DataSize;
+	using this_type = any_function< Signature, Shared, TotalSize >;
 	using base = detail::function_base< Signature >;
 	using argument_types = arguments_of_t< Signature >;
 	using return_type = typename base::return_type;
@@ -391,7 +392,7 @@ public:
 		and
 		!std::is_same<
 			typename std::decay< Fn >::type,
-			any_function< Signature, Shared, DataSize >
+			this_type
 		>::value
 		and
 		arguments_of_t< Signature >
@@ -459,7 +460,7 @@ public:
 			typename std::decay< Fn >::type,
 			Signature,
 			Shared,
-			DataSize
+			DataSize::value
 		>::type::value
 	)
 	{
@@ -477,7 +478,7 @@ public:
 			typename std::decay< Fn >::type,
 			Signature,
 			Shared,
-			DataSize
+			DataSize::value
 		>::type;
 
 		_set_plain< method::value >( std::forward< Fn >( fn ) );
@@ -524,7 +525,7 @@ public:
 			typename std::decay< Fn >::type,
 			Signature,
 			Shared,
-			DataSize
+			DataSize::value
 		>::type::value
 	)
 	{
@@ -542,7 +543,7 @@ public:
 			typename std::decay< Fn >::type,
 			Signature,
 			Shared,
-			DataSize
+			DataSize::value
 		>::type;
 
 		_set_plain< method::value >( std::forward< Fn >( fn ) );
@@ -590,7 +591,7 @@ public:
 	 */
 	template< bool _Shared = Shared >
 	any_function(
-		any_function< Signature, true, DataSize >&& other,
+		any_function< Signature, true, TotalSize >&& other,
 		typename std::enable_if< !_Shared && !Shared >::type* = 0
 	)
 	noexcept
@@ -605,7 +606,7 @@ public:
 	 */
 	template< bool _Shared = Shared >
 	any_function(
-		const any_function< Signature, true, DataSize >& other,
+		const any_function< Signature, true, TotalSize >& other,
 		typename std::enable_if< !_Shared && !Shared >::type* = 0
 	)
 	noexcept
@@ -645,11 +646,11 @@ public:
 	template< bool _Shared = Shared >
 	typename std::enable_if<
 		!_Shared and !Shared,
-		any_function< Signature, true, DataSize >
+		any_function< Signature, true, TotalSize >
 	>::type
 	share( )
 	{
-		any_function< Signature, true, DataSize > ret;
+		any_function< Signature, true, TotalSize > ret;
 
 		if ( method_ == function_storage::uninitialized )
 			return ret;
@@ -753,7 +754,7 @@ public:
 
 	template< bool _Shared = Shared >
 	typename std::enable_if< !_Shared && !Shared, this_type >::type&
-	operator=( any_function< Signature, true, DataSize >&& other )
+	operator=( any_function< Signature, true, TotalSize >&& other )
 	noexcept
 	{
 		return _move_from_shared( std::move( other ) );
@@ -761,7 +762,7 @@ public:
 
 	template< bool _Shared = Shared >
 	typename std::enable_if< !_Shared && !Shared, this_type >::type&
-	operator=( const any_function< Signature, true, DataSize >& other )
+	operator=( const any_function< Signature, true, TotalSize >& other )
 	noexcept
 	{
 		return _copy_from_shared( other );
@@ -989,7 +990,7 @@ private:
 	 */
 	template< bool _Shared = Shared >
 	typename std::enable_if< !_Shared && !Shared, this_type >::type&
-	_move_from_shared( any_function< Signature, true, DataSize >&& other )
+	_move_from_shared( any_function< Signature, true, TotalSize >&& other )
 	noexcept
 	{
 		_reset( );
@@ -1045,7 +1046,7 @@ private:
 			reinterpret_cast< shared_heap_type* >( &other.base_ );
 
 		const bool should_inline =
-			other_base->size( ) <= DataSize
+			other_base->size( ) <= DataSize::value
 			and
 			other_shared_ptr->unique( );
 
@@ -1078,7 +1079,7 @@ private:
 	 */
 	template< bool _Shared = Shared >
 	typename std::enable_if< !_Shared && !Shared, this_type >::type&
-	_copy_from_shared( const any_function< Signature, true, DataSize >& other )
+	_copy_from_shared( const any_function< Signature, true, TotalSize >& other )
 	noexcept
 	{
 		_reset( );
@@ -1127,7 +1128,7 @@ private:
 	}
 
 	typedef typename std::aligned_storage<
-		DataSize,
+		DataSize::value,
 		LIBQ__FUNCTION_INLINE_STATE_SIZE * 2
 	>::type data_type;
 
@@ -1146,14 +1147,23 @@ template< typename Signature >
 using unique_function = detail::any_function<
 	Signature,
 	false,
-	LIBQ__FUNCTION_INLINE_DATA_SIZE
+	LIBQ__FUNCTION_INLINE_SIZE
 >;
 
 template< typename Signature >
 using function = detail::any_function<
 	Signature,
 	true,
-	LIBQ__FUNCTION_INLINE_DATA_SIZE
+	LIBQ__FUNCTION_INLINE_SIZE
+>;
+
+template< typename Signature, bool Shared, std::size_t Words >
+using custom_function = detail::any_function<
+	Signature,
+	Shared,
+	// Add three words (two for the any_function, one for the v-table),
+	// then round up to nearest 8-word (assumed cache line size).
+	sizeof( std::ptrdiff_t ) * ( ( Words + 3 + 7 ) / 8 ) * 8
 >;
 
 } // namespace q
