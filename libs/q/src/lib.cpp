@@ -20,9 +20,9 @@
 
 namespace {
 
-std::vector< std::function< void( void ) > >* get_initializers( )
+std::vector< q::function< void( void ) > >* get_initializers( )
 {
-	static std::vector< std::function< void( void ) > > initializers;
+	static std::vector< q::function< void( void ) > > initializers;
 	return &initializers;
 }
 
@@ -32,7 +32,7 @@ namespace q {
 
 namespace detail {
 
-void register_internal_initializer( std::function< void( void ) >&& func )
+void register_internal_initializer( q::function< void( void ) >&& func )
 {
 	get_initializers( )->push_back( std::move( func ) );
 }

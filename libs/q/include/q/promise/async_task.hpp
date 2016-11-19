@@ -34,11 +34,11 @@ namespace q {
 class async_task
 {
 public:
-	typedef std::function< void( q::expect< > ) noexcept > task;
-	typedef std::function< void( task ) > forwarded_task;
+	typedef q::unique_function< void( q::expect< > ) noexcept > task;
+	typedef q::unique_function< void( task ) > forwarded_task;
 
 	async_task( forwarded_task&& fn )
-	: fn_( fn )
+	: fn_( std::move( fn ) )
 	{ }
 
 	async_task( ) = delete;

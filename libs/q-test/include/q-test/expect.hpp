@@ -20,6 +20,8 @@
 #include <q-test/q-test.hpp>
 #include <q-test/stringify.hpp>
 
+#include <q/function.hpp>
+
 /**
  * The EVENTUALLY_EXPECT* macros work like the gtest EXPECT* corresondants, but
  * allow the expected value and/or the actual value to be a promise.
@@ -209,7 +211,7 @@ public:
 	typedef expected_any_comparator_base< Value > value_base;
 	typedef expected_comparator_base< Value, Parent, T... > this_type;
 	typedef std::tuple< T... > tuple_type;
-	typedef std::function< void( const tuple_type& ) > testee_type;
+	typedef q::function< void( const tuple_type& ) > testee_type;
 	typedef ::q::promise< tuple_type > promise_type;
 	typedef ::q::shared_promise< tuple_type > shared_promise_type;
 
@@ -695,7 +697,7 @@ private:
 	{
 		value->root( ).fixture( ).await_promise(
 			value->get( )
-			.then( [ testee ]( const std::tuple< T... >& t )
+			.then( [ testee ]( const std::tuple< T... >& t ) mutable
 			{
 				testee( t );
 			} )
@@ -709,7 +711,7 @@ private:
 	{
 		value->root( ).fixture( ).await_promise(
 			value->get( )
-			.then( [ testee ]( std::tuple< T... >&& t )
+			.then( [ testee ]( std::tuple< T... >&& t ) mutable
 			{
 				testee( std::move( t ) );
 			} )

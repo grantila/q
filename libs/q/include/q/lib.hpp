@@ -18,7 +18,7 @@
 #define LIBQ_LIB_HPP
 
 #include <q/scope.hpp>
-#include <q/functional.hpp>
+#include <q/function.hpp>
 #include <q/exception.hpp>
 
 #include <q/detail/lib.hpp>
@@ -29,7 +29,7 @@ namespace q {
 
 namespace detail {
 
-void register_internal_initializer( std::function< void( void ) >&& func );
+void register_internal_initializer( q::function< void( void ) >&& func );
 
 } // namespace detail
 
