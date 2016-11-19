@@ -51,7 +51,7 @@ then( Fn&& fn, Queue&& queue )
 	Q_MAKE_MOVABLE( fn );
 	auto state = state_;
 
-	auto perform = [ deferred, Q_MOVABLE_MOVE( fn ), state ]( ) mutable
+	auto perform = [ deferred, Q_MOVABLE_FORWARD( fn ), state ]( ) mutable
 	{
 		auto value = state->consume( );
 		if ( value.has_exception( ) )
@@ -99,7 +99,7 @@ then( Fn&& fn, Queue&& queue )
 	Q_MAKE_MOVABLE( fn );
 	auto state = state_;
 
-	auto perform = [ deferred, Q_MOVABLE_MOVE( fn ), state ]( ) mutable
+	auto perform = [ deferred, Q_MOVABLE_FORWARD( fn ), state ]( ) mutable
 	{
 		auto value = state->consume( );
 		if ( value.has_exception( ) )
@@ -148,7 +148,7 @@ then( Fn&& fn, Queue&& queue )
 	Q_MAKE_MOVABLE( fn );
 	auto state = state_;
 
-	auto perform = [ deferred, Q_MOVABLE_MOVE( fn ), state ]( ) mutable
+	auto perform = [ deferred, Q_MOVABLE_FORWARD( fn ), state ]( ) mutable
 	{
 		auto value = state->consume( );
 		if ( value.has_exception( ) )
@@ -196,7 +196,7 @@ then( Fn&& fn, Queue&& queue )
 	Q_MAKE_MOVABLE( fn );
 	auto state = state_;
 
-	auto perform = [ deferred, Q_MOVABLE_MOVE( fn ), state ]( ) mutable
+	auto perform = [ deferred, Q_MOVABLE_FORWARD( fn ), state ]( ) mutable
 	{
 		auto value = state->consume( );
 		if ( value.has_exception( ) )
@@ -229,7 +229,7 @@ then( AsyncTask&& task )
 	auto state = state_;
 	Q_MAKE_MOVABLE( task );
 
-	auto perform = [ Q_MOVABLE_MOVE( task ), deferred, state ]( ) mutable
+	auto perform = [ Q_MOVABLE_FORWARD( task ), deferred, state ]( ) mutable
 	{
 		auto value = state->consume( );
 

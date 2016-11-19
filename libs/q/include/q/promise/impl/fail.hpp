@@ -56,7 +56,7 @@ fail( Fn&& fn, Queue&& queue )
 	Q_MAKE_MOVABLE( fn );
 	auto state = state_;
 
-	auto perform = [ deferred, Q_MOVABLE_MOVE( fn ), state ]( ) mutable
+	auto perform = [ deferred, Q_MOVABLE_FORWARD( fn ), state ]( ) mutable
 	{
 		auto value = state->consume( );
 		if ( value.has_exception( ) )
@@ -125,7 +125,7 @@ fail( Fn&& fn, Queue&& queue )
 	Q_MAKE_MOVABLE( fn );
 	auto state = state_;
 
-	auto perform = [ deferred, Q_MOVABLE_MOVE( fn ), state ]( ) mutable
+	auto perform = [ deferred, Q_MOVABLE_FORWARD( fn ), state ]( ) mutable
 	{
 		auto value = state->consume( );
 		if ( value.has_exception( ) )
@@ -193,7 +193,7 @@ fail( Fn&& fn, Queue&& queue )
 	typedef typename std::decay< Q_FIRST_ARGUMENT_OF( Fn ) >::type
 		exception_type;
 
-	auto perform = [ deferred, Q_MOVABLE_MOVE( fn ), state ]( ) mutable
+	auto perform = [ deferred, Q_MOVABLE_FORWARD( fn ), state ]( ) mutable
 	{
 		auto value = state->consume( );
 		if ( value.has_exception( ) )
@@ -274,7 +274,7 @@ fail( Fn&& fn, Queue&& queue )
 	typedef typename std::decay< Q_FIRST_ARGUMENT_OF( Fn ) >::type
 		exception_type;
 
-	auto perform = [ deferred, Q_MOVABLE_MOVE( fn ), state ]( ) mutable
+	auto perform = [ deferred, Q_MOVABLE_FORWARD( fn ), state ]( ) mutable
 	{
 		auto value = state->consume( );
 		if ( value.has_exception( ) )

@@ -57,7 +57,7 @@ public:
 	typedef promise_state< tuple_type, false >     unique_state_type;
 	typedef unique_this_type                       promise_type;
 	typedef shared_this_type                       shared_promise_type;
-	typedef ::q::expect< tuple_type >              tuple_expect_type;
+	typedef expect< tuple_type >                   tuple_expect_type;
 	typedef typename std::conditional<
 		sizeof...( Args ) < 2,
 		::q::expect<
