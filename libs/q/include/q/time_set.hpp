@@ -42,7 +42,7 @@ struct default_construction
 
 	static type value( T&& t )
 	{
-		return t;
+		return type( std::move( t ) );
 	}
 };
 
@@ -76,6 +76,8 @@ class time_set
 {
 public:
 	typedef std::pair< timer::point_type, T > element_type;
+	typedef std::is_same< IfEmpty, detail::default_construction< T > >
+		is_default;
 
 	static_assert(
 		!std::is_reference< T >::value, "References not allowed" );
@@ -106,10 +108,13 @@ public:
 
 		map_.erase( iter );
 
+		if ( is_default::value )
+			return value;
+
 		return IfEmpty::value( std::move( value ) );
 	}
 
-	timer::duration_type next_time( )
+	timer::duration_type next_time( ) const
 	{
 		auto iter = map_.begin( );
 
