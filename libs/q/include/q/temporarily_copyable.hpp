@@ -50,6 +50,7 @@
 	/**
 	 * Moves the variable into a lambda. Use this in the capture list.
 	 */
+#	define Q_MOVABLE_FORWARD( x ) __movable_##x
 #	define Q_MOVABLE_MOVE( x ) __movable_##x
 
 	/**
@@ -61,7 +62,8 @@
 #else
 #	define Q_MAKE_MOVABLE( x )
 #	define Q_MOVE_INTO_MOVABLE( x )
-#	define Q_MOVABLE_MOVE( x ) x{ Q_FORWARD( x ) }
+#	define Q_MOVABLE_FORWARD( x ) x{ Q_FORWARD( x ) }
+#	define Q_MOVABLE_MOVE( x ) x{ std::move( x ) }
 #	define Q_MOVABLE_CONSUME( x ) ( std::move( x ) )
 #	define Q_MOVABLE_GET( x ) ( x )
 #endif

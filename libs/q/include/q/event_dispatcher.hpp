@@ -21,6 +21,7 @@
 #include <q/type_traits.hpp>
 #include <q/async_termination.hpp>
 #include <q/expect.hpp>
+#include <q/function.hpp>
 
 #include <memory>
 
@@ -29,7 +30,7 @@ namespace q {
 class basic_event_dispatcher;
 typedef std::shared_ptr< basic_event_dispatcher > event_dispatcher_ptr;
 
-typedef std::function< timer_task( void ) noexcept > task_fetcher_task;
+typedef q::function< timer_task( void ) noexcept > task_fetcher_task;
 
 struct event_dispatcher_yes_tag;
 struct event_dispatcher_no_tag;

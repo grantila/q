@@ -36,22 +36,25 @@ struct promisifier< Ret, ::q::arguments< Args... > >
 	typedef typename arguments_type::template apply< defer > defer_type;
 
 	template< typename Fn >
-	static std::function< promise< tuple_type >( Args... ) >
+	static q::function< promise< tuple_type >( Args&&... ) >
 	promisify( queue_ptr&& queue, Fn fn )
 	{
-		typedef typename std::decay< Fn >::type DecayedFn;
+		Q_MAKE_MOVABLE( fn );
 
-		return [ queue, fn ]( Args... args )
+		return q::unique_function< promise< tuple_type >( Args&&... ) >(
+			[ queue, Q_MOVABLE_FORWARD( fn ) ]( Args&&... args )
+			mutable
 			-> promise< tuple_type >
-		{
-			auto deferred = defer_type::construct( queue );
+			{
+				auto deferred = defer_type::construct( queue );
 
-			DecayedFn _fn = fn;
+				deferred->set_by_fun(
+					Q_MOVABLE_GET( fn ), args... );
 
-			deferred->set_by_fun( std::move( _fn ), args... );
-
-			return deferred->get_promise( );
-		};
+				return deferred->get_promise( );
+			}
+		)
+		.share( );
 	}
 };
 

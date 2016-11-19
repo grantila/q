@@ -58,6 +58,9 @@ struct channel_traits
 	typedef channel_traits< T... > type;
 	typedef std::tuple< T... > tuple_type;
 	typedef std::false_type is_promise;
+
+	using inner_arguments_type = arguments< T... >;
+	typedef tuple_type inner_tuple_type;
 };
 
 template< typename... T >
@@ -72,6 +75,9 @@ struct channel_traits< q::promise< std::tuple< T... > > >
 	typedef channel_traits< promise_type > type;
 	typedef std::tuple< promise_type > tuple_type;
 	typedef std::true_type is_promise;
+
+	using inner_arguments_type = arguments< T... >;
+	typedef promise_tuple_type inner_tuple_type;
 };
 
 template< typename... T >
@@ -86,6 +92,99 @@ struct channel_traits< q::shared_promise< std::tuple< T... > > >
 	typedef channel_traits< promise_type > type;
 	typedef std::tuple< promise_type > tuple_type;
 	typedef std::true_type is_promise;
+
+	using inner_arguments_type = arguments< T... >;
+	typedef promise_tuple_type inner_tuple_type;
+};
+
+template< typename From, typename To >
+struct pipe_helper;
+
+template< typename... From, typename... To >
+struct pipe_helper< arguments< From... >, arguments< To... > >
+{
+	typedef channel_traits< From... > traits;
+
+	typedef is_argument_same_or_convertible_t<
+		arguments< From... >,
+		arguments< To... >
+	> valid;
+
+	static void pipe( readable< From... > r, writable< To... > w )
+	{
+		typedef typename traits::inner_tuple_type tuple_type;
+
+		typedef q::custom_function< void( ), true, 22 > send_type;
+
+		auto try_send = std::make_shared< send_type >( );
+
+		auto close = [ try_send, w ]( ) mutable
+		{
+			w.unset_resume_notification( );
+			w.close( );
+			try_send.reset( );
+		};
+
+		auto abort = [ try_send, w ]( std::exception_ptr err )
+		mutable
+		{
+			w.unset_resume_notification( );
+			w.close( err );
+			try_send.reset( );
+		};
+
+		// This must not run on multiple threads in parallel
+		*try_send = [ try_send, r, w, close, abort ]( )
+		mutable
+		{
+			if ( w.should_send( ) )
+			{
+				auto on_data =
+				[ try_send, w ]( tuple_type&& data )
+				mutable
+				{
+					// Send through
+					ignore_result(
+						w.send(
+							std::move( data ) ) );
+
+					// Recurse
+					( *try_send )( );
+				};
+
+				r.receive( std::move( on_data ), close )
+				.fail( [ abort ]( std::exception_ptr err )
+				mutable
+				{
+					abort( err );
+				} );
+			}
+			else if ( w.is_closed( ) )
+			{
+				auto err = w.get_exception( );
+
+				if ( err )
+					r.close( err );
+				else
+					r.close( );
+
+				close( );
+			}
+			else
+			{
+				auto resume = [ try_send, w ]( ) mutable
+				{
+					w.unset_resume_notification( );
+					( *try_send )( );
+				};
+
+				w.set_resume_notification( resume, true );
+			}
+		};
+
+		w.unset_resume_notification( );
+		( *try_send )( );
+	};
 };
 
 template< typename... T >
@@ -93,9 +192,227 @@ class shared_channel
 : public std::enable_shared_from_this< shared_channel< T... > >
 {
 public:
-	typedef std::tuple< T... >    tuple_type;
-	typedef detail::defer< T... > defer_type;
-	typedef arguments< T... >     arguments_type;
+	typedef typename detail::channel_traits< T... >::type traits;
+
+	using inner_arguments_type = typename traits::inner_arguments_type;
+
+	typedef std::tuple< T... >     tuple_type;
+	typedef detail::defer< T... >  defer_type;
+	typedef arguments< T... >      arguments_type;
+	typedef shared_channel< T... > self_type;
+
+	// TODO: Combine the two derived types in one union, with enough space
+	//       for both and a pointer to the base type (similar to
+	//       q::function) and potentially store them in a vector to reduce
+	//       heap allocations.
+	struct waiter_type
+	{
+		virtual ~waiter_type( ) { }
+
+		virtual void set_closed( ) = 0;
+		virtual void set_exception( std::exception_ptr ) = 0;
+		virtual void set_value( tuple_type&& ) = 0;
+	};
+
+	struct defer_waiter_type
+	: waiter_type
+	{
+		void set_closed( ) override
+		{
+			deferred->set_exception(
+				std::make_exception_ptr(
+					channel_closed_exception( ) ) );
+		}
+		void set_exception( std::exception_ptr e ) override
+		{
+			deferred->set_exception( std::move( e ) );
+		}
+		void set_value( tuple_type&& t ) override
+		{
+			deferred->set_value( std::move( t ) );
+		}
+
+		defer_waiter_type( std::shared_ptr< defer_type > deferred )
+		: deferred( deferred )
+		{ }
+
+		std::shared_ptr< defer_type > deferred;
+	};
+
+	template< typename FnValue, typename FnClosed >
+	struct fast_waiter_type
+	: waiter_type
+	{
+		typedef detail::defer< > result_defer_type;
+
+		typedef bool_type<
+			arguments_type
+			::template is_convertible_to_incl_void<
+				arguments_of_t< FnValue >
+			>::value
+		> assignable_to_value_directly;
+
+		typedef tuple_arguments_of_are_convertible_from_incl_void_t<
+			FnValue,
+			arguments_type
+		> assignable_to_value_by_tuple;
+
+		typedef bool_type<
+			inner_arguments_type
+			::template is_convertible_to_incl_void<
+				arguments_of_t< FnValue >
+			>::value
+		> inner_assignable_to_value_directly;
+
+		typedef tuple_arguments_of_are_convertible_from_incl_void_t<
+			FnValue,
+			inner_arguments_type
+		> inner_assignable_to_value_by_tuple;
+
+		typedef result_of_is_voidish_or_eventually_voidish_t< FnValue >
+			value_has_valid_return;
+
+		typedef typename arguments_of_t< FnClosed >::empty_or_voidish
+			closed_has_valid_arguments;
+
+		typedef result_of_is_voidish_or_eventually_voidish_t< FnClosed >
+			closed_has_valid_return;
+
+		typedef bool_type<
+			(
+				assignable_to_value_directly::value
+				or
+				assignable_to_value_by_tuple::value
+			)
+			and
+			value_has_valid_return::value
+			and
+			closed_has_valid_arguments::value
+			and
+			closed_has_valid_return::value
+		> callbacks_are_valid;
+
+		typedef bool_type<
+			(
+				inner_assignable_to_value_directly::value
+				or
+				inner_assignable_to_value_by_tuple::value
+			)
+			and
+			value_has_valid_return::value
+			and
+			closed_has_valid_arguments::value
+			and
+			closed_has_valid_return::value
+		> inner_callbacks_are_valid;
+
+		void set_closed( ) override
+		{
+			auto deferred = this->deferred;
+			auto fn_closed = std::move( this->fn_closed );
+
+			Q_MOVE_INTO_MOVABLE( fn_closed );
+
+			auto fn = [ deferred, Q_MOVABLE_MOVE( fn_closed ) ]( )
+			mutable
+			{
+				deferred->set_by_fun(
+					Q_MOVABLE_CONSUME( fn_closed ) );
+			};
+
+			deferred->get_queue( )->push( std::move( fn ) );
+		}
+		void set_exception( std::exception_ptr e ) override
+		{
+			deferred->set_exception( e );
+		}
+		void set_value( tuple_type&& t ) override
+		{
+			auto ch = shared_channel.lock( );
+
+			// If the channel still exists (which should always be
+			// the case), we'll make a proxy promise which detects
+			// exceptions to automatically close the channel.
+			if ( ch )
+			{
+				auto proxy = ::q::make_shared<
+					result_defer_type
+				>( ch->default_queue_ );
+
+				auto fn_value = std::move( this->fn_value );
+				Q_MOVE_INTO_MOVABLE( fn_value );
+				Q_MOVE_INTO_MOVABLE( t );
+
+				auto fn =
+				[
+					proxy,
+					Q_MOVABLE_MOVE( fn_value ),
+					Q_MOVABLE_MOVE( t )
+				]
+				( ) mutable
+				{
+					proxy->set_by_fun(
+						Q_MOVABLE_CONSUME( fn_value ),
+						Q_MOVABLE_CONSUME( t )
+					);
+				};
+
+				deferred->get_queue( )->push( std::move( fn ) );
+
+				deferred->satisfy(
+					proxy->get_promise( )
+					.tap_error(
+						[ ch ]( std::exception_ptr e )
+						{
+							ch->close( e );
+							ch->clear( );
+						}
+					)
+				);
+			}
+			else
+			{
+				auto deferred = this->deferred;
+				auto fn_value = std::move( this->fn_value );
+				Q_MOVE_INTO_MOVABLE( fn_value );
+				Q_MOVE_INTO_MOVABLE( t );
+
+				auto fn =
+				[
+					deferred,
+					Q_MOVABLE_MOVE( fn_value ),
+					Q_MOVABLE_MOVE( t )
+				]
+				( ) mutable
+				{
+					deferred->set_by_fun(
+						Q_MOVABLE_CONSUME( fn_value ),
+						Q_MOVABLE_CONSUME( t )
+					);
+				};
+
+				deferred->get_queue( )->push( std::move( fn ) );
+			}
+		}
+
+		template< typename _FnValue, typename _FnClosed >
+		fast_waiter_type(
+			_FnValue&& fn_value,
+			_FnClosed&& fn_closed,
+			std::shared_ptr< result_defer_type > deferred,
+			std::weak_ptr< self_type > shared_channel
+		)
+		: fn_value( std::forward< _FnValue >( fn_value ) )
+		, fn_closed( std::forward< _FnClosed >( fn_closed ) )
+		, deferred( deferred )
+		, shared_channel( shared_channel )
+		{ }
+
+		FnValue fn_value;
+		FnClosed fn_closed;
+		std::shared_ptr< result_defer_type > deferred;
+		std::weak_ptr< self_type > shared_channel;
+	};
 
 	shared_channel(
 		const queue_ptr& queue,
@@ -104,33 +421,44 @@ public:
 	)
 	: default_queue_( queue )
 	, mutex_( Q_HERE, "channel" )
-	, close_exception_( )
+	, close_exception_( std::make_tuple( false, std::exception_ptr( ) ) )
 	, closed_( false )
 	, paused_( false )
 	, buffer_count_( buffer_count )
 	, resume_count_( std::min( resume_count, buffer_count ) )
 	{ }
 
+	Q_NODISCARD
 	std::size_t buffer_count( ) const
 	{
 		return buffer_count_;
 	}
 
+	Q_NODISCARD
 	bool is_closed( ) const
 	{
 		return closed_;
 	}
 
+	Q_NODISCARD
+	bool has_exception( ) const
+	{
+		Q_AUTO_UNIQUE_LOCK( mutex_ );
+
+		return std::get< 0 >( close_exception_ );
+	}
+
+	Q_NODISCARD
 	std::exception_ptr get_exception( ) const
 	{
 		Q_AUTO_UNIQUE_LOCK( mutex_ );
 
-		return close_exception_;
+		return std::get< 1 >( close_exception_ );
 	}
 
 	void close( )
 	{
-		close( std::make_exception_ptr( channel_closed_exception( ) ) );
+		_close( std::make_tuple( false, std::exception_ptr( ) ) );
 	}
 
 	template< typename E >
@@ -138,6 +466,11 @@ public:
 		!std::is_same<
 			typename std::decay< E >::type,
 			std::exception_ptr
+		>::value
+		and
+		!std::is_same<
+			typename std::decay< E >::type,
+			channel_closed_exception
 		>::value
 	>::type
 	close( E&& e )
@@ -149,32 +482,12 @@ public:
 	typename std::enable_if<
 		std::is_same<
 			typename std::decay< E >::type,
-			std::exception_ptr
+			channel_closed_exception
 		>::value
-		and
-		!channel_traits< T... >::is_promise::value
 	>::type
 	close( E&& e )
 	{
-		close_sync( std::forward< E >( e ) );
-	}
-
-	template< typename E >
-	typename std::enable_if<
-		std::is_same<
-			typename std::decay< E >::type,
-			std::exception_ptr
-		>::value
-		and
-		channel_traits< T... >::is_promise::value
-	>::type
-	close( E&& e )
-	{
-		// In case we treat async errors as closing the channel, which
-		// is the case of promise-valued channels, we defer this
-		// closing as the last thing to push on the queue.
-		// This will close the channel when that promise is awaited.
-		push_rejection( std::forward< E >( e ) );
+		_close( std::make_tuple( false, std::exception_ptr( ) ) );
 	}
 
 	template< typename E >
@@ -184,39 +497,18 @@ public:
 			std::exception_ptr
 		>::value
 	>::type
-	close_sync( E&& e )
+	close( E&& e )
 	{
-		task notification;
-
-		{
-			Q_AUTO_UNIQUE_LOCK( mutex_ );
-
-			bool was_closed = closed_.exchange(
-				true, std::memory_order_seq_cst );
-
-			if ( !was_closed )
-				close_exception_ = std::forward< E >( e );
-
-			for ( auto& waiter : waiters_ )
-				waiter->set_exception( close_exception_ );
-
-			waiters_.clear( );
-
-			scopes_.clear( );
-
-			notification = resume_notification_;
-		}
-
-		if ( notification )
-			notification( );
+		_close( std::make_tuple( true, std::forward< E >( e ) ) );
 	}
 
-	void send( tuple_type&& t )
+	Q_NODISCARD
+	bool send( tuple_type&& t )
 	{
 		Q_AUTO_UNIQUE_LOCK( mutex_ );
 
 		if ( closed_.load( std::memory_order_seq_cst ) )
-			std::rethrow_exception( close_exception_ );
+			return false;
 
 		if ( waiters_.empty( ) )
 		{
@@ -232,8 +524,17 @@ public:
 
 			waiter->set_value( std::move( t ) );
 		}
+
+		return true;
 	}
 
+	Q_NODISCARD
+	bool send( const tuple_type& t )
+	{
+		return send( tuple_type( t ) );
+	}
+
+	Q_NODISCARD
 	promise< tuple_type > receive( )
 	{
 		Q_AUTO_UNIQUE_LOCK( mutex_ );
@@ -242,12 +543,19 @@ public:
 		{
 			if ( closed_.load( std::memory_order_seq_cst ) )
 				return reject< arguments_type >(
-					default_queue_, close_exception_ );
+					default_queue_,
+					std::get< 0 >( close_exception_ )
+					? std::get< 1 >( close_exception_ )
+					: std::make_exception_ptr(
+						channel_closed_exception( ) )
+				);
 
 			auto defer = ::q::make_shared< defer_type >(
 				default_queue_ );
 
-			waiters_.push_back( defer );
+			waiters_.push_back(
+				::q::make_unique< defer_waiter_type >(
+					defer ) );
 
 			return defer->get_promise( );
 		}
@@ -274,14 +582,121 @@ public:
 		}
 	}
 
+	/**
+	 * Fast receive version, which doesn't use exceptions for close events.
+	 *
+	 * fn_value  will be called when the next value is available, but not
+	 *           if there is no more values and the channel is closed.
+	 * fn_closed will be called if the channel is/gets closed (and doesn't
+	 *           get a next value), and doesn't contain an error.
+	 *
+	 * If the channel has/gets an exception, or any of the fn_value or
+	 * fn_closed functions throw exceptions, this means the channel is
+	 * closed (but fn_closed will not be called, since the channel was
+	 * closed with an error), the returned promise will contain this
+	 * exception.
+	 * Otherwise, the returned promise will resolve after the fn_value or
+	 * fn_closed function was called (and potentially awaited it it/they
+	 * returned an empty promies.
+	 *
+	 * NOTE: If the fn_value throws an exception (synchronously or
+	 * asynchronously), not only will this exception be propagated to the
+	 * returned promise, the channel will be closed with this exception!
+	 */
+	template< typename FnValue, typename FnClosed >
+	Q_NODISCARD
+	typename std::enable_if<
+		fast_waiter_type<
+			decayed_function_t< FnValue >,
+			decayed_function_t< FnClosed >
+		>::callbacks_are_valid::value,
+		promise< std::tuple< > >
+	>::type
+	receive( FnValue&& fn_value, FnClosed&& fn_closed )
+	{
+		Q_AUTO_UNIQUE_LOCK( mutex_ );
+
+		typedef fast_waiter_type<
+			decayed_function_t< FnValue >,
+			decayed_function_t< FnClosed >
+		> specific_waiter_type;
+		typedef typename specific_waiter_type::result_defer_type
+			specific_defer_type;
+
+		if ( queue_.empty( ) )
+		{
+			if ( closed_.load( std::memory_order_seq_cst ) )
+			{
+				if ( std::get< 0 >( close_exception_ ) )
+					// There was a real error
+					return reject< arguments< > >(
+						default_queue_,
+						std::get< 1 >(
+							close_exception_ ) );
+				else
+				{
+					// Nicely closed
+					auto self = this->shared_from_this( );
+
+					return q::make_promise(
+						default_queue_, fn_closed );
+				}
+			}
+
+			auto defer = ::q::make_shared< specific_defer_type >(
+				default_queue_ );
+
+			waiters_.push_back(
+				::q::make_unique< specific_waiter_type >(
+					std::forward< FnValue >( fn_value ),
+					std::forward< FnClosed >( fn_closed ),
+					defer,
+					this->shared_from_this( )
+				)
+			);
+			resume( );
+
+			return defer->get_promise( );
+		}
+		else
+		{
+			tuple_type t = std::move( queue_.front( ) );
+			queue_.pop( );
+
+			if ( queue_.size( ) < resume_count_ )
+			{
+				auto self = this->shared_from_this( );
+				default_queue_->push( [ self ]( )
+				{
+					self->resume( );
+				} );
+			}
+
+			auto defer = ::q::make_shared< specific_defer_type >(
+				default_queue_ );
+
+			specific_waiter_type waiter(
+				std::forward< FnValue >( fn_value ),
+				std::forward< FnClosed >( fn_closed ),
+				defer,
+				this->shared_from_this( )
+			);
+
+			waiter.set_value( std::move( t ) );
+
+			return defer->get_promise( );
+		}
+	}
+
+	Q_NODISCARD
 	inline bool should_send( ) const
 	{
 		return !paused_ && !closed_;
 	}
 
-	void set_resume_notification( task fn, bool trigger_now )
+	void set_resume_notification( shared_task fn, bool trigger_now )
 	{
-		task notification;
+		shared_task notification;
 
 		{
 			Q_AUTO_UNIQUE_LOCK( mutex_ );
@@ -298,7 +713,7 @@ public:
 
 	void unset_resume_notification( )
 	{
-		set_resume_notification( task( ), false );
+		set_resume_notification( shared_task( ), false );
 	}
 
 	/**
@@ -337,6 +752,7 @@ public:
 		scopes_.emplace_back( std::move( scope ) );
 	}
 
+	Q_NODISCARD
 	queue_ptr get_queue( ) const
 	{
 		return default_queue_;
@@ -353,95 +769,55 @@ public:
 	}
 
 private:
-	template< typename E >
-	inline typename std::enable_if<
-		std::is_same<
-			typename std::decay< E >::type,
-			std::exception_ptr
-		>::value
-		and
-		!channel_traits< T... >::is_shared::value
-	>::type
-	push_rejection( E&& e )
+	template< typename... > friend class ::q::readable;
+
+	template< typename Tuple >
+	void _close( Tuple&& tup, bool force_exception = false )
 	{
-		Q_AUTO_UNIQUE_LOCK( mutex_ );
+		shared_task notification;
 
-		typedef typename channel_traits< T... >::promise_arguments_type
-			arguments_type;
-
-		if ( closed_.load( std::memory_order_seq_cst ) )
-			// Ignore this rejection/closing as we're already closed
-			return;
-
-		if ( waiters_.empty( ) )
 		{
-			auto promise = q::reject< arguments_type >(
-				default_queue_, std::forward< E >( e ) );
+			Q_AUTO_UNIQUE_LOCK( mutex_ );
 
-			queue_.push( std::move( promise ) );
-		}
-		else
-		{
 			bool was_closed = closed_.exchange(
 				true, std::memory_order_seq_cst );
 
-			if ( !was_closed )
-				close_exception_ = std::forward< E >( e );
+			// When the channel is a channel of promises, and the
+			// channel is nicely closed, an inner promise that is
+			// rejected should close the channel with an error.
+			// In this case, we overwrite the non-error with this
+			// error.
+			bool has_exception = std::get< 0 >( close_exception_ );
+			bool overwrite = !has_exception && force_exception;
 
-			auto waiter = std::move( waiters_.front( ) );
-			waiters_.pop_front( );
+			if ( !was_closed || overwrite )
+				close_exception_ = std::forward< Tuple >( tup );
 
-			waiter->set_exception( close_exception_ );
+			for ( auto& waiter : waiters_ )
+			{
+				if ( std::get< 0 >( close_exception_ ) )
+					waiter->set_exception( std::get< 1 >(
+						close_exception_ ) );
+				else
+					waiter->set_closed( );
+			}
+
+			waiters_.clear( );
+
+			scopes_.clear( );
+
+			notification = resume_notification_;
 		}
-	}
 
-	template< typename E >
-	inline typename std::enable_if<
-		std::is_same<
-			typename std::decay< E >::type,
-			std::exception_ptr
-		>::value
-		and
-		channel_traits< T... >::is_shared::value
-	>::type
-	push_rejection( E&& e )
-	{
-		Q_AUTO_UNIQUE_LOCK( mutex_ );
-
-		typedef typename channel_traits< T... >::promise_arguments_type
-			arguments_type;
-
-		if ( closed_.load( std::memory_order_seq_cst ) )
-			// Ignore this rejection/closing as we're already closed
-			return;
-
-		if ( waiters_.empty( ) )
-		{
-			auto promise = q::reject< arguments_type >(
-				default_queue_, std::forward< E >( e ) );
-
-			queue_.push( promise.share( ) );
-		}
-		else
-		{
-			bool was_closed = closed_.exchange(
-				true, std::memory_order_seq_cst );
-
-			if ( !was_closed )
-				close_exception_ = std::forward< E >( e );
-
-			auto waiter = std::move( waiters_.front( ) );
-			waiters_.pop_front( );
-
-			waiter->set_exception( close_exception_ );
-		}
+		if ( notification )
+			notification( );
 	}
 
 	inline void resume( )
 	{
 		if ( paused_.exchange( false ) )
 		{
-			auto& trigger_resume = resume_notification_;
+			shared_task trigger_resume = resume_notification_;
 			if ( trigger_resume )
 				trigger_resume( );
 		}
@@ -450,14 +826,15 @@ private:
 	queue_ptr default_queue_;
 	// TODO: Make this lock-free and consider other list types
 	mutable mutex mutex_;
-	std::list< std::shared_ptr< defer_type > > waiters_;
+	std::list< std::unique_ptr< waiter_type > > waiters_;
 	std::queue< tuple_type > queue_;
-	std::exception_ptr close_exception_;
+	// True if arbitrary exception, false if "closed exception"
+	std::tuple< bool, std::exception_ptr > close_exception_;
 	std::atomic< bool > closed_;
 	std::atomic< bool > paused_;
 	const std::size_t buffer_count_;
 	const std::size_t resume_count_;
-	task resume_notification_;
+	shared_task resume_notification_;
 	std::vector< scope > scopes_;
 };
 
@@ -496,7 +873,8 @@ public:
 
 	using is_promise = typename traits::is_promise;
 	using promise_type = typename traits::promise_type;
-	using tuple_type = typename promise_type::tuple_type;
+	using tuple_type = typename traits::inner_tuple_type;
+	using promise_arguments_type = typename traits::promise_arguments_type;
 
 	readable( ) = default;
 	readable( const readable& ) = default;
@@ -533,7 +911,8 @@ public:
 			.fail( [ shared_channel ]( std::exception_ptr e )
 			-> promise_type
 			{
-				shared_channel->close_sync( e );
+				shared_channel->_close( std::make_tuple(
+					true, e ), true );
 				shared_channel->clear( );
 				std::rethrow_exception(
 					shared_channel->get_exception( ) );
@@ -541,77 +920,81 @@ public:
 		} ) );
 	}
 
-	void pipe( writable< T... > writable )
+	template<
+		typename FnValue,
+		typename FnClosed,
+		bool IsPromise = is_promise::value
+	>
+	typename std::enable_if<
+		detail::shared_channel< T... >
+			::template fast_waiter_type< FnValue, FnClosed >
+			::inner_callbacks_are_valid::value
+		and
+		!IsPromise,
+		promise< std::tuple< > >
+	>::type
+	receive( FnValue&& fn_value, FnClosed&& fn_closed )
 	{
-		auto try_send = std::make_shared< std::function< void( ) > >( );
-		auto readable = *this;
+		return shared_channel_->receive(
+			std::forward< FnValue >( fn_value ),
+			std::forward< FnClosed >( fn_closed )
+		);
+	}
 
-		auto close = [ try_send, writable ]( ) mutable
+	template<
+		typename FnValue,
+		typename FnClosed,
+		bool IsPromise = is_promise::value
+	>
+	typename std::enable_if<
+		detail::shared_channel< T... >
+			::template fast_waiter_type< FnValue, FnClosed >
+			::inner_callbacks_are_valid::value
+		and
+		IsPromise,
+		promise< std::tuple< > >
+	>::type
+	receive( FnValue&& fn_value, FnClosed&& fn_closed )
+	{
+		auto shared_channel = shared_channel_;
+
+		auto on_data = std::forward< FnValue >( fn_value );
+		Q_MOVE_INTO_MOVABLE( on_data );
+
+		auto on_value =
+			[ shared_channel, Q_MOVABLE_MOVE( on_data ) ]
+			( typename traits::promise_type&& promise )
+		mutable -> ::q::promise< std::tuple< > >
 		{
-			writable.unset_resume_notification( );
-			writable.close( );
-			try_send.reset( );
+			return promise
+			.then( Q_MOVABLE_CONSUME( on_data ) )
+			.fail(
+				[ shared_channel ]( std::exception_ptr e )
+				mutable -> void
+			{
+				shared_channel->_close( std::make_tuple(
+					true, e ), true );
+				shared_channel->clear( );
+				std::rethrow_exception(
+					shared_channel->get_exception( ) );
+			} );
 		};
 
-		auto abort = [ try_send, writable ]( std::exception_ptr err )
-		mutable
-		{
-			writable.unset_resume_notification( );
-			writable.close( err );
-			try_send.reset( );
-		};
+		return shared_channel_->receive(
+			std::move( on_value ),
+			std::forward< FnClosed >( fn_closed )
+		);
+	}
 
-		// This must not run on multiple threads in parallel
-		*try_send = [ try_send, readable, writable, close, abort ]( )
-		mutable
-		{
-			if ( writable.should_send( ) )
-			{
-				readable.receive( )
-				.then( [ = ]( tuple_type&& data ) mutable
-				{
-					// Send through
-					writable.send( std::move( data ) );
-
-					// Recurse
-					( *try_send )( );
-				} )
-				.fail( [ close ]( const channel_closed_exception& )
-				mutable
-				{
-					close( );
-				} )
-				.fail( [ abort ]( std::exception_ptr err )
-				mutable
-				{
-					abort( err );
-				} );
-			}
-			else if ( writable.is_closed( ) )
-			{
-				auto err = writable.get_exception( );
-
-				if ( err )
-					readable.close( err );
-				else
-					readable.close( );
-
-				close( );
-			}
-			else
-			{
-				auto resume = [ try_send, writable ]( ) mutable
-				{
-					writable.unset_resume_notification( );
-					( *try_send )( );
-				};
-
-				writable.set_resume_notification( resume, true );
-			}
-		};
-
-		writable.unset_resume_notification( );
-		( *try_send )( );
+	template< typename... U >
+	typename std::enable_if<
+		detail::pipe_helper< arguments< T... >, arguments< U... > >
+			::valid::value
+	>::type
+	pipe( writable< U... > writable )
+	{
+		detail::pipe_helper< arguments< T... >, arguments< U... > >
+			::pipe( *this, writable );
 	}
 
 	std::size_t buffer_count( ) const
@@ -722,6 +1105,7 @@ public:
 	 * ( tuple< T... > ) ->
 	 */
 	template< typename Tuple >
+	Q_NODISCARD
 	typename std::enable_if<
 		q::is_tuple< typename std::decay< Tuple >::type >::value
 		and
@@ -729,17 +1113,19 @@ public:
 			typename std::decay< Tuple >::type
 		>::template is_convertible_to<
 			tuple_arguments_t< outer_tuple_type >
-		>::value
+		>::value,
+		bool
 	>::type
 	send( Tuple&& t )
 	{
-		shared_channel_->send( std::forward< Tuple >( t ) );
+		return shared_channel_->send( std::forward< Tuple >( t ) );
 	}
 
 	/**
 	 * ( tuple< void_t > ) -> tuple< > (stripped from void_t)
 	 */
 	template< typename Tuple >
+	Q_NODISCARD
 	typename std::enable_if<
 		q::is_tuple< typename std::decay< Tuple >::type >::value
 		and
@@ -751,17 +1137,19 @@ public:
 		std::is_same<
 			outer_tuple_type,
 			std::tuple< >
-		>::value
+		>::value,
+		bool
 	>::type
 	send( Tuple&& t )
 	{
-		send( std::make_tuple( ) );
+		return send( std::make_tuple( ) );
 	}
 
 	/**
 	 * ( Args... ) -> tuple< T... >
 	 */
 	template< typename... Args >
+	Q_NODISCARD
 	typename std::enable_if<
 		(
 			arguments<
@@ -787,11 +1175,13 @@ public:
 					typename promise_type::argument_types
 				>::value
 			)
-		)
+		),
+		bool
 	>::type
 	send( Args&&... args )
 	{
-		send( std::make_tuple( std::forward< Args >( args )... ) );
+		return send(
+			std::make_tuple( std::forward< Args >( args )... ) );
 	}
 
 	/**
@@ -811,11 +1201,12 @@ public:
 		std::is_same<
 			promise_arguments_type,
 			q::arguments< >
-		>::value
+		>::value,
+		bool
 	>::type
 	send( Tuple&& t )
 	{
-		send( std::make_tuple( ) );
+		return send( std::make_tuple( ) );
 	}
 
 	/**
@@ -823,27 +1214,41 @@ public:
 	 * ( tuple< T... > ) -> tuple< promise< tuple< T... > > >
 	 */
 	template< typename Tuple >
+	Q_NODISCARD
 	typename std::enable_if<
 		is_promise::value
 		and
 		tuple_arguments_t< typename std::decay< Tuple >::type >
 			::template is_convertible_to< promise_arguments_type >
-			::value
+			::value,
+		bool
 	>::type
 	send( Tuple&& t )
 	{
-		send( std::make_tuple( suitable_with(
+		return send( std::make_tuple( suitable_with(
 			shared_channel_->get_queue( ),
 			std::forward< Tuple >( t )
 		) ) );
 	}
 
+	/**
+	 * Like send() but throws q::channel_closed_exception if the channel
+	 * was closed.
+	 */
+	template< typename... Any >
+	void ensure_send( Any&&... t )
+	{
+		if ( !send( std::forward< Any >( t )... ) )
+			Q_THROW( channel_closed_exception( ) );
+	}
+
+	Q_NODISCARD
 	bool should_send( ) const
 	{
 		return shared_channel_->should_send( );
 	}
 
-	void set_resume_notification( task fn, bool trigger_now = false )
+	void set_resume_notification( shared_task fn, bool trigger_now = false )
 	{
 		shared_channel_->set_resume_notification(
 			std::move( fn ), trigger_now );
@@ -859,11 +1264,19 @@ public:
 		shared_channel_->trigger_resume_notification( );
 	}
 
+	Q_NODISCARD
 	bool is_closed( ) const
 	{
 		return shared_channel_->is_closed( );
 	}
 
+	Q_NODISCARD
+	bool has_exception( ) const
+	{
+		return shared_channel_->has_exception( );
+	}
+
+	Q_NODISCARD
 	std::exception_ptr get_exception( ) const
 	{
 		return shared_channel_->get_exception( );
@@ -1053,7 +1466,7 @@ private:
 		{
 			// All pending/incoming channels are listened to.
 			// Forward one.
-			writable_.send( );
+			ignore_result( writable_.send( ) );
 		}
 	}
 

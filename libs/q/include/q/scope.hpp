@@ -17,7 +17,7 @@
 #ifndef LIBQ_SCOPE_HPP
 #define LIBQ_SCOPE_HPP
 
-#include <q/functional.hpp>
+#include <q/function.hpp>
 
 namespace q {
 
@@ -99,13 +99,12 @@ make_scope( T&& t )
 class scoped_function
 {
 public:
-	typedef std::function< void( ) > function_type;
+	typedef q::unique_function< void( ) > function_type;
 
 	scoped_function( ) = delete;
 	scoped_function( scoped_function&& ref )
-	{
-		ref.fn_.swap( fn_ );
-	}
+	: fn_( std::move( ref.fn_ ) )
+	{ }
 	scoped_function( const scoped_function& ) = delete;
 
 	template< typename Fn >

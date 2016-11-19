@@ -33,6 +33,23 @@ template< typename T > void ignore_result( T&& ) { }
 template< typename T > void ignore_parameter( T&& ) { }
 template< typename T > void unused_variable( T&& ) { }
 
+template< std::size_t Bytes > struct int_size;
+template< std::size_t Bytes > struct uint_size;
+template< > struct int_size< 1 > { typedef std::int8_t type; };
+template< > struct int_size< 2 > { typedef std::int16_t type; };
+template< > struct int_size< 4 > { typedef std::int32_t type; };
+template< > struct int_size< 8 > { typedef std::int64_t type; };
+template< > struct uint_size< 1 > { typedef std::uint8_t type; };
+template< > struct uint_size< 2 > { typedef std::uint16_t type; };
+template< > struct uint_size< 4 > { typedef std::uint32_t type; };
+template< > struct uint_size< 8 > { typedef std::uint64_t type; };
+
+template< std::size_t Bytes >
+using int_size_t = typename int_size< Bytes >::type;
+
+template< std::size_t Bytes >
+using uint_size_t = typename uint_size< Bytes >::type;
+
 /**
  * q::bool_type is std::true_type if value is true, otherwise q::bool_type is
  * std::false_type.

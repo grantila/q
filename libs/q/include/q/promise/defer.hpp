@@ -538,6 +538,11 @@ public:
 		return get_promise( );
 	}
 
+	queue_ptr get_queue( ) const
+	{
+		return queue_;
+	}
+
 	static std::shared_ptr< defer< T... > >
 	construct( const queue_ptr& queue )
 	{
@@ -568,13 +573,16 @@ protected:
 	: promise_( std::move( promise ) )
 	, signal_( std::move( signal ) )
 	, deferred_( std::move( deferred ) )
+	, queue_( deferred_.get_queue( ) )
 	{ }
 
 private:
 	std::promise< expect_type > promise_;
 	promise_signal_ptr          signal_;
-	
+
 	promise_type                deferred_;
+
+	queue_ptr                   queue_;
 };
 
 template< typename... T >

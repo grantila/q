@@ -53,12 +53,17 @@ private:
 class scoped_timer
 {
 public:
-	typedef std::function< void( timer::duration_type&& ) > function_type;
+	typedef q::unique_function< void( timer::duration_type&& ) >
+		function_type;
 
-	scoped_timer( function_type fn )
-	: fn_( std::move( fn ) )
+	template< typename Fn >
+	scoped_timer( Fn&& fn )
+	: fn_( std::forward< Fn >( fn ) )
 	, timer_( )
 	{ }
+
+	scoped_timer( scoped_timer&& ) = default;
+	scoped_timer( const scoped_timer& ) = delete;
 
 	~scoped_timer( )
 	{

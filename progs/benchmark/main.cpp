@@ -33,6 +33,133 @@ void benchmark_title( const std::string& title )
 	std::cout << lines << std::endl;
 }
 
+q::scoped_timer make_benchmark_timer(
+	q::timer::duration_type& total_dur,
+	std::size_t iterations,
+	std::string title
+)
+{
+	auto fn = [ &total_dur, iterations, title ]( q::timer::duration_type dur )
+	{
+		total_dur += dur;
+
+		std::cout << title << ": ";
+		print_timer( std::cout, dur, iterations );
+	};
+
+	return q::scoped_timer( std::move( fn ) );
+}
+
+static inline void empty_fn( ) { }
+
+template< template< typename > class Fn >
+void benchmark_q_function( std::size_t iterations, std::string impl )
+{
+	benchmark_title( impl );
+
+	q::timer::duration_type total_dur( 0 );
+
+	{
+		auto timer_scope = make_benchmark_timer(
+			total_dur, iterations, "void()" );
+
+		for ( std::size_t i = 0; i < iterations; ++i )
+		{
+			Fn< void( ) > fn( empty_fn );
+			fn( );
+		}
+	}
+
+	{
+		auto timer_scope = make_benchmark_timer(
+			total_dur, iterations, "Non-capturing lambda< void() >" );
+
+		auto l = [ ]( ) { };
+
+		for ( std::size_t i = 0; i < iterations; ++i )
+		{
+			Fn< void( ) > fn( l );
+			fn( );
+		}
+	}
+
+	{
+		auto timer_scope = make_benchmark_timer(
+			total_dur, iterations, "Small (16 bytes) capturing lambda< void() >" );
+
+		typedef char cap_type[ 16 ];
+
+		cap_type cap;
+		auto l = [ cap ]( ) { };
+
+		for ( std::size_t i = 0; i < iterations; ++i )
+		{
+			Fn< void( ) > fn( l );
+			fn( );
+		}
+	}
+
+	{
+		auto timer_scope = make_benchmark_timer(
+			total_dur, iterations, "Medium size (64 bytes) capturing lambda< void() >" );
+
+		typedef char cap_type[ 64 ];
+
+		cap_type cap;
+		auto l = [ cap ]( ) { };
+
+		for ( std::size_t i = 0; i < iterations; ++i )
+		{
+			Fn< void( ) > fn( l );
+			fn( );
+		}
+	}
+
+	{
+		auto timer_scope = make_benchmark_timer(
+			total_dur, iterations, "Large size (128 bytes) capturing lambda< void() >" );
+
+		typedef char cap_type[ 128 ];
+
+		int i = 0;
+
+		cap_type cap;
+		auto l = [ cap, &i ]( ) {
+			++i;
+		};
+
+		for ( std::size_t i = 0; i < iterations; ++i )
+		{
+			Fn< void( ) > fn( l );
+			fn( );
+		}
+	}
+
+	{
+		auto timer_scope = make_benchmark_timer(
+			total_dur, iterations, "Large size (128 bytes) capturing lambda< void() >, copied twice" );
+
+		typedef char cap_type[ 128 ];
+
+		int i = 0;
+
+		cap_type cap;
+		auto l = [ cap, &i ]( ) {
+			++i;
+		};
+
+		for ( std::size_t i = 0; i < iterations; ++i )
+		{
+			Fn< void( ) > fn( l );
+			Fn< void( ) > fn2 = fn;
+			Fn< void( ) > fn3 = fn2;
+			fn3( );
+		}
+	}
+
+	std::cout << std::endl;
+}
+
 template< typename Start, typename Stop >
 void benchmark_queueing_and_scheduling( Start&& start, Stop&& stop, bool parallel, q::queue_ptr queue, std::size_t iterations )
 {
@@ -163,9 +290,10 @@ void benchmark_tasks_on_threadpool( std::size_t iterations, bool parallel )
 	auto bg_queue = q::make_shared< q::queue >( 0 );
 	auto bg_sched = q::make_shared< q::direct_scheduler >( tp );
 
-	auto start = [ bd2, bg_sched, bg_queue ]( )
+	auto start = [ tp, bd2, bg_sched, bg_queue ]( )
 	{
 		bg_sched->add_queue( bg_queue );
+		tp->start( );
 		bd2->start( );
 	};
 	auto stop = [ bd2, tp ]( )
@@ -197,6 +325,11 @@ int main( int argc, char** argv )
 	auto qu = ctx->queue( );
 
 	std::size_t iterations = 500 * 1000;
+
+	auto fn_iterations = iterations * 10;
+
+	benchmark_q_function< std::function >( fn_iterations, "std::function" );
+	benchmark_q_function< q::function >( fn_iterations, "q::function" );
 
 	benchmark_tasks_on_main_queue( iterations, true );
 	benchmark_tasks_on_threadpool( iterations, true );

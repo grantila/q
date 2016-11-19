@@ -35,14 +35,14 @@ TEST( thread_pool, perform_tasks )
 			);
 
 
-			tasks->push( task );
+			tasks->push( std::move( task ) );
 			tp->notify( );
 		}
 	) );
 
 	tp->start( );
 
-	tasks->push( task );
+	tasks->push( std::move( task ) );
 	tp->notify( );
 
 	tp->terminate( q::termination::linger )

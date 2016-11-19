@@ -42,7 +42,7 @@ struct default_construction
 
 	static type value( T&& t )
 	{
-		return t;
+		return type( std::move( t ) );
 	}
 };
 
@@ -76,14 +76,15 @@ class time_set
 {
 public:
 	typedef std::pair< timer::point_type, T > element_type;
+	typedef std::is_same< IfEmpty, detail::default_construction< T > >
+		is_default;
 
 	static_assert(
 		!std::is_reference< T >::value, "References not allowed" );
 
 	void push( timer::point_type time, T t )
 	{
-		element_type elem{ std::move( time ), std::move( t ) };
-		map_.insert( std::move( elem ) );
+		map_.emplace( std::move( time ), std::move( t ) );
 	}
 
 	bool exists_before_or_at(
@@ -95,7 +96,7 @@ public:
 		return !( map_.begin( )->first > time );
 	}
 
-	typename IfEmpty::type pop( )
+	T pop( )
 	{
 		auto iter = map_.begin( );
 
@@ -106,15 +107,18 @@ public:
 
 		map_.erase( iter );
 
+		if ( is_default::value )
+			return value;
+
 		return IfEmpty::value( std::move( value ) );
 	}
 
-	timer::duration_type next_time( )
+	timer::duration_type next_time( ) const
 	{
 		auto iter = map_.begin( );
 
 		if ( iter == map_.end( ) )
-			timer::duration_type::max( );
+			return timer::duration_type::max( );
 
 		return iter->first - timer::point_type::clock::now( );
 	}
