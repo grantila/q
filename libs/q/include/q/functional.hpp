@@ -423,6 +423,78 @@ struct first_argument_is_tuple< Fn, true >
 : bool_type_t< first_argument_is_tuple_t< Fn >::value >
 { };
 
+namespace detail {
+
+template< typename Fn, bool IsTuple, typename Arguments >
+struct _tuple_arguments_of_are_convertible_from_incl_void_
+{
+	typedef std::false_type type;
+};
+
+template< typename Fn, typename Arguments >
+struct _tuple_arguments_of_are_convertible_from_incl_void_< Fn, true, Arguments >
+{
+	typedef bool_type<
+		Arguments
+		::template is_convertible_to_incl_void<
+			typename std::decay<
+				tuple_arguments_t<
+					first_argument_of_t< Fn >
+				>
+			>::type
+		>::value
+	> type;
+};
+
+template< typename Fn, std::size_t Arity, typename Arguments >
+struct _tuple_arguments_of_are_convertible_from_incl_void
+{
+	typedef std::false_type type;
+};
+
+template< typename Fn, typename Arguments >
+struct _tuple_arguments_of_are_convertible_from_incl_void< Fn, 1, Arguments >
+{
+	typedef typename _tuple_arguments_of_are_convertible_from_incl_void_<
+		Fn,
+		is_tuple<
+			typename std::decay< first_argument_of_t< Fn > >::type
+		>::value,
+		Arguments
+	>::type type;
+};
+
+} // namespace detail
+
+template< typename Fn, typename Arguments >
+using tuple_arguments_of_are_convertible_from_incl_void_t =
+	typename detail::_tuple_arguments_of_are_convertible_from_incl_void<
+		Fn,
+		arguments_of_t< Fn >::size::value,
+		Arguments
+	>::type;
+
+template<
+	typename Fn,
+	typename Arguments = arguments< result_of_t< Fn > >,
+	bool Empty = Arguments::empty_or_voidish::value
+>
+struct result_of_is_voidish_or_eventually_voidish
+{
+	typedef std::true_type type;
+};
+
+template< typename Fn, typename Arguments >
+struct result_of_is_voidish_or_eventually_voidish< Fn, Arguments, false >
+{
+	typedef typename Arguments::first_type::argument_types::empty_or_voidish type;
+};
+
+template< typename Fn >
+using result_of_is_voidish_or_eventually_voidish_t =
+	typename result_of_is_voidish_or_eventually_voidish< Fn >::type;
+
+
 #ifdef LIBQ_WITH_CPP14
 
 template< typename Fn >
