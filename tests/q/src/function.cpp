@@ -146,6 +146,15 @@ TEST( function, function_arguments )
 	f_two_args_non_trivial( non_trivial( 1 ), non_trivial( 2 ) );
 }
 
+TEST( function, throw_copy_constructor )
+{
+	std::string s = "hello world";
+	auto throw_copy_constructor_lambda = [ s ]( ) { };
+
+	q::unique_function< void( ) > uf( throw_copy_constructor_lambda );
+	q::function< void( ) > f( throw_copy_constructor_lambda );
+}
+
 TEST( function, plain_uninitialized_unique )
 {
 	call_count = 0;
