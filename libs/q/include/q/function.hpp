@@ -695,7 +695,7 @@ public:
 			::new ( &ret.base_ ) unique_heap_type(
 				_base->copy_to_unique( ) );
 			ret.ptr_ = reinterpret_cast< unique_heap_type* >(
-				&base_
+				&ret.base_
 			)->get( );
 			ret.method_ = function_storage::unique_ptr;
 		}
