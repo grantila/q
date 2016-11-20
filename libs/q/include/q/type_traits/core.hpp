@@ -260,6 +260,30 @@ struct is_empty_tuple< std::tuple< > >
 : std::true_type
 { };
 
+class noncopyable
+{
+protected:
+	constexpr noncopyable( ) = default;
+	noncopyable( const noncopyable& ) = delete;
+	noncopyable& operator=( const noncopyable& ) = delete;
+	~noncopyable() = default;
+};
+
+class copyable
+{ };
+
+template< bool Copyable >
+struct copyable_if
+{
+	typedef typename std::conditional<
+		Copyable,
+		copyable,
+		noncopyable
+	>::type type;
+};
+template< bool Copyable >
+using copyable_if_t = typename copyable_if< Copyable >::type;
+
 template< typename T >
 struct is_copyable
 : bool_type_t<
