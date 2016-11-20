@@ -155,6 +155,21 @@ TEST( function, throw_copy_constructor )
 	q::function< void( ) > f( throw_copy_constructor_lambda );
 }
 
+TEST( function, throw_move_constructor )
+{
+	struct TMC
+	{
+		constexpr TMC( ) = default;
+		TMC( const TMC& ) = default;
+		TMC( TMC&& )
+		{ }
+	} tmc;
+	auto throw_move_constructor_lambda = [ tmc ]( ) { };
+
+	q::unique_function< void( ) > uf( throw_move_constructor_lambda );
+	q::function< void( ) > f( throw_move_constructor_lambda );
+}
+
 TEST( function, plain_uninitialized_unique )
 {
 	call_count = 0;
