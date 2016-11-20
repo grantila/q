@@ -373,6 +373,7 @@ function_size_recorder< T > function_size_recorder< T >::instance;
 
 template< typename Signature, bool Shared, std::size_t TotalSize >
 class alignas( LIBQ__FUNCTION_INLINE_ALIGN ) any_function
+: copyable_if_t< Shared >
 {
 public:
 	typedef std::integral_constant<
@@ -584,8 +585,6 @@ public:
 	any_function( const any_function& ref ) noexcept
 	: method_( function_storage::uninitialized )
 	{
-		static_assert( Shared, "q::unique_function is not copyable" );
-
 		_copy_from( ref );
 	}
 
