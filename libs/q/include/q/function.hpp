@@ -75,7 +75,7 @@ struct function_base;
 template<
 	typename Fn,
 	typename Signature,
-	bool Copyable = std::is_nothrow_copy_constructible< Fn >::value,
+	bool Copyable = std::is_copy_constructible< Fn >::value,
 	typename Args = ::q::arguments_of_t< Signature >
 >
 struct specific_function;
@@ -265,7 +265,7 @@ struct suitable_storage_method
 	 *        shared_ptr once this function is copied).
 	 */
 
-	typedef std::is_nothrow_copy_constructible< Fn > is_copyable;
+	typedef std::is_copy_constructible< Fn > is_copyable;
 
 	typedef bool_type<
 		sizeof( specific_function< Fn, Signature > ) <= DataSize
@@ -408,7 +408,7 @@ public:
 			result_of_as_argument_t< Signature >
 		>::value
 		and
-		std::is_nothrow_move_constructible< DecayedFn >::value
+		std::is_move_constructible< DecayedFn >::value
 		and
 		(
 			(
@@ -450,7 +450,7 @@ public:
 				typename std::decay< Fn >::type
 			>::value
 		>::type* = 0
-	) noexcept
+	)
 	: method_( function_storage::uninitialized )
 	{
 		typedef detail::specific_function<
@@ -510,25 +510,13 @@ public:
 			and
 			std::is_rvalue_reference< Fn&& >::value
 		>::type* = 0
-	) noexcept
-	: method_(
-		detail::suitable_storage_method<
-			typename std::decay< Fn >::type,
-			Signature,
-			Shared,
-			DataSize::value
-		>::type::value
 	)
+	: method_( function_storage::uninitialized )
 	{
 		typedef detail::specific_function<
 			typename std::decay< Fn >::type,
 			Signature
 		> specific_base;
-
-#ifdef Q_RECORD_FUNCTION_STATS
-		function_size_recorder< >::instance.add(
-			sizeof( specific_base ), Shared, method_ );
-#endif // Q_RECORD_FUNCTION_STATS
 
 		using method = typename detail::suitable_storage_method<
 			typename std::decay< Fn >::type,
@@ -537,6 +525,11 @@ public:
 			DataSize::value
 		>::type;
 
+#ifdef Q_RECORD_FUNCTION_STATS
+		function_size_recorder< >::instance.add(
+			sizeof( specific_base ), Shared, method::value );
+#endif // Q_RECORD_FUNCTION_STATS
+
 		_set_plain< method::value >( std::forward< Fn >( fn ) );
 
 		if ( method::value == function_storage::inlined )
@@ -544,7 +537,6 @@ public:
 
 		else if ( method::value == function_storage::unique_ptr )
 		{
-
 			::new ( &base_ ) unique_heap_type(
 				q::make_unique< specific_base >(
 					std::move( fn ) ) );
@@ -560,9 +552,11 @@ public:
 			ptr_ = reinterpret_cast< shared_heap_type* >( &base_ )
 					->get( );
 		}
+
+		method_ = method::value;
 	}
 
-	any_function( any_function&& ref ) noexcept
+	any_function( any_function&& ref )
 	: method_( function_storage::uninitialized )
 	{
 		_move_from( std::move( ref ) );
@@ -583,7 +577,6 @@ public:
 		shared_type&& other,
 		typename std::enable_if< !_Shared && !Shared >::type* = 0
 	)
-	noexcept
 	: method_( function_storage::uninitialized )
 	{
 		_move_from_shared( std::move( other ) );
@@ -733,7 +726,7 @@ public:
 		return ret;
 	}
 
-	any_function& operator=( any_function&& ref ) noexcept
+	any_function& operator=( any_function&& ref )
 	{
 		return _move_from( std::move( ref ) );
 	}
@@ -746,7 +739,6 @@ public:
 	template< bool _Shared = Shared >
 	typename std::enable_if< !_Shared && !Shared, this_type >::type&
 	operator=( shared_type&& other )
-	noexcept
 	{
 		return _move_from_shared( std::move( other ) );
 	}
@@ -834,29 +826,29 @@ private:
 		method_ = function_storage::uninitialized;
 	}
 
-	any_function& _move_from( any_function&& ref ) noexcept
+	any_function& _move_from( any_function&& ref )
 	{
 		if ( &ref == this )
 			return *this;
 
 		_reset( );
 
-		method_ = ref.method_;
+		auto om = ref.method_;
 
-		if ( method_ == function_storage::uninitialized )
+		if ( om == function_storage::uninitialized )
 			return *this;
 
-		else if ( method_ == function_storage::plain )
+		else if ( om == function_storage::plain )
 		{
 			sig_ = ref.sig_;
 		}
-		else if ( method_ == function_storage::inlined )
+		else if ( om == function_storage::inlined )
 		{
 			auto ref_base = ref._get_base( );
 
 			ptr_ = ref_base->move_to( &base_ );
 		}
-		else if ( method_ == function_storage::unique_ptr )
+		else if ( om == function_storage::unique_ptr )
 		{
 			auto ref_unique_ptr =
 				reinterpret_cast< unique_heap_type* >(
@@ -868,7 +860,7 @@ private:
 			ptr_ = reinterpret_cast< unique_heap_type* >( &base_ )
 				->get( );
 		}
-		else if ( method_ == function_storage::shared_ptr )
+		else if ( om == function_storage::shared_ptr )
 		{
 			auto ref_shared_ptr =
 				reinterpret_cast< shared_heap_type* >(
@@ -880,6 +872,8 @@ private:
 			ptr_ = reinterpret_cast< shared_heap_type* >( &base_ )
 				->get( );
 		}
+
+		method_ = om;
 
 		ref._reset( );
 
@@ -985,7 +979,6 @@ private:
 	template< bool _Shared = Shared >
 	typename std::enable_if< !_Shared && !Shared, this_type >::type&
 	_move_from_shared( shared_type&& other )
-	noexcept
 	{
 		_reset( );
 
@@ -995,8 +988,8 @@ private:
 
 		else if ( om == function_storage::plain ) // 1
 		{
-			method_ = om;
 			sig_ = other.sig_;
+			method_ = om;
 			other._reset( );
 			return *this;
 		}
@@ -1007,8 +1000,8 @@ private:
 		{
 			// We can place it inline, and later allow copying it
 			// if necessary.
-			method_ = function_storage::inlined;
 			ptr_ = other_base->move_to( &base_ );
+			method_ = function_storage::inlined;
 			other._reset( );
 			return *this;
 		}
@@ -1018,11 +1011,11 @@ private:
 			auto& other_unique_ptr =
 				*reinterpret_cast< unique_heap_type* >(
 					&other.base_ );
-			method_ = function_storage::unique_ptr;
 			::new ( &base_ ) unique_heap_type(
 				std::move( other_unique_ptr ) );
 			ptr_ = reinterpret_cast< unique_heap_type* >( &base_ )
 					->get( );
+			method_ = function_storage::unique_ptr;
 			other._reset( );
 			return *this;
 		}
@@ -1046,16 +1039,16 @@ private:
 
 		if ( should_inline )
 		{
-			method_ = function_storage::inlined;
 			ptr_ = other_base->move_to( &base_ );
+			method_ = function_storage::inlined;
 		}
 		else
 		{
-			method_ = function_storage::shared_ptr;
 			::new ( &base_ ) shared_heap_type(
 				std::move( *other_shared_ptr ) );
 			ptr_ = reinterpret_cast< shared_heap_type* >( &base_ )
 				->get( );
+			method_ = function_storage::shared_ptr;
 		}
 
 		other._reset( );
