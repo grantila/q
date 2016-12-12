@@ -153,6 +153,7 @@ struct pipe_helper< arguments< From... >, arguments< To... > >
 				};
 
 				r.receive( std::move( on_data ), close )
+				.strip( )
 				.fail( [ abort ]( std::exception_ptr err )
 				mutable
 				{
@@ -243,7 +244,7 @@ public:
 	struct fast_waiter_type
 	: waiter_type
 	{
-		typedef detail::defer< > result_defer_type;
+		typedef detail::defer< bool > result_defer_type;
 
 		typedef bool_type<
 			arguments_type
@@ -316,8 +317,14 @@ public:
 			auto fn = [ deferred, Q_MOVABLE_MOVE( fn_closed ) ]( )
 			mutable
 			{
-				deferred->set_by_fun(
-					Q_MOVABLE_CONSUME( fn_closed ) );
+				deferred->satisfy(
+					promisify(
+						deferred->get_queue( ),
+						Q_MOVABLE_CONSUME( fn_closed )
+					)
+					( )
+					.then( [ ]( ) { return false; } )
+				);
 			};
 
 			deferred->get_queue( )->push( std::move( fn ) );
@@ -333,66 +340,49 @@ public:
 			// If the channel still exists (which should always be
 			// the case), we'll make a proxy promise which detects
 			// exceptions to automatically close the channel.
+			std::function< void( std::exception_ptr ) > cleaner;
 			if ( ch )
-			{
-				auto proxy = ::q::make_shared<
-					result_defer_type
-				>( ch->default_queue_ );
-
-				auto fn_value = std::move( this->fn_value );
-				Q_MOVE_INTO_MOVABLE( fn_value );
-				Q_MOVE_INTO_MOVABLE( t );
-
-				auto fn =
-				[
-					proxy,
-					Q_MOVABLE_MOVE( fn_value ),
-					Q_MOVABLE_MOVE( t )
-				]
-				( ) mutable
+				cleaner = [ ch ]( std::exception_ptr e )
 				{
-					proxy->set_by_fun(
-						Q_MOVABLE_CONSUME( fn_value ),
-						Q_MOVABLE_CONSUME( t )
-					);
+					ch->close( e );
+					ch->clear( );
 				};
-
-				deferred->get_queue( )->push( std::move( fn ) );
-
-				deferred->satisfy(
-					proxy->get_promise( )
-					.tap_error(
-						[ ch ]( std::exception_ptr e )
-						{
-							ch->close( e );
-							ch->clear( );
-						}
-					)
-				);
-			}
 			else
+				cleaner = [ ]( std::exception_ptr ) { };
+
+			const queue_ptr& queue = ch
+				? ch->default_queue_
+				: deferred->get_queue( );
+
+			auto proxy = ::q::make_shared<
+				detail::defer< >
+			>( queue );
+
+			auto fn_value = std::move( this->fn_value );
+			Q_MOVE_INTO_MOVABLE( fn_value );
+			Q_MOVE_INTO_MOVABLE( t );
+
+			auto fn =
+			[
+				proxy,
+				Q_MOVABLE_MOVE( fn_value ),
+				Q_MOVABLE_MOVE( t )
+			]
+			( ) mutable
 			{
-				auto deferred = this->deferred;
-				auto fn_value = std::move( this->fn_value );
-				Q_MOVE_INTO_MOVABLE( fn_value );
-				Q_MOVE_INTO_MOVABLE( t );
+				proxy->set_by_fun(
+					Q_MOVABLE_CONSUME( fn_value ),
+					Q_MOVABLE_CONSUME( t )
+				);
+			};
 
-				auto fn =
-				[
-					deferred,
-					Q_MOVABLE_MOVE( fn_value ),
-					Q_MOVABLE_MOVE( t )
-				]
-				( ) mutable
-				{
-					deferred->set_by_fun(
-						Q_MOVABLE_CONSUME( fn_value ),
-						Q_MOVABLE_CONSUME( t )
-					);
-				};
+			deferred->get_queue( )->push( std::move( fn ) );
 
-				deferred->get_queue( )->push( std::move( fn ) );
-			}
+			deferred->satisfy(
+				proxy->get_promise( )
+				.then( [ ]( ) { return true; } )
+				.tap_error( cleaner )
+			);
 		}
 
 		template< typename _FnValue, typename _FnClosed >
@@ -610,7 +600,7 @@ public:
 			decayed_function_t< FnValue >,
 			decayed_function_t< FnClosed >
 		>::callbacks_are_valid::value,
-		promise< std::tuple< > >
+		promise< std::tuple< bool > >
 	>::type
 	receive( FnValue&& fn_value, FnClosed&& fn_closed )
 	{
@@ -629,7 +619,7 @@ public:
 			{
 				if ( std::get< 0 >( close_exception_ ) )
 					// There was a real error
-					return reject< arguments< > >(
+					return reject< arguments< bool > >(
 						default_queue_,
 						std::get< 1 >(
 							close_exception_ ) );
@@ -639,7 +629,8 @@ public:
 					auto self = this->shared_from_this( );
 
 					return q::make_promise(
-						default_queue_, fn_closed );
+						default_queue_, fn_closed )
+					.then( [ ]( ) { return false; } );
 				}
 			}
 
@@ -931,7 +922,7 @@ public:
 			::inner_callbacks_are_valid::value
 		and
 		!IsPromise,
-		promise< std::tuple< > >
+		promise< std::tuple< bool > >
 	>::type
 	receive( FnValue&& fn_value, FnClosed&& fn_closed )
 	{
@@ -952,7 +943,7 @@ public:
 			::inner_callbacks_are_valid::value
 		and
 		IsPromise,
-		promise< std::tuple< > >
+		promise< std::tuple< bool > >
 	>::type
 	receive( FnValue&& fn_value, FnClosed&& fn_closed )
 	{
@@ -984,6 +975,70 @@ public:
 			std::move( on_value ),
 			std::forward< FnClosed >( fn_closed )
 		);
+	}
+
+	template< typename Fn >
+	typename std::enable_if<
+		detail::shared_channel< T... >
+			::template fast_waiter_type< Fn, function< void( ) > >
+			::inner_callbacks_are_valid::value,
+		promise< std::tuple< > >
+	>::type
+	consume( Fn&& fn )
+	{
+		readable< T... > self = *this;
+
+		auto promisified_fn = promisify(
+			get_queue( ), std::forward< Fn >( fn ) );
+
+		auto cb =
+			[ self, promisified_fn ]
+			( resolver< > resolve, rejecter< > reject )
+			mutable
+		{
+			auto recurser = std::make_shared<
+				function< promise< std::tuple< > >( ) >
+			>( );
+
+			auto completer = [ recurser, resolve ]( ) mutable
+			{
+				recurser.reset( );
+				resolve( );
+			};
+
+			auto failer =
+				[ recurser, reject ]
+				( std::exception_ptr err )
+				mutable
+			{
+				recurser.reset( );
+				reject( std::move( err ) );
+			};
+
+			auto recurser_fn =
+			[ self, promisified_fn, recurser, completer, failer ]
+			( )
+			mutable
+			{
+				return self.receive( promisified_fn, completer )
+				.then( [ self, recurser ]( bool got_data )
+				mutable
+				{
+					if ( got_data )
+						return ( *recurser )( );
+					else
+						return q::with(
+							self.get_queue( ) );
+				} )
+				.fail( failer );
+			};
+
+			*recurser = recurser_fn;
+
+			ignore_result( ( *recurser )( ) );
+		};
+
+		return q::make_promise( get_queue( ), std::move( cb ) );
 	}
 
 	template< typename... U >
