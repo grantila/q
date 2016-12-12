@@ -1134,3 +1134,45 @@ TEST_F( channel, channel_pipe_async_int_with_error )
 		.fail( EXPECT_CALL_WRAPPER( [ ]( const Error& ){ } ) )
 	);
 }
+
+TEST_F( channel, consume_zero_types )
+{
+	q::channel< > ch( queue, 5 );
+
+	auto readable = ch.get_readable( );
+	auto writable = ch.get_writable( );
+
+	EXPECT_TRUE( writable.send( ) );
+	EXPECT_TRUE( writable.send( ) );
+	writable.close( );
+
+	auto on_value = [ ]( ) { };
+
+	run( readable.consume( EXPECT_N_CALLS_WRAPPER( 2, on_value ) ) );
+}
+
+TEST_F( channel, consume_two_types )
+{
+	q::channel< int, std::string > ch( queue, 5 );
+
+	auto readable = ch.get_readable( );
+	auto writable = ch.get_writable( );
+
+	std::vector< std::tuple< int, std::string > > expected{
+		{ 17, "hello" }, { 4711, "world" }
+	};
+	std::size_t counter = 0;
+
+	EXPECT_TRUE( writable.send( expected[ 0 ] ) );
+	EXPECT_TRUE( writable.send( expected[ 1 ] ) );
+	writable.close( );
+
+	auto on_value = [ & ]( int i, std::string s )
+	{
+		EXPECT_EQ( std::get< 0 >( expected[ counter ] ), i );
+		EXPECT_EQ( std::get< 1 >( expected[ counter ] ), s );
+		++counter;
+	};
+
+	run( readable.consume( EXPECT_N_CALLS_WRAPPER( 2, on_value ) ) );
+}

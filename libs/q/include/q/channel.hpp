@@ -977,6 +977,69 @@ public:
 		);
 	}
 
+	template< typename Fn >
+	typename std::enable_if<
+		detail::shared_channel< T... >
+			::template fast_waiter_type< Fn, function< void( ) > >
+			::inner_callbacks_are_valid::value,
+		promise< std::tuple< > >
+	>::type
+	consume( Fn&& fn )
+	{
+		readable< T... > self = *this;
+
+		auto _fn = decay_function( fn );
+
+		auto cb =
+			[ self, _fn ]
+			( resolver< > resolve, rejecter< > reject )
+			mutable
+		{
+			auto recurser = std::make_shared<
+				function< promise< std::tuple< > >( ) >
+			>( );
+
+			auto completer = [ recurser, resolve ]( ) mutable
+			{
+				recurser.reset( );
+				resolve( );
+			};
+
+			auto failer =
+				[ recurser, reject ]
+				( std::exception_ptr err )
+				mutable
+			{
+				recurser.reset( );
+				reject( std::move( err ) );
+			};
+
+			auto recurser_fn =
+				[ self, _fn, recurser, completer, failer ]
+				( )
+				mutable
+			{
+				return self.receive( _fn, completer )
+				.then( [ self, recurser ]( bool got_data )
+				mutable
+				{
+					if ( got_data )
+						return ( *recurser )( );
+					else
+						return q::with(
+							self.get_queue( ) );
+				} )
+				.fail( failer );
+			};
+
+			*recurser = std::move( recurser_fn );
+
+			ignore_result( ( *recurser )( ) );
+		};
+
+		return q::make_promise( get_queue( ), std::move( cb ) );
+	}
+
 	template< typename... U >
 	typename std::enable_if<
 		detail::pipe_helper< arguments< T... >, arguments< U... > >
