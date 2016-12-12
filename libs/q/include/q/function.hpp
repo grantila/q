@@ -69,22 +69,22 @@ namespace q {
 
 namespace detail {
 
-template< typename Signature, typename Args = ::q::arguments_of_t< Signature > >
+template< typename Signature, typename Ret, typename... Args >
 struct function_base;
 
 template<
 	typename Fn,
 	typename Signature,
-	bool Copyable = std::is_copy_constructible< Fn >::value,
-	typename Args = ::q::arguments_of_t< Signature >
+	bool Copyable,
+	typename Ret,
+	typename... Args
 >
 struct specific_function;
 
-template< typename Signature, typename... Args >
-struct function_base< Signature, ::q::arguments< Args... > >
+template< typename Signature, typename Ret, typename... Args >
+struct function_base
 {
-	using this_type = function_base< Signature, ::q::arguments< Args... > >;
-	using return_type = ::q::result_of_t< Signature >;
+	using this_type = function_base< Signature, Ret, Args... >;
 
 	virtual ~function_base( ) { }
 
@@ -92,7 +92,7 @@ struct function_base< Signature, ::q::arguments< Args... > >
 
 	virtual bool is_mutable( ) const = 0;
 
-	virtual return_type operator( )( Args&&... ) = 0;
+	virtual Ret operator( )( Args... ) = 0;
 
 	virtual this_type* move_to( void* ) = 0;
 
@@ -115,13 +115,20 @@ protected:
 	function_base& operator=( function_base&& ) = delete;
 };
 
-template< typename Fn, typename Signature, bool Copyable, typename... Args >
-struct specific_function< Fn, Signature, Copyable, ::q::arguments< Args... > >
-: function_base< Signature >
+template<
+	typename Fn,
+	typename Signature,
+	bool Copyable,
+	typename Ret,
+	typename... Args
+>
+struct specific_function
+: function_base< Signature, Ret, Args... >
 {
-	using base = function_base< Signature >;
-	using return_type = typename base::return_type;
-	using this_type = specific_function< Fn, Signature, Copyable >;
+	using base = function_base< Signature, Ret, Args... >;
+	using this_type = specific_function<
+		Fn, Signature, Copyable, Ret, Args...
+	>;
 
 	specific_function( ) = delete;
 	specific_function( specific_function&& ) = default;
@@ -154,7 +161,7 @@ struct specific_function< Fn, Signature, Copyable, ::q::arguments< Args... > >
 		return is_mutable_of_t< Fn >::value;
 	}
 
-	return_type operator( )( Args&&... args ) override
+	Ret operator( )( Args... args ) override
 	{
 		return fn_( std::forward< Args >( args )... );
 	}
@@ -237,6 +244,11 @@ private:
 	Fn fn_;
 };
 
+template< typename Fn, typename Signature, typename Ret, typename... Args >
+using specific_function_t = specific_function<
+	Fn, Signature, std::is_copy_constructible< Fn >::value, Ret, Args...
+>;
+
 enum class function_storage
 {
 	uninitialized = 0, // No function assigned
@@ -246,7 +258,14 @@ enum class function_storage
 	shared_ptr = 4     // shared_ptr'd
 };
 
-template< typename Fn, typename Signature, bool Shared, std::size_t DataSize >
+template<
+	typename Fn,
+	typename Signature,
+	bool Shared,
+	std::size_t DataSize,
+	typename Ret,
+	typename... Args
+>
 struct suitable_storage_method
 {
 	/**
@@ -268,7 +287,8 @@ struct suitable_storage_method
 	typedef std::is_copy_constructible< Fn > is_copyable;
 
 	typedef bool_type<
-		sizeof( specific_function< Fn, Signature > ) <= DataSize
+		sizeof( specific_function_t< Fn, Signature, Ret, Args... > )
+			<= DataSize
 		and
 		// We shouldn't inline non-copyable lambdas into shared
 		// functions
@@ -371,21 +391,29 @@ template< typename T >
 function_size_recorder< T > function_size_recorder< T >::instance;
 #endif // Q_RECORD_FUNCTION_STATS
 
-template< typename Signature, bool Shared, std::size_t TotalSize >
+template<
+	typename Signature,
+	typename Shared,
+	typename TotalSize,
+	typename Ret,
+	typename... Args
+>
 class alignas( LIBQ__FUNCTION_INLINE_ALIGN ) any_function
-: copyable_if_t< Shared >
+: copyable_if_t< Shared::value >
 {
 public:
 	typedef std::integral_constant<
 		std::size_t,
-		TotalSize - 2 * LIBQ__FUNCTION_INLINE_STATE_SIZE
+		TotalSize::value - 2 * LIBQ__FUNCTION_INLINE_STATE_SIZE
 	> DataSize;
-	using this_type = any_function< Signature, Shared, TotalSize >;
-	using shared_type = any_function< Signature, true, TotalSize >;
+	using this_type = any_function<
+		Signature, Shared, TotalSize, Ret, Args...
+	>;
+	using shared_type = any_function<
+		Signature, std::true_type, TotalSize, Ret, Args...
+	>;
 
-	using base = detail::function_base< Signature >;
-	using argument_types = arguments_of_t< Signature >;
-	using return_type = typename base::return_type;
+	using base = detail::function_base< Signature, Ret, Args... >;
 	using shared_heap_type = std::shared_ptr< base >;
 	using unique_heap_type = std::unique_ptr< base >;
 
@@ -424,7 +452,7 @@ public:
 			// Mutable non-copyable lambas should not be
 			// allowed in q::function:s, only
 			// q::unique_function:s.
-			!Shared
+			!Shared::value
 			or
 			!is_mutable_of_t< DecayedFn >::value
 			or
@@ -453,21 +481,25 @@ public:
 	)
 	: method_( function_storage::uninitialized )
 	{
-		typedef detail::specific_function<
+		typedef detail::specific_function_t<
 			typename std::decay< Fn >::type,
-			Signature
+			Signature,
+			Ret,
+			Args...
 		> specific_base;
 
 		using method = typename detail::suitable_storage_method<
 			typename std::decay< Fn >::type,
 			Signature,
-			Shared,
-			DataSize::value
+			Shared::value,
+			DataSize::value,
+			Ret,
+			Args...
 		>::type;
 
 #ifdef Q_RECORD_FUNCTION_STATS
 		function_size_recorder< >::instance.add(
-			sizeof( specific_base ), Shared, method::value );
+			sizeof( specific_base ), Shared::value, method::value );
 #endif // Q_RECORD_FUNCTION_STATS
 
 		_set_plain< method::value >( std::forward< Fn >( fn ) );
@@ -513,21 +545,25 @@ public:
 	)
 	: method_( function_storage::uninitialized )
 	{
-		typedef detail::specific_function<
+		typedef detail::specific_function_t<
 			typename std::decay< Fn >::type,
-			Signature
+			Signature,
+			Ret,
+			Args...
 		> specific_base;
 
 		using method = typename detail::suitable_storage_method<
 			typename std::decay< Fn >::type,
 			Signature,
-			Shared,
-			DataSize::value
+			Shared::value,
+			DataSize::value,
+			Ret,
+			Args...
 		>::type;
 
 #ifdef Q_RECORD_FUNCTION_STATS
 		function_size_recorder< >::instance.add(
-			sizeof( specific_base ), Shared, method::value );
+			sizeof( specific_base ), Shared::value, method::value );
 #endif // Q_RECORD_FUNCTION_STATS
 
 		_set_plain< method::value >( std::forward< Fn >( fn ) );
@@ -572,10 +608,10 @@ public:
 	 * Move construct unique_function from function. The other way isn't
 	 * possible (needs share() to be called).
 	 */
-	template< bool _Shared = Shared >
+	template< bool _Shared = Shared::value >
 	any_function(
 		shared_type&& other,
-		typename std::enable_if< !_Shared && !Shared >::type* = 0
+		typename std::enable_if< !_Shared && !Shared::value >::type* = 0
 	)
 	: method_( function_storage::uninitialized )
 	{
@@ -586,10 +622,10 @@ public:
 	 * Copy construct unique_function from function. The other way isn't
 	 * possible (needs share() to be called).
 	 */
-	template< bool _Shared = Shared >
+	template< bool _Shared = Shared::value >
 	any_function(
 		const shared_type& other,
-		typename std::enable_if< !_Shared && !Shared >::type* = 0
+		typename std::enable_if< !_Shared && !Shared::value >::type* = 0
 	)
 	: method_( function_storage::uninitialized )
 	{
@@ -624,9 +660,9 @@ public:
 	 * into non-pure functions, if they aren't copyable. That is to be
 	 * expected though.
 	 */
-	template< bool _Shared = Shared >
+	template< bool _Shared = Shared::value >
 	typename std::enable_if<
-		!_Shared and !Shared,
+		!_Shared and !Shared::value,
 		shared_type
 	>::type
 	share( )
@@ -736,28 +772,21 @@ public:
 		return _copy_from( ref );
 	}
 
-	template< bool _Shared = Shared >
-	typename std::enable_if< !_Shared && !Shared, this_type >::type&
+	template< bool _Shared = Shared::value >
+	typename std::enable_if< !_Shared && !Shared::value, this_type >::type&
 	operator=( shared_type&& other )
 	{
 		return _move_from_shared( std::move( other ) );
 	}
 
-	template< bool _Shared = Shared >
-	typename std::enable_if< !_Shared && !Shared, this_type >::type&
+	template< bool _Shared = Shared::value >
+	typename std::enable_if< !_Shared && !Shared::value, this_type >::type&
 	operator=( const shared_type& other )
 	{
 		return _copy_from_shared( other );
 	}
 
-	template< typename... Args >
-	typename std::enable_if<
-		arguments< Args... >::template is_convertible_to<
-			argument_types
-		>::value,
-		return_type
-	>::type
-	operator( )( Args&&... args )
+	Ret operator( )( Args... args )
 	{
 		if ( !*this )
 			detail::_throw_bad_function_call_exception( );
@@ -786,7 +815,7 @@ public:
 	}
 
 private:
-	template< typename, bool, std::size_t >
+	template< typename, typename, typename, typename, typename... >
 	friend class any_function;
 
 	template< function_storage method, typename Fn >
@@ -976,8 +1005,8 @@ private:
 	 *                                   otherwise convert to inlined if
 	 *                                   there's room for it.
 	 */
-	template< bool _Shared = Shared >
-	typename std::enable_if< !_Shared && !Shared, this_type >::type&
+	template< bool _Shared = Shared::value >
+	typename std::enable_if< !_Shared && !Shared::value, this_type >::type&
 	_move_from_shared( shared_type&& other )
 	{
 		_reset( );
@@ -1064,8 +1093,8 @@ private:
 	 * 2. {shared -> unique} unique_ptr: Keep unique_ptr
 	 * 3. {shared -> unique} shared_ptr: Keep shared_ptr
 	 */
-	template< bool _Shared = Shared >
-	typename std::enable_if< !_Shared && !Shared, this_type >::type&
+	template< bool _Shared = Shared::value >
+	typename std::enable_if< !_Shared && !Shared::value, this_type >::type&
 	_copy_from_shared( const shared_type& other )
 	{
 		_reset( );
@@ -1127,24 +1156,34 @@ private:
 	};
 };
 
+template< typename Signature, bool Shared, std::size_t TotalSize >
+using any_function_t = typename ::q::arguments_of_t< Signature >
+	::template prepend<
+		Signature,
+		bool_type_t< Shared >,
+		std::integral_constant< std::size_t, TotalSize >,
+		::q::result_of_t< Signature >
+	>
+	::template apply< any_function >;
+
 } // namespace detail
 
 template< typename Signature >
-using unique_function = detail::any_function<
+using unique_function = detail::any_function_t<
 	Signature,
 	false,
 	LIBQ__FUNCTION_INLINE_SIZE
 >;
 
 template< typename Signature >
-using function = detail::any_function<
+using function = detail::any_function_t<
 	Signature,
 	true,
 	LIBQ__FUNCTION_INLINE_SIZE
 >;
 
 template< typename Signature, bool Shared, std::size_t Words >
-using custom_function = detail::any_function<
+using custom_function = detail::any_function_t<
 	Signature,
 	Shared,
 	// Add three words (two for the any_function, one for the v-table),
