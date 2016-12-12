@@ -558,14 +558,14 @@ TEST_F( channel, fast_receive_zero_types )
 		EXPECT_CALL_WRAPPER( on_value ),
 		EXPECT_NO_CALL_WRAPPER( on_closed )
 	)
-	.then( EXPECT_CALL_WRAPPER( ( [ = ]( ) mutable
+	.then( EXPECT_CALL_WRAPPER( ( [ = ]( bool ) mutable
 	{
 		return readable.receive(
 			EXPECT_CALL_WRAPPER( on_value ),
 			EXPECT_NO_CALL_WRAPPER( on_closed )
 		);
 	} ) ) )
-	.then( EXPECT_CALL_WRAPPER( ( [ = ]( ) mutable
+	.then( EXPECT_CALL_WRAPPER( ( [ = ]( bool ) mutable
 	{
 		return readable.receive(
 			EXPECT_NO_CALL_WRAPPER( on_value ),
@@ -600,14 +600,14 @@ TEST_F( channel, fast_receive_one_type )
 		EXPECT_CALL_WRAPPER( on_value ),
 		EXPECT_NO_CALL_WRAPPER( on_closed )
 	)
-	.then( EXPECT_CALL_WRAPPER( [ = ]( ) mutable
+	.then( EXPECT_CALL_WRAPPER( [ = ]( bool ) mutable
 	{
 		return readable.receive(
 			EXPECT_CALL_WRAPPER( on_value ),
 			EXPECT_NO_CALL_WRAPPER( on_closed )
 		);
 	} ) )
-	.then( EXPECT_CALL_WRAPPER( [ = ]( ) mutable
+	.then( EXPECT_CALL_WRAPPER( [ = ]( bool ) mutable
 	{
 		return readable.receive(
 			EXPECT_NO_CALL_WRAPPER( on_value ),
@@ -647,14 +647,14 @@ TEST_F( channel, fast_receive_two_types )
 		EXPECT_CALL_WRAPPER( on_value ),
 		EXPECT_NO_CALL_WRAPPER( on_closed )
 	)
-	.then( EXPECT_CALL_WRAPPER( [ = ]( ) mutable
+	.then( EXPECT_CALL_WRAPPER( [ = ]( bool ) mutable
 	{
 		return readable.receive(
 			EXPECT_CALL_WRAPPER( on_value ),
 			EXPECT_NO_CALL_WRAPPER( on_closed )
 		);
 	} ) )
-	.then( EXPECT_CALL_WRAPPER( [ = ]( ) mutable
+	.then( EXPECT_CALL_WRAPPER( [ = ]( bool ) mutable
 	{
 		return readable.receive(
 			EXPECT_NO_CALL_WRAPPER( on_value ),
@@ -689,20 +689,21 @@ TEST_F( channel, fast_receive_closed_with_exception )
 		EXPECT_CALL_WRAPPER( on_value ),
 		EXPECT_NO_CALL_WRAPPER( on_closed )
 	)
-	.then( EXPECT_CALL_WRAPPER( [ = ]( ) mutable
+	.then( EXPECT_CALL_WRAPPER( [ = ]( bool ) mutable
 	{
 		return readable.receive(
 			EXPECT_CALL_WRAPPER( on_value ),
 			EXPECT_NO_CALL_WRAPPER( on_closed )
 		);
 	} ) )
-	.then( EXPECT_CALL_WRAPPER( [ = ]( ) mutable
+	.then( EXPECT_CALL_WRAPPER( [ = ]( bool ) mutable
 	{
 		return readable.receive(
 			EXPECT_NO_CALL_WRAPPER( on_value ),
 			EXPECT_NO_CALL_WRAPPER( on_closed )
 		);
 	} ) )
+	.strip( )
 	.fail( EXPECT_CALL_WRAPPER( [ ]( test_exception& ) { } ) );
 
 	run( std::move( promise ) );
@@ -737,6 +738,7 @@ TEST_F( channel, fast_receive_exception_when_reading_value )
 	.fail( EXPECT_CALL_WRAPPER( [ readable ]( test_exception& )
 	{
 		EXPECT_TRUE( readable.is_closed( ) );
+		return false;
 	} ) );
 
 	run( std::move( promise ) );
@@ -770,14 +772,14 @@ TEST_F( channel, channel_pipe_void )
 
 	auto on_close = EXPECT_N_CALLS_WRAPPER( 1, [ ]{ } );
 
-	typedef std::function< q::promise< std::tuple< > >( ) > fun_type;
+	typedef std::function< q::promise< std::tuple< bool > >( ) > fun_type;
 	auto receive = std::make_shared< fun_type >( );
 	*receive = EXPECT_N_CALLS_WRAPPER( 11, (
 		[ receive, readable_b, on_close ]( ) mutable
 		{
 			return readable_b.receive( [ receive ]( )
 			{
-				return ( *receive )( );
+				return ( *receive )( ).strip( );
 			}, on_close );
 		}
 	) );
@@ -813,20 +815,21 @@ TEST_F( channel, channel_pipe_void_with_error )
 
 	auto on_close = EXPECT_N_CALLS_WRAPPER( 0, [ ]{ } );
 
-	typedef std::function< q::promise< std::tuple< > >( ) > fun_type;
+	typedef std::function< q::promise< std::tuple< bool > >( ) > fun_type;
 	auto receive = std::make_shared< fun_type >( );
 	*receive = EXPECT_N_CALLS_WRAPPER( 11, (
 		[ receive, readable_b, on_close ]( ) mutable
 		{
 			return readable_b.receive( [ receive ]( )
 			{
-				return ( *receive )( );
+				return ( *receive )( ).strip( );
 			}, on_close );
 		}
 	) );
 
 	run(
 		( *receive )( )
+		.strip( )
 		.fail( EXPECT_CALL_WRAPPER( [ ]( const Error& ){ } ) )
 	);
 }
@@ -861,7 +864,7 @@ TEST_F( channel, channel_pipe_int )
 
 	auto on_close = EXPECT_N_CALLS_WRAPPER( 1, [ ]{ } );
 
-	typedef std::function< q::promise< std::tuple< > >( ) > fun_type;
+	typedef std::function< q::promise< std::tuple< bool > >( ) > fun_type;
 	auto receive = std::make_shared< fun_type >( );
 	*receive = EXPECT_N_CALLS_WRAPPER( 11, (
 		[ receive, readable_b, &counter, on_close ]( ) mutable
@@ -871,7 +874,7 @@ TEST_F( channel, channel_pipe_int )
 				EXPECT_EQ( val, counter );
 				++counter;
 
-				return ( *receive )( );
+				return ( *receive )( ).strip( );
 			};
 
 			return readable_b.receive(
@@ -912,7 +915,7 @@ TEST_F( channel, channel_pipe_int_with_error )
 
 	auto on_close = EXPECT_N_CALLS_WRAPPER( 0, [ ]{ } );
 
-	typedef std::function< q::promise< std::tuple< > >( ) > fun_type;
+	typedef std::function< q::promise< std::tuple< bool > >( ) > fun_type;
 	auto receive = std::make_shared< fun_type >( );
 	*receive = EXPECT_N_CALLS_WRAPPER( 11, (
 		[ receive, readable_b, &counter, on_close ]( ) mutable
@@ -922,7 +925,7 @@ TEST_F( channel, channel_pipe_int_with_error )
 				EXPECT_EQ( val, counter );
 				++counter;
 
-				return ( *receive )( );
+				return ( *receive )( ).strip( );
 			};
 
 			return readable_b.receive( on_data, on_close );
@@ -931,6 +934,7 @@ TEST_F( channel, channel_pipe_int_with_error )
 
 	run(
 		( *receive )( )
+		.strip( )
 		.fail( EXPECT_CALL_WRAPPER( [ ]( const Error& ){ } ) )
 	);
 }
@@ -963,15 +967,15 @@ TEST_F( channel, channel_pipe_async_void )
 
 	auto on_close = EXPECT_N_CALLS_WRAPPER( 1, [ ]{ } );
 
-	typedef std::function< q::promise< std::tuple< > >( ) > fun_type;
+	typedef std::function< q::promise< std::tuple< bool > >( ) > fun_type;
 	auto receive = std::make_shared< fun_type >( );
 	*receive = EXPECT_N_CALLS_WRAPPER( 11, (
 		[ receive, readable_b, on_close ]( ) mutable
-		-> q::promise< std::tuple< > >
+		-> q::promise< std::tuple< bool > >
 		{
 			return readable_b.receive( q::decay_function( [ receive ]( )
 			{
-				return ( *receive )( );
+				return ( *receive )( ).strip( );
 			} ), on_close );
 		}
 	) );
@@ -1007,20 +1011,21 @@ TEST_F( channel, channel_pipe_async_void_with_error )
 
 	auto on_close = EXPECT_N_CALLS_WRAPPER( 0, [ ]{ } );
 
-	typedef std::function< q::promise< std::tuple< > >( ) > fun_type;
+	typedef std::function< q::promise< std::tuple< bool > >( ) > fun_type;
 	auto receive = std::make_shared< fun_type >( );
 	*receive = EXPECT_N_CALLS_WRAPPER( 11, (
 		[ receive, readable_b, on_close ]( ) mutable
 		{
 			return readable_b.receive( [ receive ]( )
 			{
-				return ( *receive )( );
+				return ( *receive )( ).strip( );
 			}, on_close );
 		}
 	) );
 
 	run(
 		( *receive )( )
+		.strip( )
 		.fail( EXPECT_CALL_WRAPPER( [ ]( const Error& ){ } ) )
 	);
 }
@@ -1055,7 +1060,7 @@ TEST_F( channel, channel_pipe_async_int )
 
 	auto on_close = EXPECT_N_CALLS_WRAPPER( 1, [ ]{ } );
 
-	typedef std::function< q::promise< std::tuple< > >( ) > fun_type;
+	typedef std::function< q::promise< std::tuple< bool > >( ) > fun_type;
 	auto receive = std::make_shared< fun_type >( );
 	*receive = EXPECT_N_CALLS_WRAPPER( 11, (
 		[ receive, readable_b, &counter, on_close ]( ) mutable
@@ -1065,7 +1070,7 @@ TEST_F( channel, channel_pipe_async_int )
 				EXPECT_EQ( val, counter );
 				++counter;
 
-				return ( *receive )( );
+				return ( *receive )( ).strip( );
 			};
 
 			return readable_b.receive(
@@ -1106,7 +1111,7 @@ TEST_F( channel, channel_pipe_async_int_with_error )
 
 	auto on_close = EXPECT_N_CALLS_WRAPPER( 0, [ ]{ } );
 
-	typedef std::function< q::promise< std::tuple< > >( ) > fun_type;
+	typedef std::function< q::promise< std::tuple< bool > >( ) > fun_type;
 	auto receive = std::make_shared< fun_type >( );
 	*receive = EXPECT_N_CALLS_WRAPPER( 11, (
 		[ receive, readable_b, &counter, on_close ]( ) mutable
@@ -1116,7 +1121,7 @@ TEST_F( channel, channel_pipe_async_int_with_error )
 				EXPECT_EQ( val, counter );
 				++counter;
 
-				return ( *receive )( );
+				return ( *receive )( ).strip( );
 			};
 
 			return readable_b.receive( on_data, on_close );
@@ -1125,6 +1130,7 @@ TEST_F( channel, channel_pipe_async_int_with_error )
 
 	run(
 		( *receive )( )
+		.strip( )
 		.fail( EXPECT_CALL_WRAPPER( [ ]( const Error& ){ } ) )
 	);
 }
