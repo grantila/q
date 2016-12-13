@@ -21,6 +21,8 @@
 #include <q/mutex.hpp>
 #include <q/promise.hpp>
 #include <q/scope.hpp>
+#include <q/concurrency.hpp>
+#include <q/concurrency_counter.hpp>
 
 #include <list>
 #include <queue>
@@ -856,6 +858,8 @@ protected:
 
 } // namespace detail
 
+typedef options< concurrency > consume_options;
+
 template< typename... T >
 class readable
 {
@@ -984,11 +988,15 @@ public:
 			::inner_callbacks_are_valid::value,
 		promise< std::tuple< > >
 	>::type
-	consume( Fn&& fn )
+	consume( Fn&& fn, consume_options options = consume_options( ) )
 	{
 		readable< T... > self = *this;
 
 		auto _fn = decay_function( fn );
+		auto _concurrency = options.get< concurrency >( ).get( );
+
+		auto counter =
+			std::make_shared< concurrency_counter >( _concurrency );
 
 		auto cb =
 			[ self, _fn ]
@@ -1020,6 +1028,58 @@ public:
 				mutable
 			{
 				return self.receive( _fn, completer )
+				.then( [ self, recurser ]( bool got_data )
+				mutable
+				{
+					if ( got_data )
+						return ( *recurser )( );
+					else
+						return q::with(
+							self.get_queue( ) );
+				} )
+				.fail( failer );
+			};
+
+			*recurser = std::move( recurser_fn );
+
+			ignore_result( ( *recurser )( ) );
+		};
+
+		auto cb_concurrent =
+			[ self, _fn, counter ]
+			( resolver< > resolve, rejecter< > reject )
+			mutable
+		{
+			auto recurser = std::make_shared<
+				function< promise< std::tuple< > >( ) >
+			>( );
+
+			auto completer = [ recurser, resolve ]( ) mutable
+			{
+				recurser.reset( );
+				resolve( );
+			};
+
+			auto failer =
+				[ recurser, reject ]
+				( std::exception_ptr err )
+				mutable
+			{
+				recurser.reset( );
+				reject( std::move( err ) );
+			};
+
+			auto recurser_fn =
+				[ self, _fn, counter, recurser, completer, failer ]
+				( )
+				mutable
+			{
+				counter->inc( );
+				return self.receive( _fn, completer )
+				.finally( [ counter ]( ) mutable
+				{
+					counter->dec( );
+				} )
 				.then( [ self, recurser ]( bool got_data )
 				mutable
 				{
