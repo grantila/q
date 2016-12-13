@@ -108,15 +108,20 @@ void blocking_dispatcher::start( )
 			_task.task( );
 		}
 
-		if ( !_task )
+		if ( pimpl_->running_ && !_task )
 		{
-			auto next = pimpl_->timer_tasks_.next_time( );
+			if ( !pimpl_->timer_tasks_.empty( ) )
+			{
+				auto next = pimpl_->timer_tasks_.next_time( );
 
-			if ( _task.is_timed( ) && next != duration_max )
-				pimpl_->cond_.wait_for(
-					lock, next );
-			else
-				pimpl_->cond_.wait( lock );
+				if ( next != duration_max )
+				{
+					pimpl_->cond_.wait_for(
+						lock, next );
+					continue;
+				}
+			}
+			pimpl_->cond_.wait( lock );
 		}
 	}
 	while ( true );
