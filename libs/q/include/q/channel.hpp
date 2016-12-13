@@ -1074,6 +1074,26 @@ public:
 				( )
 				mutable
 			{
+				queue_ptr queue = self.get_queue( );
+
+				auto on_value =
+				[ _fn, counter, queue ]
+				( tuple_type&& value )
+				mutable
+				{
+					counter->inc( );
+
+					q::with( queue, std::move( value ) )
+					.then( std::move( _fn ) )
+					.finally( [ counter ]( )
+					{
+						counter->dec( );
+					} )
+					.then( ... );
+
+					return counter->get_promise( );
+				};
+
 				counter->inc( );
 				return self.receive( _fn, completer )
 				.finally( [ counter ]( ) mutable
