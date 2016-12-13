@@ -27,14 +27,14 @@ class byte_block
 public:
 	byte_block( );
 	byte_block( const std::string& s );
-	byte_block( std::size_t size );
+	byte_block( std::size_t size, std::uint8_t const* data );
+	byte_block(
+		std::size_t size, std::shared_ptr< const std::uint8_t > data );
 
-	void resize( std::size_t new_size );
 	void advance( std::size_t amount );
 
 	std::size_t size( ) const;
 
-	std::uint8_t* data( );
 	std::uint8_t const* data( ) const;
 
 	/**
@@ -45,9 +45,9 @@ public:
 	std::string to_string( ) const;
 
 private:
-	std::vector< std::uint8_t > data_;
-	std::size_t offset_;
 	std::size_t size_;
+	std::shared_ptr< const std::uint8_t > data_;
+	std::uint8_t const* ptr_;
 };
 
 } // namespace q
