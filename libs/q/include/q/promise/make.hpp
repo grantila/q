@@ -77,7 +77,7 @@ struct resolve_helper_
 	{ }
 
 	template< typename Fn >
-	::q::promise< tuple_type > run( Fn&& fn )
+	void run( Fn&& fn )
 	{
 		try
 		{
@@ -87,8 +87,6 @@ struct resolve_helper_
 		{
 			deferred_->set_exception( std::current_exception( ) );
 		}
-
-		return deferred_->get_promise( );
 	}
 
 	::q::promise< tuple_type > get_promise( ) const
@@ -219,7 +217,9 @@ make_promise_sync( const ::q::queue_ptr& queue, Fn&& fn )
 
 	auto helper = std::make_shared< resolve_helper >( queue );
 
-	return helper->run( std::forward< Fn >( fn ) );
+	helper->run( std::forward< Fn >( fn ) );
+
+	return helper->get_promise( );
 }
 
 #ifdef LIBQ_WITH_CPP14
