@@ -221,7 +221,7 @@ void priority_scheduler::add_queue( queue_ptr queue )
 	queue->set_consumer( [ ed ]( )
 	{
 		ed->notify( );
-	} );
+	}, pimpl_->event_dispatcher_->parallelism( ) );
 
 	auto _this = shared_from_this( );
 
@@ -273,7 +273,7 @@ void direct_scheduler::add_queue( queue_ptr queue )
 		queue->set_consumer( [ ed ]( )
 		{
 			ed->notify( );
-		} );
+		}, pimpl_->event_dispatcher_->parallelism( ) );
 	}
 	else
 	{

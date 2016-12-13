@@ -69,22 +69,22 @@ namespace q {
 
 namespace detail {
 
-template< typename Signature, typename Args = ::q::arguments_of_t< Signature > >
+template< typename Signature, typename Ret, typename... Args >
 struct function_base;
 
 template<
 	typename Fn,
 	typename Signature,
-	bool Copyable = std::is_nothrow_copy_constructible< Fn >::value,
-	typename Args = ::q::arguments_of_t< Signature >
+	bool Copyable,
+	typename Ret,
+	typename... Args
 >
 struct specific_function;
 
-template< typename Signature, typename... Args >
-struct function_base< Signature, ::q::arguments< Args... > >
+template< typename Signature, typename Ret, typename... Args >
+struct function_base
 {
-	using this_type = function_base< Signature, ::q::arguments< Args... > >;
-	using return_type = ::q::result_of_t< Signature >;
+	using this_type = function_base< Signature, Ret, Args... >;
 
 	virtual ~function_base( ) { }
 
@@ -92,7 +92,7 @@ struct function_base< Signature, ::q::arguments< Args... > >
 
 	virtual bool is_mutable( ) const = 0;
 
-	virtual return_type operator( )( Args&&... ) = 0;
+	virtual Ret operator( )( Args... ) = 0;
 
 	virtual this_type* move_to( void* ) = 0;
 
@@ -115,13 +115,20 @@ protected:
 	function_base& operator=( function_base&& ) = delete;
 };
 
-template< typename Fn, typename Signature, bool Copyable, typename... Args >
-struct specific_function< Fn, Signature, Copyable, ::q::arguments< Args... > >
-: function_base< Signature >
+template<
+	typename Fn,
+	typename Signature,
+	bool Copyable,
+	typename Ret,
+	typename... Args
+>
+struct specific_function
+: function_base< Signature, Ret, Args... >
 {
-	using base = function_base< Signature >;
-	using return_type = typename base::return_type;
-	using this_type = specific_function< Fn, Signature, Copyable >;
+	using base = function_base< Signature, Ret, Args... >;
+	using this_type = specific_function<
+		Fn, Signature, Copyable, Ret, Args...
+	>;
 
 	specific_function( ) = delete;
 	specific_function( specific_function&& ) = default;
@@ -154,7 +161,7 @@ struct specific_function< Fn, Signature, Copyable, ::q::arguments< Args... > >
 		return is_mutable_of_t< Fn >::value;
 	}
 
-	return_type operator( )( Args&&... args ) override
+	Ret operator( )( Args... args ) override
 	{
 		return fn_( std::forward< Args >( args )... );
 	}
@@ -237,6 +244,11 @@ private:
 	Fn fn_;
 };
 
+template< typename Fn, typename Signature, typename Ret, typename... Args >
+using specific_function_t = specific_function<
+	Fn, Signature, std::is_copy_constructible< Fn >::value, Ret, Args...
+>;
+
 enum class function_storage
 {
 	uninitialized = 0, // No function assigned
@@ -246,7 +258,14 @@ enum class function_storage
 	shared_ptr = 4     // shared_ptr'd
 };
 
-template< typename Fn, typename Signature, bool Shared, std::size_t DataSize >
+template<
+	typename Fn,
+	typename Signature,
+	bool Shared,
+	std::size_t DataSize,
+	typename Ret,
+	typename... Args
+>
 struct suitable_storage_method
 {
 	/**
@@ -265,10 +284,11 @@ struct suitable_storage_method
 	 *        shared_ptr once this function is copied).
 	 */
 
-	typedef std::is_nothrow_copy_constructible< Fn > is_copyable;
+	typedef std::is_copy_constructible< Fn > is_copyable;
 
 	typedef bool_type<
-		sizeof( specific_function< Fn, Signature > ) <= DataSize
+		sizeof( specific_function_t< Fn, Signature, Ret, Args... > )
+			<= DataSize
 		and
 		// We shouldn't inline non-copyable lambdas into shared
 		// functions
@@ -371,46 +391,52 @@ template< typename T >
 function_size_recorder< T > function_size_recorder< T >::instance;
 #endif // Q_RECORD_FUNCTION_STATS
 
-template< typename Signature, bool Shared, std::size_t TotalSize >
+template<
+	typename Signature,
+	typename Shared,
+	typename TotalSize,
+	typename Ret,
+	typename... Args
+>
 class alignas( LIBQ__FUNCTION_INLINE_ALIGN ) any_function
+: copyable_if_t< Shared::value >
 {
 public:
 	typedef std::integral_constant<
 		std::size_t,
-		TotalSize - 2 * LIBQ__FUNCTION_INLINE_STATE_SIZE
+		TotalSize::value - 2 * LIBQ__FUNCTION_INLINE_STATE_SIZE
 	> DataSize;
-	using this_type = any_function< Signature, Shared, TotalSize >;
-	using base = detail::function_base< Signature >;
-	using argument_types = arguments_of_t< Signature >;
-	using return_type = typename base::return_type;
+	using this_type = any_function<
+		Signature, Shared, TotalSize, Ret, Args...
+	>;
+	using shared_type = any_function<
+		Signature, std::true_type, TotalSize, Ret, Args...
+	>;
+
+	using base = detail::function_base< Signature, Ret, Args... >;
 	using shared_heap_type = std::shared_ptr< base >;
 	using unique_heap_type = std::unique_ptr< base >;
 
-	template< typename Fn >
+	template<
+		typename Fn,
+		typename DecayedFn = typename std::decay< Fn >::type
+	>
 	using matching_function = bool_type<
-		is_function_t< typename std::decay< Fn >::type >::value
+		is_function_t< DecayedFn >::value
 		and
-		!std::is_same<
-			typename std::decay< Fn >::type,
-			this_type
-		>::value
+		!std::is_same< DecayedFn, this_type >::value
 		and
 		arguments_of_t< Signature >
 		::template is_convertible_to<
-			arguments_of_t<
-				typename std::decay< Fn >::type
-			>
+			arguments_of_t< DecayedFn >
 		>::value
 		and
-		result_of_as_argument_t<
-			typename std::decay< Fn >::type
-		>::template is_convertible_to<
+		result_of_as_argument_t< DecayedFn >
+		::template is_convertible_to<
 			result_of_as_argument_t< Signature >
 		>::value
 		and
-		std::is_nothrow_move_constructible<
-			typename std::decay< Fn >::type
-		>::value
+		std::is_move_constructible< DecayedFn >::value
 		and
 		(
 			(
@@ -419,28 +445,26 @@ public:
 				!std::is_const< Fn >::value
 			)
 			or
-			std::is_nothrow_copy_constructible<
-				typename std::decay< Fn >::type
-			>::value
+			std::is_copy_constructible< DecayedFn >::value
 		)
 		and
 		(
 			// Mutable non-copyable lambas should not be
 			// allowed in q::function:s, only
 			// q::unique_function:s.
-			!Shared
+			!Shared::value
 			or
-			!is_mutable_of_t<
-				typename std::decay< Fn >::type
-			>::value
+			!is_mutable_of_t< DecayedFn >::value
 			or
-			std::is_nothrow_copy_constructible<
-				typename std::decay< Fn >::type
-			>::value
+			std::is_copy_constructible< DecayedFn >::value
 		)
 	>;
 
 	any_function( ) noexcept
+	: method_( function_storage::uninitialized )
+	{ }
+
+	any_function( std::nullptr_t ) noexcept
 	: method_( function_storage::uninitialized )
 	{ }
 
@@ -450,36 +474,33 @@ public:
 		typename std::enable_if<
 			matching_function< Fn >::value
 			and
-			std::is_nothrow_copy_constructible<
+			std::is_copy_constructible<
 				typename std::decay< Fn >::type
 			>::value
 		>::type* = 0
-	) noexcept
-	: method_(
-		detail::suitable_storage_method<
+	)
+	: method_( function_storage::uninitialized )
+	{
+		typedef detail::specific_function_t<
 			typename std::decay< Fn >::type,
 			Signature,
-			Shared,
-			DataSize::value
-		>::type::value
-	)
-	{
-		typedef detail::specific_function<
-			typename std::decay< Fn >::type,
-			Signature
+			Ret,
+			Args...
 		> specific_base;
-
-#ifdef Q_RECORD_FUNCTION_STATS
-		function_size_recorder< >::instance.add(
-			sizeof( specific_base ), Shared, method_ );
-#endif // Q_RECORD_FUNCTION_STATS
 
 		using method = typename detail::suitable_storage_method<
 			typename std::decay< Fn >::type,
 			Signature,
-			Shared,
-			DataSize::value
+			Shared::value,
+			DataSize::value,
+			Ret,
+			Args...
 		>::type;
+
+#ifdef Q_RECORD_FUNCTION_STATS
+		function_size_recorder< >::instance.add(
+			sizeof( specific_base ), Shared::value, method::value );
+#endif // Q_RECORD_FUNCTION_STATS
 
 		_set_plain< method::value >( std::forward< Fn >( fn ) );
 
@@ -505,6 +526,8 @@ public:
 			ptr_ = reinterpret_cast< shared_heap_type* >( &base_ )
 					->get( );
 		}
+
+		method_ = method::value;
 	}
 
 	template< typename Fn >
@@ -513,38 +536,35 @@ public:
 		typename std::enable_if<
 			matching_function< Fn >::value
 			and
-			!std::is_nothrow_copy_constructible<
+			!std::is_copy_constructible<
 				typename std::decay< Fn >::type
 			>::value
 			and
 			std::is_rvalue_reference< Fn&& >::value
 		>::type* = 0
-	) noexcept
-	: method_(
-		detail::suitable_storage_method<
+	)
+	: method_( function_storage::uninitialized )
+	{
+		typedef detail::specific_function_t<
 			typename std::decay< Fn >::type,
 			Signature,
-			Shared,
-			DataSize::value
-		>::type::value
-	)
-	{
-		typedef detail::specific_function<
-			typename std::decay< Fn >::type,
-			Signature
+			Ret,
+			Args...
 		> specific_base;
-
-#ifdef Q_RECORD_FUNCTION_STATS
-		function_size_recorder< >::instance.add(
-			sizeof( specific_base ), Shared, method_ );
-#endif // Q_RECORD_FUNCTION_STATS
 
 		using method = typename detail::suitable_storage_method<
 			typename std::decay< Fn >::type,
 			Signature,
-			Shared,
-			DataSize::value
+			Shared::value,
+			DataSize::value,
+			Ret,
+			Args...
 		>::type;
+
+#ifdef Q_RECORD_FUNCTION_STATS
+		function_size_recorder< >::instance.add(
+			sizeof( specific_base ), Shared::value, method::value );
+#endif // Q_RECORD_FUNCTION_STATS
 
 		_set_plain< method::value >( std::forward< Fn >( fn ) );
 
@@ -553,7 +573,6 @@ public:
 
 		else if ( method::value == function_storage::unique_ptr )
 		{
-
 			::new ( &base_ ) unique_heap_type(
 				q::make_unique< specific_base >(
 					std::move( fn ) ) );
@@ -569,19 +588,19 @@ public:
 			ptr_ = reinterpret_cast< shared_heap_type* >( &base_ )
 					->get( );
 		}
+
+		method_ = method::value;
 	}
 
-	any_function( any_function&& ref ) noexcept
+	any_function( any_function&& ref )
 	: method_( function_storage::uninitialized )
 	{
 		_move_from( std::move( ref ) );
 	}
 
-	any_function( const any_function& ref ) noexcept
+	any_function( const any_function& ref )
 	: method_( function_storage::uninitialized )
 	{
-		static_assert( Shared, "q::unique_function is not copyable" );
-
 		_copy_from( ref );
 	}
 
@@ -589,12 +608,11 @@ public:
 	 * Move construct unique_function from function. The other way isn't
 	 * possible (needs share() to be called).
 	 */
-	template< bool _Shared = Shared >
+	template< bool _Shared = Shared::value >
 	any_function(
-		any_function< Signature, true, TotalSize >&& other,
-		typename std::enable_if< !_Shared && !Shared >::type* = 0
+		shared_type&& other,
+		typename std::enable_if< !_Shared && !Shared::value >::type* = 0
 	)
-	noexcept
 	: method_( function_storage::uninitialized )
 	{
 		_move_from_shared( std::move( other ) );
@@ -604,12 +622,11 @@ public:
 	 * Copy construct unique_function from function. The other way isn't
 	 * possible (needs share() to be called).
 	 */
-	template< bool _Shared = Shared >
+	template< bool _Shared = Shared::value >
 	any_function(
-		const any_function< Signature, true, TotalSize >& other,
-		typename std::enable_if< !_Shared && !Shared >::type* = 0
+		const shared_type& other,
+		typename std::enable_if< !_Shared && !Shared::value >::type* = 0
 	)
-	noexcept
 	: method_( function_storage::uninitialized )
 	{
 		_copy_from_shared( other );
@@ -643,22 +660,22 @@ public:
 	 * into non-pure functions, if they aren't copyable. That is to be
 	 * expected though.
 	 */
-	template< bool _Shared = Shared >
+	template< bool _Shared = Shared::value >
 	typename std::enable_if<
-		!_Shared and !Shared,
-		any_function< Signature, true, TotalSize >
+		!_Shared and !Shared::value,
+		shared_type
 	>::type
 	share( )
 	{
-		any_function< Signature, true, TotalSize > ret;
+		shared_type ret;
 
 		if ( method_ == function_storage::uninitialized )
 			return ret;
 
 		else if ( method_ == function_storage::plain ) // 1
 		{
-			ret.method_ = method_;
 			ret.sig_ = sig_;
+			ret.method_ = method_;
 			return ret;
 		}
 
@@ -685,30 +702,31 @@ public:
 		{
 			// We can place it inline, and later allow copying it
 			// if necessary.
-			ret.method_ = function_storage::inlined;
 			ret.ptr_ = _base->copy_to( &ret.base_ );
+			ret.method_ = function_storage::inlined;
 		}
 		else if ( inline_to_shared_ptr ) // 2b
 		{
 			shared_heap_type rebound( _base->move_to_shared( ) );
+			method_ = function_storage::uninitialized;
 			_base->~base( );
 
-			method_ = function_storage::shared_ptr;
 			::new ( &base_ ) shared_heap_type( rebound );
 			ptr_ = rebound.get( );
+			method_ = function_storage::shared_ptr;
 
-			ret.method_ = function_storage::shared_ptr;
 			::new ( &ret.base_ ) shared_heap_type( rebound );
 			ret.ptr_ = rebound.get( );
+			ret.method_ = function_storage::shared_ptr;
 		}
 		else if ( keep_unique_ptr ) // 3a
 		{
-			ret.method_ = function_storage::unique_ptr;
 			::new ( &ret.base_ ) unique_heap_type(
 				_base->copy_to_unique( ) );
 			ret.ptr_ = reinterpret_cast< unique_heap_type* >(
-				&base_
+				&ret.base_
 			)->get( );
+			ret.method_ = function_storage::unique_ptr;
 		}
 		else if ( convert_unique_to_shared_ptr ) // 3b
 		{
@@ -718,64 +736,57 @@ public:
 				reinterpret_cast< unique_heap_type* >( &base_ );
 
 			shared_heap_type rebound( this_unique_ptr->release( ) );
+			method_ = function_storage::uninitialized;
 			this_unique_ptr->~unique_ptr( );
 
-			method_ = function_storage::shared_ptr;
 			::new ( &base_ ) shared_heap_type( rebound );
 			ptr_ = rebound.get( );
+			method_ = function_storage::shared_ptr;
 
 			ret.method_ = function_storage::shared_ptr;
 			::new ( &ret.base_ ) shared_heap_type( rebound );
 			ret.ptr_ = rebound.get( );
+			method_ = function_storage::shared_ptr;
 		}
 		else // 4
 		{
 			auto this_shared_ptr =
 				reinterpret_cast< shared_heap_type* >( &base_ );
 
-			ret.method_ = function_storage::shared_ptr;
 			::new ( &ret.base_ ) shared_heap_type(
 				*this_shared_ptr );
 			ret.ptr_ = this_shared_ptr->get( );
+			ret.method_ = function_storage::shared_ptr;
 		}
 
 		return ret;
 	}
 
-	any_function& operator=( any_function&& ref ) noexcept
+	any_function& operator=( any_function&& ref )
 	{
 		return _move_from( std::move( ref ) );
 	}
 
-	any_function& operator=( const any_function& ref ) noexcept
+	any_function& operator=( const any_function& ref )
 	{
 		return _copy_from( ref );
 	}
 
-	template< bool _Shared = Shared >
-	typename std::enable_if< !_Shared && !Shared, this_type >::type&
-	operator=( any_function< Signature, true, TotalSize >&& other )
-	noexcept
+	template< bool _Shared = Shared::value >
+	typename std::enable_if< !_Shared && !Shared::value, this_type >::type&
+	operator=( shared_type&& other )
 	{
 		return _move_from_shared( std::move( other ) );
 	}
 
-	template< bool _Shared = Shared >
-	typename std::enable_if< !_Shared && !Shared, this_type >::type&
-	operator=( const any_function< Signature, true, TotalSize >& other )
-	noexcept
+	template< bool _Shared = Shared::value >
+	typename std::enable_if< !_Shared && !Shared::value, this_type >::type&
+	operator=( const shared_type& other )
 	{
 		return _copy_from_shared( other );
 	}
 
-	template< typename... Args >
-	typename std::enable_if<
-		arguments< Args... >::template is_convertible_to<
-			argument_types
-		>::value,
-		return_type
-	>::type
-	operator( )( Args&&... args )
+	Ret operator( )( Args... args )
 	{
 		if ( !*this )
 			detail::_throw_bad_function_call_exception( );
@@ -804,7 +815,7 @@ public:
 	}
 
 private:
-	template< typename, bool, std::size_t >
+	template< typename, typename, typename, typename, typename... >
 	friend class any_function;
 
 	template< function_storage method, typename Fn >
@@ -814,6 +825,7 @@ private:
 	_set_plain( Fn&& fn )
 	{
 		sig_ = static_cast< Signature* >( std::forward< Fn >( fn ) );
+		method_ = method;
 	}
 
 	template< function_storage method, typename Fn >
@@ -843,29 +855,29 @@ private:
 		method_ = function_storage::uninitialized;
 	}
 
-	any_function& _move_from( any_function&& ref ) noexcept
+	any_function& _move_from( any_function&& ref )
 	{
 		if ( &ref == this )
 			return *this;
 
 		_reset( );
 
-		method_ = ref.method_;
+		auto om = ref.method_;
 
-		if ( method_ == function_storage::uninitialized )
+		if ( om == function_storage::uninitialized )
 			return *this;
 
-		else if ( method_ == function_storage::plain )
+		else if ( om == function_storage::plain )
 		{
 			sig_ = ref.sig_;
 		}
-		else if ( method_ == function_storage::inlined )
+		else if ( om == function_storage::inlined )
 		{
 			auto ref_base = ref._get_base( );
 
 			ptr_ = ref_base->move_to( &base_ );
 		}
-		else if ( method_ == function_storage::unique_ptr )
+		else if ( om == function_storage::unique_ptr )
 		{
 			auto ref_unique_ptr =
 				reinterpret_cast< unique_heap_type* >(
@@ -877,7 +889,7 @@ private:
 			ptr_ = reinterpret_cast< unique_heap_type* >( &base_ )
 				->get( );
 		}
-		else if ( method_ == function_storage::shared_ptr )
+		else if ( om == function_storage::shared_ptr )
 		{
 			auto ref_shared_ptr =
 				reinterpret_cast< shared_heap_type* >(
@@ -889,6 +901,8 @@ private:
 			ptr_ = reinterpret_cast< shared_heap_type* >( &base_ )
 				->get( );
 		}
+
+		method_ = om;
 
 		ref._reset( );
 
@@ -907,23 +921,23 @@ private:
 	 *                keep it a unique_ptr (b)
 	 * 4. shared_ptr: Keep
 	 */
-	any_function& _copy_from( const any_function& ref ) noexcept
+	any_function& _copy_from( const any_function& ref )
 	{
-		static_assert( Shared, "q::unique_function is not copyable" );
-
 		if ( &ref == this )
 			return *this;
 
 		_reset( );
 
-		method_ = ref.method_;
+		auto om = ref.method_;
 
-		if ( method_ == function_storage::uninitialized )
+		if ( om == function_storage::uninitialized )
+		{
 			return *this;
-
-		else if ( method_ == function_storage::plain ) // 1
+		}
+		else if ( om == function_storage::plain ) // 1
 		{
 			sig_ = ref.sig_;
+			method_ = om;
 			return *this;
 		}
 
@@ -933,14 +947,14 @@ private:
 		const bool is_mutable = _base->is_mutable( );
 
 		const bool keep_unique_ptr =
-			method_ == function_storage::unique_ptr &&
+			om == function_storage::unique_ptr &&
 			is_copyable &&
 			is_mutable; // 3b
 		const bool convert_unique_ptr_to_shared_ptr =
-			method_ == function_storage::unique_ptr &&
+			om == function_storage::unique_ptr &&
 			!keep_unique_ptr; // 3a
 
-		if ( method_ == function_storage::inlined ) // 2
+		if ( om == function_storage::inlined ) // 2
 		{
 			ptr_ = _base->copy_to( &base_ );
 		}
@@ -949,11 +963,12 @@ private:
 			// This is the first time we copy this function, so we
 			// copy this unique_ptr to shared_ptr and then rely on
 			// copying (ref-increment) that.
-			method_ = function_storage::shared_ptr;
 			::new ( &base_ ) shared_heap_type(
 				_base->copy_to_shared( ) );
 			ptr_ = reinterpret_cast< shared_heap_type* >( &base_ )
 					->get( );
+			method_ = function_storage::shared_ptr;
+			return *this;
 		}
 		else if ( keep_unique_ptr ) // 3b
 		{
@@ -962,7 +977,7 @@ private:
 			ptr_ = reinterpret_cast< unique_heap_type* >( &base_ )
 					->get( );
 		}
-		else if ( method_ == function_storage::shared_ptr ) // 4
+		else if ( om == function_storage::shared_ptr ) // 4
 		{
 			auto ref_shared_ptr =
 				reinterpret_cast< const shared_heap_type* >(
@@ -973,6 +988,8 @@ private:
 			ptr_ = reinterpret_cast< shared_heap_type* >( &base_ )
 				->get( );
 		}
+
+		method_ = om;
 
 		return *this;
 	}
@@ -988,10 +1005,9 @@ private:
 	 *                                   otherwise convert to inlined if
 	 *                                   there's room for it.
 	 */
-	template< bool _Shared = Shared >
-	typename std::enable_if< !_Shared && !Shared, this_type >::type&
-	_move_from_shared( any_function< Signature, true, TotalSize >&& other )
-	noexcept
+	template< bool _Shared = Shared::value >
+	typename std::enable_if< !_Shared && !Shared::value, this_type >::type&
+	_move_from_shared( shared_type&& other )
 	{
 		_reset( );
 
@@ -1001,8 +1017,8 @@ private:
 
 		else if ( om == function_storage::plain ) // 1
 		{
-			method_ = om;
 			sig_ = other.sig_;
+			method_ = om;
 			other._reset( );
 			return *this;
 		}
@@ -1013,8 +1029,8 @@ private:
 		{
 			// We can place it inline, and later allow copying it
 			// if necessary.
-			method_ = function_storage::inlined;
 			ptr_ = other_base->move_to( &base_ );
+			method_ = function_storage::inlined;
 			other._reset( );
 			return *this;
 		}
@@ -1024,11 +1040,11 @@ private:
 			auto& other_unique_ptr =
 				*reinterpret_cast< unique_heap_type* >(
 					&other.base_ );
-			method_ = function_storage::unique_ptr;
 			::new ( &base_ ) unique_heap_type(
 				std::move( other_unique_ptr ) );
 			ptr_ = reinterpret_cast< unique_heap_type* >( &base_ )
 					->get( );
+			method_ = function_storage::unique_ptr;
 			other._reset( );
 			return *this;
 		}
@@ -1052,16 +1068,16 @@ private:
 
 		if ( should_inline )
 		{
-			method_ = function_storage::inlined;
 			ptr_ = other_base->move_to( &base_ );
+			method_ = function_storage::inlined;
 		}
 		else
 		{
-			method_ = function_storage::shared_ptr;
 			::new ( &base_ ) shared_heap_type(
 				std::move( *other_shared_ptr ) );
 			ptr_ = reinterpret_cast< shared_heap_type* >( &base_ )
 				->get( );
+			method_ = function_storage::shared_ptr;
 		}
 
 		other._reset( );
@@ -1077,10 +1093,9 @@ private:
 	 * 2. {shared -> unique} unique_ptr: Keep unique_ptr
 	 * 3. {shared -> unique} shared_ptr: Keep shared_ptr
 	 */
-	template< bool _Shared = Shared >
-	typename std::enable_if< !_Shared && !Shared, this_type >::type&
-	_copy_from_shared( const any_function< Signature, true, TotalSize >& other )
-	noexcept
+	template< bool _Shared = Shared::value >
+	typename std::enable_if< !_Shared && !Shared::value, this_type >::type&
+	_copy_from_shared( const shared_type& other )
 	{
 		_reset( );
 
@@ -1090,15 +1105,15 @@ private:
 
 		else if ( om == function_storage::plain ) // 1
 		{
-			method_ = om;
 			sig_ = other.sig_;
+			method_ = om;
 		}
 		else if ( om == function_storage::inlined ) // 2
 		{
 			const auto other_base = other._get_base( );
 
-			method_ = function_storage::inlined;
 			ptr_ = other_base->copy_to( &base_ );
+			method_ = function_storage::inlined;
 		}
 		else if ( om == function_storage::unique_ptr ) // 3
 		{
@@ -1106,11 +1121,11 @@ private:
 				*reinterpret_cast< const unique_heap_type* >(
 					&other.base_ );
 
-			method_ = function_storage::unique_ptr;
 			::new ( &base_ ) unique_heap_type(
 				other_unique_ptr->copy_to_unique( ) );
 			ptr_ = reinterpret_cast< unique_heap_type* >( &base_ )
 				->get( );
+			method_ = function_storage::unique_ptr;
 		}
 		else // 4
 		{
@@ -1118,10 +1133,10 @@ private:
 				reinterpret_cast< const shared_heap_type* >(
 					&other.base_ );
 
-			method_ = function_storage::shared_ptr;
 			::new ( &base_ ) shared_heap_type( *other_shared_ptr );
 			ptr_ = reinterpret_cast< shared_heap_type* >( &base_ )
 				->get( );
+			method_ = function_storage::shared_ptr;
 		}
 
 		return *this;
@@ -1141,24 +1156,34 @@ private:
 	};
 };
 
+template< typename Signature, bool Shared, std::size_t TotalSize >
+using any_function_t = typename ::q::arguments_of_t< Signature >
+	::template prepend<
+		Signature,
+		bool_type_t< Shared >,
+		std::integral_constant< std::size_t, TotalSize >,
+		::q::result_of_t< Signature >
+	>
+	::template apply< any_function >;
+
 } // namespace detail
 
 template< typename Signature >
-using unique_function = detail::any_function<
+using unique_function = detail::any_function_t<
 	Signature,
 	false,
 	LIBQ__FUNCTION_INLINE_SIZE
 >;
 
 template< typename Signature >
-using function = detail::any_function<
+using function = detail::any_function_t<
 	Signature,
 	true,
 	LIBQ__FUNCTION_INLINE_SIZE
 >;
 
 template< typename Signature, bool Shared, std::size_t Words >
-using custom_function = detail::any_function<
+using custom_function = detail::any_function_t<
 	Signature,
 	Shared,
 	// Add three words (two for the any_function, one for the v-table),

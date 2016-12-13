@@ -78,6 +78,34 @@ auto make_lambda_11_size( ) -> lambda< Mutable, payload< Size, Copyable > >
 
 void plain( ) { ++call_count; }
 
+
+TEST( function, looks_like_a_function )
+{
+	q::unique_function< void( ) > u_void_void;
+	q::function< void( ) > s_void_void;
+
+	q::unique_function< q::promise< std::tuple< > >( ) > u_promise_void;
+	q::function< q::promise< std::tuple< > >( ) > s_promise_void;
+
+	q::unique_function< q::promise< std::tuple< > >( int ) > u_promise_int;
+	q::function< q::promise< std::tuple< > >( int ) > s_promise_int;
+
+	EXPECT_TRUE( q::is_function_t< decltype( u_void_void ) >::value );
+	EXPECT_TRUE( q::is_function_t< decltype( s_void_void ) >::value );
+	EXPECT_TRUE( q::is_function_t< decltype( u_promise_void ) >::value );
+	EXPECT_TRUE( q::is_function_t< decltype( s_promise_void ) >::value );
+	EXPECT_TRUE( q::is_function_t< decltype( u_promise_int ) >::value );
+	EXPECT_TRUE( q::is_function_t< decltype( s_promise_int ) >::value );
+}
+
+TEST( function, nullptr )
+{
+	q::unique_function< void( ) > uf_uninitialized( nullptr );
+	q::function< void( ) > f_uninitialized( nullptr );
+	q::unused_variable( uf_uninitialized );
+	q::unused_variable( f_uninitialized );
+}
+
 TEST( function, unique_function_arguments )
 {
 	q::unique_function< void( ) >
@@ -136,6 +164,30 @@ TEST( function, function_arguments )
 	f_two_args_trivial( 1, (double)6.28 ); // Convertible
 	f_two_args_non_trivial( 1, 1 ); // Convertible
 	f_two_args_non_trivial( non_trivial( 1 ), non_trivial( 2 ) );
+}
+
+TEST( function, throw_copy_constructor )
+{
+	std::string s = "hello world";
+	auto throw_copy_constructor_lambda = [ s ]( ) { };
+
+	q::unique_function< void( ) > uf( throw_copy_constructor_lambda );
+	q::function< void( ) > f( throw_copy_constructor_lambda );
+}
+
+TEST( function, throw_move_constructor )
+{
+	struct TMC
+	{
+		constexpr TMC( ) = default;
+		TMC( const TMC& ) = default;
+		TMC( TMC&& )
+		{ }
+	} tmc;
+	auto throw_move_constructor_lambda = [ tmc ]( ) { };
+
+	q::unique_function< void( ) > uf( throw_move_constructor_lambda );
+	q::function< void( ) > f( throw_move_constructor_lambda );
 }
 
 TEST( function, plain_uninitialized_unique )
