@@ -65,6 +65,12 @@ public:
 	 */
 	virtual void set_task_fetcher( task_fetcher_task&& ) = 0;
 
+	/**
+	 * Gets the parallelism of this event_dispatcher, or more precisely,
+	 * the number of threads this dispatcher is using.
+	 */
+	virtual std::size_t parallelism( ) const { return 1; }
+
 protected:
 	basic_event_dispatcher( )
 	{ }
