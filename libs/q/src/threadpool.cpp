@@ -116,6 +116,11 @@ void threadpool::set_task_fetcher( task_fetcher_task&& fetcher )
 	pimpl_->cond_.notify_all( );
 }
 
+std::size_t threadpool::parallelism( ) const
+{
+	return pimpl_->num_threads_;
+}
+
 void threadpool::start( )
 {
 	auto _this = shared_from_this( );

@@ -21,6 +21,8 @@
 #include <q/mutex.hpp>
 #include <q/promise.hpp>
 #include <q/scope.hpp>
+#include <q/concurrency.hpp>
+#include <q/concurrency_counter.hpp>
 
 #include <list>
 #include <queue>
@@ -153,6 +155,7 @@ struct pipe_helper< arguments< From... >, arguments< To... > >
 				};
 
 				r.receive( std::move( on_data ), close )
+				.strip( )
 				.fail( [ abort ]( std::exception_ptr err )
 				mutable
 				{
@@ -243,7 +246,7 @@ public:
 	struct fast_waiter_type
 	: waiter_type
 	{
-		typedef detail::defer< > result_defer_type;
+		typedef detail::defer< bool > result_defer_type;
 
 		typedef bool_type<
 			arguments_type
@@ -316,8 +319,14 @@ public:
 			auto fn = [ deferred, Q_MOVABLE_MOVE( fn_closed ) ]( )
 			mutable
 			{
-				deferred->set_by_fun(
-					Q_MOVABLE_CONSUME( fn_closed ) );
+				deferred->satisfy(
+					promisify(
+						deferred->get_queue( ),
+						Q_MOVABLE_CONSUME( fn_closed )
+					)
+					( )
+					.then( [ ]( ) { return false; } )
+				);
 			};
 
 			deferred->get_queue( )->push( std::move( fn ) );
@@ -333,66 +342,49 @@ public:
 			// If the channel still exists (which should always be
 			// the case), we'll make a proxy promise which detects
 			// exceptions to automatically close the channel.
+			std::function< void( std::exception_ptr ) > cleaner;
 			if ( ch )
-			{
-				auto proxy = ::q::make_shared<
-					result_defer_type
-				>( ch->default_queue_ );
-
-				auto fn_value = std::move( this->fn_value );
-				Q_MOVE_INTO_MOVABLE( fn_value );
-				Q_MOVE_INTO_MOVABLE( t );
-
-				auto fn =
-				[
-					proxy,
-					Q_MOVABLE_MOVE( fn_value ),
-					Q_MOVABLE_MOVE( t )
-				]
-				( ) mutable
+				cleaner = [ ch ]( std::exception_ptr e )
 				{
-					proxy->set_by_fun(
-						Q_MOVABLE_CONSUME( fn_value ),
-						Q_MOVABLE_CONSUME( t )
-					);
+					ch->close( e );
+					ch->clear( );
 				};
-
-				deferred->get_queue( )->push( std::move( fn ) );
-
-				deferred->satisfy(
-					proxy->get_promise( )
-					.tap_error(
-						[ ch ]( std::exception_ptr e )
-						{
-							ch->close( e );
-							ch->clear( );
-						}
-					)
-				);
-			}
 			else
+				cleaner = [ ]( std::exception_ptr ) { };
+
+			const queue_ptr& queue = ch
+				? ch->default_queue_
+				: deferred->get_queue( );
+
+			auto proxy = ::q::make_shared<
+				detail::defer< >
+			>( queue );
+
+			auto fn_value = std::move( this->fn_value );
+			Q_MOVE_INTO_MOVABLE( fn_value );
+			Q_MOVE_INTO_MOVABLE( t );
+
+			auto fn =
+			[
+				proxy,
+				Q_MOVABLE_MOVE( fn_value ),
+				Q_MOVABLE_MOVE( t )
+			]
+			( ) mutable
 			{
-				auto deferred = this->deferred;
-				auto fn_value = std::move( this->fn_value );
-				Q_MOVE_INTO_MOVABLE( fn_value );
-				Q_MOVE_INTO_MOVABLE( t );
+				proxy->set_by_fun(
+					Q_MOVABLE_CONSUME( fn_value ),
+					Q_MOVABLE_CONSUME( t )
+				);
+			};
 
-				auto fn =
-				[
-					deferred,
-					Q_MOVABLE_MOVE( fn_value ),
-					Q_MOVABLE_MOVE( t )
-				]
-				( ) mutable
-				{
-					deferred->set_by_fun(
-						Q_MOVABLE_CONSUME( fn_value ),
-						Q_MOVABLE_CONSUME( t )
-					);
-				};
+			deferred->get_queue( )->push( std::move( fn ) );
 
-				deferred->get_queue( )->push( std::move( fn ) );
-			}
+			deferred->satisfy(
+				proxy->get_promise( )
+				.then( [ ]( ) { return true; } )
+				.tap_error( cleaner )
+			);
 		}
 
 		template< typename _FnValue, typename _FnClosed >
@@ -610,7 +602,7 @@ public:
 			decayed_function_t< FnValue >,
 			decayed_function_t< FnClosed >
 		>::callbacks_are_valid::value,
-		promise< std::tuple< > >
+		promise< std::tuple< bool > >
 	>::type
 	receive( FnValue&& fn_value, FnClosed&& fn_closed )
 	{
@@ -629,7 +621,7 @@ public:
 			{
 				if ( std::get< 0 >( close_exception_ ) )
 					// There was a real error
-					return reject< arguments< > >(
+					return reject< arguments< bool > >(
 						default_queue_,
 						std::get< 1 >(
 							close_exception_ ) );
@@ -639,7 +631,8 @@ public:
 					auto self = this->shared_from_this( );
 
 					return q::make_promise(
-						default_queue_, fn_closed );
+						default_queue_, fn_closed )
+					.then( [ ]( ) { return false; } );
 				}
 			}
 
@@ -865,6 +858,8 @@ protected:
 
 } // namespace detail
 
+typedef options< concurrency > consume_options;
+
 template< typename... T >
 class readable
 {
@@ -931,7 +926,7 @@ public:
 			::inner_callbacks_are_valid::value
 		and
 		!IsPromise,
-		promise< std::tuple< > >
+		promise< std::tuple< bool > >
 	>::type
 	receive( FnValue&& fn_value, FnClosed&& fn_closed )
 	{
@@ -952,7 +947,7 @@ public:
 			::inner_callbacks_are_valid::value
 		and
 		IsPromise,
-		promise< std::tuple< > >
+		promise< std::tuple< bool > >
 	>::type
 	receive( FnValue&& fn_value, FnClosed&& fn_closed )
 	{
@@ -984,6 +979,251 @@ public:
 			std::move( on_value ),
 			std::forward< FnClosed >( fn_closed )
 		);
+	}
+
+	template< typename Fn >
+	typename std::enable_if<
+		detail::shared_channel< T... >
+			::template fast_waiter_type< Fn, function< void( ) > >
+			::inner_callbacks_are_valid::value,
+		promise< std::tuple< > >
+	>::type
+	consume( Fn&& fn, consume_options options = consume_options( ) )
+	{
+		readable< T... > self = *this;
+
+		auto _fn = decay_function( fn );
+		auto _concurrency = options.get< concurrency >( ).get( );
+
+		auto counter =
+			std::make_shared< concurrency_counter >(
+				get_queue( ), _concurrency );
+
+		auto cb =
+			[ self, _fn ]
+			( resolver< > resolve, rejecter< > reject )
+			mutable
+		{
+			auto recurser = std::make_shared<
+				function< promise< std::tuple< > >( ) >
+			>( );
+
+			auto completer = [ recurser, resolve ]( ) mutable
+			{
+				recurser.reset( );
+				resolve( );
+			};
+
+			auto failer =
+				[ recurser, reject ]
+				( std::exception_ptr err )
+				mutable
+			{
+				recurser.reset( );
+				reject( std::move( err ) );
+			};
+
+			auto recurser_fn =
+				[ self, _fn, recurser, completer, failer ]
+				( )
+				mutable
+			{
+				return self.receive( _fn, completer )
+				.then( [ self, recurser ]( bool got_data )
+				mutable
+				{
+					if ( got_data )
+						return ( *recurser )( );
+					else
+						return q::with(
+							self.get_queue( ) );
+				} )
+				.fail( failer );
+			};
+
+			*recurser = std::move( recurser_fn );
+
+			ignore_result( ( *recurser )( ) );
+		};
+
+		auto cb_concurrent =
+			[ self, _fn, counter ]
+			( resolver< > resolve, rejecter< > reject )
+			mutable
+		{
+			typedef function< promise< std::tuple< > >( ) >
+				function_type;
+
+			struct recurse_type
+			{
+				mutex mut_;
+				function_type fn_;
+
+				function_type get( )
+				{
+					Q_AUTO_UNIQUE_LOCK( mut_ );
+					return fn_;
+				}
+
+				void clear( )
+				{
+					auto tmp = get( );
+					{
+						Q_AUTO_UNIQUE_LOCK( mut_ );
+						fn_ = function_type( );
+					}
+				}
+			};
+
+			struct completion_type
+			{
+				enum class type
+				{
+					pending = 0,
+					complete = 1,
+					failed = 2,
+				};
+
+				std::atomic< type > type_;
+				std::atomic< bool > has_exception_;
+				std::exception_ptr exception_;
+				resolver< > resolve_;
+				rejecter< > reject_;
+
+				completion_type(
+					resolver< > resolve, rejecter< > reject
+				)
+				: type_( type::pending )
+				, has_exception_( false )
+				, exception_( )
+				, resolve_( std::move( resolve ) )
+				, reject_( std::move( reject ) )
+				{ }
+
+				void register_resolved( )
+				{
+					auto expected = type::pending;
+					type_.compare_exchange_strong(
+						expected, type::complete );
+				}
+
+				void register_rejected( std::exception_ptr err )
+				{
+					bool expected_err = false;
+					auto changed = has_exception_
+						.compare_exchange_strong(
+							expected_err, true );
+
+					if ( !changed )
+						return;
+
+					exception_ = err;
+
+					auto expected = type::pending;
+					type_.compare_exchange_strong(
+						expected, type::complete );
+				}
+
+				void try_complete( )
+				{
+					type _type = type_;
+
+					if ( _type == type::pending )
+						return;
+					else if ( _type == type::complete )
+						resolve_( );
+					else if ( _type == type::failed )
+						reject_( exception_ );
+				}
+			};
+
+			auto recurser = std::make_shared< recurse_type >( );
+			auto end = std::make_shared< completion_type >(
+				resolve, reject );
+
+			counter->set_zero_function( [ end ]( )
+			{
+				end->try_complete( );
+			} );
+
+			auto completer = [ recurser, end, counter ]( ) mutable
+			{
+				end->register_resolved( );
+				recurser->clear( );
+				if ( counter->get( ) == 0 )
+					end->try_complete( );
+			};
+
+			auto failer =
+				[ recurser, end, counter ]
+				( std::exception_ptr err )
+				mutable
+			{
+				end->register_rejected( std::move( err ) );
+				recurser->clear( );
+				if ( counter->get( ) == 0 )
+					end->try_complete( );
+			};
+
+			auto recurser_fn =
+				[
+					self,
+					_fn,
+					counter,
+					recurser,
+					completer,
+					failer
+				]
+				( )
+				mutable
+			{
+				queue_ptr queue = self.get_queue( );
+
+				auto on_value =
+				[ _fn, counter, failer, queue ]
+				( tuple_type&& value )
+				mutable
+				{
+					counter->inc( );
+
+					q::with( queue, std::move( value ) )
+					.then( std::move( _fn ) )
+					.fail( failer )
+					.finally( [ counter ]( )
+					{
+						counter->dec( );
+					} );
+
+					return counter->get_promise( );
+				};
+
+				return self.receive( on_value, completer )
+				.then( [ queue, recurser ]( bool got_data )
+				mutable
+				{
+					if ( got_data )
+					{
+						auto recurse = recurser->get( );
+						if ( recurse )
+							return recurse( );
+					}
+
+					return q::with( queue );
+				} )
+				.fail( failer );
+			};
+
+			recurser->fn_ = std::move( recurser_fn );
+
+			ignore_result( recurser->get( )( ) );
+		};
+
+		if ( _concurrency == 1 )
+			return q::make_promise(
+				get_queue( ), std::move( cb ) );
+		else
+			return q::make_promise(
+				get_queue( ), std::move( cb_concurrent ) );
 	}
 
 	template< typename... U >

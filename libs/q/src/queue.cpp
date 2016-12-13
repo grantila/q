@@ -31,11 +31,13 @@ struct queue::pimpl
 	pimpl( priority_t priority )
 	: priority_( priority )
 	, mutex_( Q_HERE, "queue mutex" )
+	, parallelism_( 1 )
 	{ }
 
 	const priority_t priority_;
 	mutex mutex_;
 	queue::notify_type notify_;
+	std::size_t parallelism_;
 	std::queue< task > queue_;
 	std::queue< timer_task > timer_task_queue_;
 };
@@ -92,11 +94,12 @@ priority_t queue::priority( ) const
 	return pimpl_->priority_;
 }
 
-void queue::set_consumer( queue::notify_type fn )
+void queue::set_consumer( queue::notify_type fn, std::size_t parallelism )
 {
 	Q_AUTO_UNIQUE_LOCK( pimpl_->mutex_, Q_HERE, "queue::set_consumer" );
 
 	pimpl_->notify_ = fn;
+	pimpl_->parallelism_ = parallelism;
 }
 
 bool queue::empty( )
@@ -118,13 +121,18 @@ timer_task queue::pop( )
 	}
 
 	if ( pimpl_->queue_.empty( ) )
-		return task( );
+		return timer_task( );
 
 	timer_task task = std::move( pimpl_->queue_.front( ) );
 
 	pimpl_->queue_.pop( );
 
 	return task;
+}
+
+std::size_t queue::parallelism( ) const
+{
+	return pimpl_->parallelism_;
 }
 
 } // namespace q

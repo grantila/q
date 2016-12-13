@@ -90,11 +90,13 @@ public:
 	 * Sets a function callback as consumer of the queue. The queue will
 	 * call this function each time a task is added to the queue.
 	 */
-	void set_consumer( notify_type fn );
+	void set_consumer( notify_type fn, std::size_t parallelism );
 
 	bool empty( );
 
 	timer_task pop( );
+
+	std::size_t parallelism( ) const;
 
 protected:
 	queue( priority_t priority = 0 );

@@ -78,6 +78,26 @@ auto make_lambda_11_size( ) -> lambda< Mutable, payload< Size, Copyable > >
 
 void plain( ) { ++call_count; }
 
+
+TEST( function, looks_like_a_function )
+{
+	q::unique_function< void( ) > u_void_void;
+	q::function< void( ) > s_void_void;
+
+	q::unique_function< q::promise< std::tuple< > >( ) > u_promise_void;
+	q::function< q::promise< std::tuple< > >( ) > s_promise_void;
+
+	q::unique_function< q::promise< std::tuple< > >( int ) > u_promise_int;
+	q::function< q::promise< std::tuple< > >( int ) > s_promise_int;
+
+	EXPECT_TRUE( q::is_function_t< decltype( u_void_void ) >::value );
+	EXPECT_TRUE( q::is_function_t< decltype( s_void_void ) >::value );
+	EXPECT_TRUE( q::is_function_t< decltype( u_promise_void ) >::value );
+	EXPECT_TRUE( q::is_function_t< decltype( s_promise_void ) >::value );
+	EXPECT_TRUE( q::is_function_t< decltype( u_promise_int ) >::value );
+	EXPECT_TRUE( q::is_function_t< decltype( s_promise_int ) >::value );
+}
+
 TEST( function, nullptr )
 {
 	q::unique_function< void( ) > uf_uninitialized( nullptr );
