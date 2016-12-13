@@ -1176,3 +1176,56 @@ TEST_F( channel, consume_two_types )
 
 	run( readable.consume( EXPECT_N_CALLS_WRAPPER( 2, on_value ) ) );
 }
+
+TEST_F( channel, consume_one_type_concurrent )
+{
+	q::channel< int > ch( queue, 10 );
+
+	auto readable = ch.get_readable( );
+	auto writable = ch.get_writable( );
+
+	std::vector< int > expected{
+		1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+		11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
+		21, 22, 23, 24, 25, 26, 27, 28, 29, 30
+	};
+	std::size_t counter = 0;
+	std::atomic< std::size_t > active( 0 );
+	std::atomic< std::size_t > active_acc( 0 );
+
+	for ( auto i : expected )
+		EXPECT_TRUE( writable.send( i ) );
+	writable.close( );
+
+	auto queue = this->queue;
+	auto bg_queue = this->tp_queue;
+
+	auto on_value = [ & ]( int i )
+	-> q::promise< std::tuple< > >
+	{
+		EXPECT_EQ( expected[ counter ], i );
+		++counter;
+
+		++active;
+		active_acc += ( active - 1 );
+
+		return q::with( queue )
+		.delay( std::chrono::milliseconds( 1 ), bg_queue )
+		.finally( [ &, i ]( )
+		{
+			--active;
+		} );
+	};
+
+	run(
+		readable
+		.consume(
+			EXPECT_N_CALLS_WRAPPER( expected.size( ), on_value ),
+			{ q::concurrency( 2 ) }
+		)
+		.then( [ & ]( )
+		{
+			EXPECT_GT( active_acc, 0 );
+		} )
+	);
+}
