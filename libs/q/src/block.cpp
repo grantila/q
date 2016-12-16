@@ -77,6 +77,16 @@ byte_block::byte_block(
 , ptr_( data_.get( ) )
 { }
 
+byte_block::byte_block(
+	std::size_t offset,
+	std::size_t size,
+	std::shared_ptr< const std::uint8_t > data
+)
+: size_( size )
+, data_( data )
+, ptr_( data_.get( ) + offset )
+{ }
+
 void byte_block::advance( std::size_t amount )
 {
 	if ( amount > size_ )
@@ -95,6 +105,52 @@ std::size_t byte_block::size( ) const
 std::uint8_t const* byte_block::data( ) const
 {
 	return ptr_;
+}
+
+byte_block byte_block::slice( std::size_t offset, std::size_t length ) const
+{
+	if ( offset + length > size( ) )
+		Q_THROW( std::out_of_range(
+			"byte_block::slice cannot slice out of buffer" ) );
+
+	std::size_t new_offset = ( ptr_ - data_.get( ) ) + offset;
+
+	return byte_block( new_offset, length, data_ );
+}
+
+byte_block byte_block::slice( std::size_t offset ) const
+{
+	return slice( offset, size( ) - offset );
+}
+
+byte_block byte_block::slice_printable_ascii( ) const
+{
+	return slice_printable_ascii( size( ) );
+}
+
+byte_block byte_block::slice_printable_ascii( std::size_t max_length ) const
+{
+	max_length = std::min( max_length, size( ) );
+	std::size_t new_size = max_length;
+
+	// Printable ASCII characters are 10, 13 and 32-126.
+	// A mask 0-31 or 128-255, and then a special case for 10, 13 and 127
+	// will do.
+	// This can be improved by search for whole words though.
+	static const std::uint8_t mask = 0b01100000;
+
+	for ( std::size_t i = 0; i < max_length; ++i )
+		if (
+			( !( ptr_[ i ] & mask ) || ptr_[ i ] == 127 )
+			&&
+			( ptr_[ i ] != 10 && ptr_[ i ] != 13 )
+		)
+		{
+			new_size = i;
+			break;
+		}
+
+	return slice( 0, new_size );
 }
 
 std::string byte_block::to_string( ) const
