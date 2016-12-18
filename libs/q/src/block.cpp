@@ -21,34 +21,71 @@
 
 namespace q {
 
+namespace {
+
+template< typename Deleter >
+std::shared_ptr< const std::uint8_t >
+wrap_shared( std::uint8_t const* ptr, Deleter&& deleter )
+{
+	return std::shared_ptr< const std::uint8_t >(
+		ptr, std::forward< Deleter >( deleter ) );
+}
+
+std::shared_ptr< const std::uint8_t > wrap_shared( std::uint8_t const* ptr )
+{
+	return wrap_shared( ptr, [ ]( std::uint8_t const* ptr )
+	{
+		delete[ ] ptr;
+	} );
+}
+
+std::shared_ptr< const std::uint8_t > alloc_shared( std::size_t size )
+{
+	auto xdata = q::make_unique< std::uint8_t[ ] >( size );
+	auto data = std::unique_ptr< std::uint8_t const[ ] >( std::move( xdata ) );
+	auto shared_data = wrap_shared( data.get( ), data.get_deleter( ) );
+	data.release( );
+	return shared_data;
+}
+
+} // anonymous namespace
+
 byte_block::byte_block( )
-: offset_( 0 )
-, size_( 0 )
+: size_( 0 )
+, ptr_( nullptr )
 { }
 
 byte_block::byte_block( const std::string& s )
-: offset_( 0 )
-, size_( s.size( ) )
+: size_( s.size( ) )
+, data_( alloc_shared( size_ ) )
+, ptr_( data_.get( ) )
 {
-	data_.resize( size_ );
-	std::memcpy( &data_[ 0 ], s.data( ), size_ );
+	std::memcpy( const_cast< std::uint8_t* >( ptr_ ), s.data( ), size_ );
 }
 
-byte_block::byte_block( std::size_t size )
-: offset_( 0 )
-, size_( size )
-{
-	data_.resize( size, 0 );
-}
+byte_block::byte_block( std::size_t size, std::uint8_t const* data )
+: size_( size )
+, data_( wrap_shared( data ) )
+, ptr_( data_.get( ) )
+{ }
 
-void byte_block::resize( std::size_t new_size )
-{
-	if ( new_size > size_ )
-		Q_THROW( std::out_of_range(
-			"byte_block::resize can only shrink, not grow" ) );
+byte_block::byte_block(
+	std::size_t size, std::shared_ptr< const std::uint8_t > data
+)
+: size_( size )
+, data_( data )
+, ptr_( data_.get( ) )
+{ }
 
-	size_ = new_size;
-}
+byte_block::byte_block(
+	std::size_t offset,
+	std::size_t size,
+	std::shared_ptr< const std::uint8_t > data
+)
+: size_( size )
+, data_( data )
+, ptr_( data_.get( ) + offset )
+{ }
 
 void byte_block::advance( std::size_t amount )
 {
@@ -56,7 +93,7 @@ void byte_block::advance( std::size_t amount )
 		Q_THROW( std::out_of_range(
 			"byte_block::advance cannot advance out of buffer" ) );
 
-	offset_ += amount;
+	ptr_ += amount;
 	size_ -= amount;
 }
 
@@ -65,21 +102,60 @@ std::size_t byte_block::size( ) const
 	return size_;
 }
 
-std::uint8_t* byte_block::data( )
-{
-	return &data_[ 0 ];
-}
-
 std::uint8_t const* byte_block::data( ) const
 {
-	return &data_[ 0 ];
+	return ptr_;
+}
+
+byte_block byte_block::slice( std::size_t offset, std::size_t length ) const
+{
+	if ( offset + length > size( ) )
+		Q_THROW( std::out_of_range(
+			"byte_block::slice cannot slice out of buffer" ) );
+
+	std::size_t new_offset = ( ptr_ - data_.get( ) ) + offset;
+
+	return byte_block( new_offset, length, data_ );
+}
+
+byte_block byte_block::slice( std::size_t offset ) const
+{
+	return slice( offset, size( ) - offset );
+}
+
+byte_block byte_block::slice_printable_ascii( ) const
+{
+	return slice_printable_ascii( size( ) );
+}
+
+byte_block byte_block::slice_printable_ascii( std::size_t max_length ) const
+{
+	max_length = std::min( max_length, size( ) );
+	std::size_t new_size = max_length;
+
+	// Printable ASCII characters are 10, 13 and 32-126.
+	// A mask 0-31 or 128-255, and then a special case for 10, 13 and 127
+	// will do.
+	// This can be improved by search for whole words though.
+	static const std::uint8_t mask = 0b01100000;
+
+	for ( std::size_t i = 0; i < max_length; ++i )
+		if (
+			( !( ptr_[ i ] & mask ) || ptr_[ i ] == 127 )
+			&&
+			( ptr_[ i ] != 10 && ptr_[ i ] != 13 )
+		)
+		{
+			new_size = i;
+			break;
+		}
+
+	return slice( 0, new_size );
 }
 
 std::string byte_block::to_string( ) const
 {
-	return std::string(
-		reinterpret_cast< const char* >( &data_[ 0 ] + offset_ ),
-		size( ) );
+	return std::string( reinterpret_cast< const char* >( ptr_ ), size( ) );
 }
 
 } // namespace q

@@ -27,15 +27,34 @@ class byte_block
 public:
 	byte_block( );
 	byte_block( const std::string& s );
-	byte_block( std::size_t size );
+	byte_block( std::size_t size, std::uint8_t const* data );
+	byte_block(
+		std::size_t size, std::shared_ptr< const std::uint8_t > data );
 
-	void resize( std::size_t new_size );
 	void advance( std::size_t amount );
 
 	std::size_t size( ) const;
 
-	std::uint8_t* data( );
 	std::uint8_t const* data( ) const;
+
+	/**
+	 * Returns a new byte_block which is a slice of this byte_block.
+	 * Will throw `std::out_of_range` if the offset and length aren't
+	 * within the boundaries of this byte_block.
+	 *
+	 * If `length` is not provided, it will use the entire length of the
+	 * byte_block.
+	 */
+	byte_block slice( std::size_t offset, std::size_t length ) const;
+	byte_block slice( std::size_t offset ) const;
+
+	/**
+	 * Slices this byte_block to a new byte_block from first byte up to but
+	 * not including the first byte which is not printable ASCII.
+	 * This may be a zero sized byte_block.
+	 */
+	byte_block slice_printable_ascii( ) const;
+	byte_block slice_printable_ascii( std::size_t max_length ) const;
 
 	/**
 	 * Converts this byte block to a string. NOTE; This is not safe for
@@ -45,9 +64,15 @@ public:
 	std::string to_string( ) const;
 
 private:
-	std::vector< std::uint8_t > data_;
-	std::size_t offset_;
+	byte_block(
+		std::size_t offset,
+		std::size_t size,
+		std::shared_ptr< const std::uint8_t > data
+	);
+
 	std::size_t size_;
+	std::shared_ptr< const std::uint8_t > data_;
+	std::uint8_t const* ptr_;
 };
 
 } // namespace q

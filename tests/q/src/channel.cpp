@@ -1198,7 +1198,6 @@ TEST_F( channel, consume_one_type_concurrent )
 	writable.close( );
 
 	auto queue = this->queue;
-	auto bg_queue = this->tp_queue;
 
 	auto on_value = [ & ]( int i )
 	-> q::promise< std::tuple< > >
@@ -1210,7 +1209,7 @@ TEST_F( channel, consume_one_type_concurrent )
 		active_acc += ( active - 1 );
 
 		return q::with( queue )
-		.delay( std::chrono::milliseconds( 1 ), bg_queue )
+		.delay( std::chrono::milliseconds( 1 ) )
 		.finally( [ &, i ]( )
 		{
 			--active;
