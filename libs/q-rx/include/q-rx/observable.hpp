@@ -52,6 +52,26 @@
 #include <q-rx/observable/transformers/group_by.hpp>
 #include <q-rx/observable/transformers/map.hpp>
 
+#include <q-rx/observable/filters/debounce.hpp>
+#include <q-rx/observable/filters/distinct.hpp>
+#include <q-rx/observable/filters/element_at.hpp>
+#include <q-rx/observable/filters/filter.hpp>
+#include <q-rx/observable/filters/first.hpp>
+#include <q-rx/observable/filters/ignore_elements.hpp>
+#include <q-rx/observable/filters/last.hpp>
+#include <q-rx/observable/filters/sample.hpp>
+#include <q-rx/observable/filters/skip.hpp>
+#include <q-rx/observable/filters/skip_last.hpp>
+#include <q-rx/observable/filters/take.hpp>
+#include <q-rx/observable/filters/take_last.hpp>
+
+#include <q-rx/observable/combiners/and_then_when.hpp>
+#include <q-rx/observable/combiners/combine_latest.hpp>
+#include <q-rx/observable/combiners/join.hpp>
+#include <q-rx/observable/combiners/merge.hpp>
+#include <q-rx/observable/combiners/start_with.hpp>
+#include <q-rx/observable/combiners/zip.hpp>
+
 #include <q-rx/observable/consumers/consume.hpp>
 
 #endif // LIBQ_RX_OBSERVABLE_HPP
