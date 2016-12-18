@@ -1269,7 +1269,7 @@ public:
 		shared_channel_->add_scope_until_closed( std::move( scope ) );
 	}
 
-	queue_ptr get_queue( ) const
+	const queue_ptr& get_queue( ) const
 	{
 		return shared_channel_->get_queue( );
 	}
