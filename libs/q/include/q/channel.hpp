@@ -746,7 +746,7 @@ public:
 	}
 
 	Q_NODISCARD
-	queue_ptr get_queue( ) const
+	const queue_ptr& get_queue( ) const
 	{
 		return default_queue_;
 	}
@@ -879,6 +879,7 @@ public:
 	readable& operator=( readable&& ) = default;
 
 	template< bool IsPromise = is_promise::value >
+	Q_NODISCARD
 	typename std::enable_if<
 		!IsPromise,
 		promise_type
@@ -889,6 +890,7 @@ public:
 	}
 
 	template< bool IsPromise = is_promise::value >
+	Q_NODISCARD
 	typename std::enable_if<
 		IsPromise,
 		promise_type
@@ -920,6 +922,7 @@ public:
 		typename FnClosed,
 		bool IsPromise = is_promise::value
 	>
+	Q_NODISCARD
 	typename std::enable_if<
 		detail::shared_channel< T... >
 			::template fast_waiter_type< FnValue, FnClosed >
@@ -941,6 +944,7 @@ public:
 		typename FnClosed,
 		bool IsPromise = is_promise::value
 	>
+	Q_NODISCARD
 	typename std::enable_if<
 		detail::shared_channel< T... >
 			::template fast_waiter_type< FnValue, FnClosed >
@@ -982,6 +986,7 @@ public:
 	}
 
 	template< typename Fn >
+	Q_NODISCARD
 	typename std::enable_if<
 		detail::shared_channel< T... >
 			::template fast_waiter_type< Fn, function< void( ) > >
@@ -1237,16 +1242,19 @@ public:
 			::pipe( *this, writable );
 	}
 
+	Q_NODISCARD
 	std::size_t buffer_count( ) const
 	{
 		return shared_channel_->buffer_count( );
 	}
 
+	Q_NODISCARD
 	bool is_closed( ) const
 	{
 		return shared_channel_->is_closed( );
 	}
 
+	Q_NODISCARD
 	std::exception_ptr get_exception( ) const
 	{
 		return shared_channel_->get_exception( );
@@ -1269,6 +1277,7 @@ public:
 		shared_channel_->add_scope_until_closed( std::move( scope ) );
 	}
 
+	Q_NODISCARD
 	const queue_ptr& get_queue( ) const
 	{
 		return shared_channel_->get_queue( );
@@ -1430,6 +1439,7 @@ public:
 	 * (stripped from void_t)
 	 */
 	template< typename Tuple >
+	Q_NODISCARD
 	typename std::enable_if<
 		is_promise::value
 		and
@@ -1539,7 +1549,8 @@ public:
 		shared_channel_->add_scope_until_closed( std::move( scope ) );
 	}
 
-	queue_ptr get_queue( ) const
+	Q_NODISCARD
+	const queue_ptr& get_queue( ) const
 	{
 		return shared_channel_->get_queue( );
 	}
@@ -1612,7 +1623,7 @@ public:
 		shared_channel_->add_scope_until_closed( std::move( scope ) );
 	}
 
-	queue_ptr get_queue( ) const
+	const queue_ptr& get_queue( ) const
 	{
 		return shared_channel_->get_queue( );
 	}
