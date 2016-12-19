@@ -28,6 +28,8 @@
 #include <q/concurrency.hpp>
 #include <q/timer.hpp>
 
+#define Q_RX_DEFAULT_BACKLOG 10
+
 #include <q-rx/types.hpp>
 #include <q-rx/core/core.hpp>
 
@@ -45,6 +47,7 @@
 #include <q-rx/observable/creators/range.hpp>
 #include <q-rx/observable/creators/repeat.hpp>
 #include <q-rx/observable/creators/start.hpp>
+#include <q-rx/observable/creators/timer.hpp>
 #include <q-rx/observable/creators/from.hpp>
 #include <q-rx/observable/creators/with.hpp>
 
