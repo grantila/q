@@ -21,7 +21,12 @@ if [ "a$1" == "adeps" ]; then
 	fi
 
 	if [ "a$LIBUV_PATH" == "a" ]; then
-		LIBUV_PATH=${BASEDIR}/3rdparty/dist
+		if [ -f ${BASEDIR}/3rdparty/dist/include/uv.h ]; then
+			echo "Using locally built libuv..."
+			LIBUV_PATH=${BASEDIR}/3rdparty/dist
+		else
+			echo "Since libuv wasn't built, the system's libuv will be used."
+		fi
 	fi
 fi
 

@@ -89,14 +89,14 @@ if ( BUILD_Q_IO )
 	add_subdirectory( "libs/q-io" )
 endif ( )
 
-include_directories( "libs/qurl/include" )
-add_subdirectory( "libs/qurl" )
+# include_directories( "libs/qurl/include" )
+# add_subdirectory( "libs/qurl" )
 
 add_subdirectory( "progs/playground" )
 if ( BUILD_Q_IO )
 	add_subdirectory( "progs/playground-io" )
 endif ( )
-add_subdirectory( "progs/playground-qurl" )
+# add_subdirectory( "progs/playground-qurl" )
 add_subdirectory( "progs/benchmark" )
 
 add_subdirectory( "3rdparty/gmock-1.7.0" )

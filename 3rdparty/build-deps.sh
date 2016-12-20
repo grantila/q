@@ -6,21 +6,25 @@ CORES=$2
 mkdir -p dist
 INSTALLDIR=`pwd`/dist
 
-# libevent
-cd libevent-2.1.5*
-./configure --prefix=${INSTALLDIR} --disable-openssl
-make -j${CORES}
-make install
-cd ..
+find_one_dir() {
+	\ls -1ld ${1}* 2> /dev/null | grep ^d | wc -l
+}
 
 # libuv
-cd libuv-v1.*
-sh autogen.sh
-./configure --prefix=${INSTALLDIR}
-make -j${CORES}
-make check
-make install
-cd ..
+if [ $( find_one_dir libuv- ) -eq 1 ]; then
+	echo Building libuv
+	cd libuv-*
+	sh autogen.sh
+	./configure --prefix=${INSTALLDIR}
+	make -j${CORES}
+	make check
+	make install
+	cd ..
+else
+	echo Did not find exactly one directory matching 'libuv-*', not building libuv
+fi
+
+exit 0
 
 # libcurl
 cd curl-*
