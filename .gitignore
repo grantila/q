@@ -18,6 +18,7 @@ test[^s]
 .depend
 
 *.build
+build
 
 *.o
 *.so
