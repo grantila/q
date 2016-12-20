@@ -6,24 +6,25 @@ project( q )
 set( Q_ROOT ${PROJECT_SOURCE_DIR} )
 
 include( "cmake/projects.cmake" )
+include( "cmake/colors.cmake" )
 
 set( CMAKE_DEBUG_POSTFIX "d" )
 
 # Require 11, fallback to 14
 if ( NOT CMAKE_CXX_STANDARD )
-	message( "No C++ standard provided, falling back to C++14" )
+	q_info( "No C++ standard provided, falling back to C++14" )
 	set( CMAKE_CXX_STANDARD 14 )
 else ( )
 	if ( CMAKE_CXX_STANDARD LESS 11 )
-		message( FATAL_ERROR
+		q_fatal( FATAL_ERROR
 			"Too old C++ standard (${CMAKE_CXX_STANDARD}), q requires C++11" )
 	endif( )
 
 	if ( CMAKE_CXX_STANDARD LESS 14 )
-		message( "Using user-provided C++ standard ${CMAKE_CXX_STANDARD}: "
+		q_message( "Using user-provided C++ standard ${CMAKE_CXX_STANDARD}: "
 			"q-rx will not be available (requires C++14)" )
 	else ( )
-		message( "Using user-provided C++ standard ${CMAKE_CXX_STANDARD}" )
+		q_message( "Using user-provided C++ standard ${CMAKE_CXX_STANDARD}" )
 	endif ( )
 endif ( )
 set ( CXX_STANDARD_REQUIRED ON )
@@ -72,23 +73,12 @@ add_subdirectory( "tests/qtest" )
 add_subdirectory( "tests/q" )
 add_subdirectory( "tests/q-rx" )
 
-if ( NOT WIN32 )
-	string( ASCII 27 Esc )
-	set( ColorReset "${Esc}[m" )
-	set( Green      "${Esc}[32m" )
-	set( Magenta    "${Esc}[35m" )
-	set( Cyan       "${Esc}[36m" )
-endif ( )
-
-message( "${Green}q project successfully created!${ColorReset}" )
+q_message( "q project successfully created!" )
 if ( APPLE )
-	message( "${Green}You can now open "
-		"${Cyan}${CMAKE_BINARY_DIR}/q.xcodeproj${ColorReset}" )
+	q_message( "You can now open " PATH "${CMAKE_BINARY_DIR}/q.xcodeproj" )
 elseif ( UNIX )
-	message( "${Green}You can now enter "
-		"${Cyan}${CMAKE_BINARY_DIR}/${Green} and make the libraries"
-		"${ColorReset}" )
+	q_message( "You can now enter " PATH "${Cyan}${CMAKE_BINARY_DIR}/"
+		" and make the libraries" )
 elseif ( MSVC )
-	message( "${Green}You can now open "
-		"${Cyan}${CMAKE_BINARY_DIR}/q.sln${ColorReset}" )
+	q_message( "You can now open " PATH "${CMAKE_BINARY_DIR}/q.sln" )
 endif ( )
