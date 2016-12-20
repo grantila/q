@@ -19,10 +19,10 @@ if [ ! -d ${THIRD_DIR}/lib ] ; then
 	cd ..
 fi
 
-mkdir -p obj
-cd obj
-
 if [ "$BUILDTYPE" == "Unix Makefiles" ]; then
+	mkdir -p obj
+	cd obj
+
 	# Create 4 different makefiles (each in a separate directory)
 	mkdir release;        cd release ;        cmake -G "$BUILDTYPE" -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON  ../.. ; cd ..
 	mkdir debug;          cd debug ;          cmake -G "$BUILDTYPE" -DCMAKE_BUILD_TYPE=Debug   -DBUILD_SHARED_LIBS=ON  ../.. ; cd ..
@@ -34,8 +34,7 @@ if [ "$BUILDTYPE" == "Unix Makefiles" ]; then
 	cd release-static ; make -j$CORES ; cd ..
 	cd debug-static   ; make -j$CORES ; cd ..
 elif [ "$BUILDTYPE" == "Xcode" ]; then
-	cmake -G "$BUILDTYPE" ..
+	cmake -G "$BUILDTYPE" -Bbuild -H.
 elif [ "$BUILDTYPE" == "VS" ]; then
-	cmake -G "Visual Studio 14 2015" ..
+	cmake -G "Visual Studio 14 2015" -Bbuild -H.
 fi
-

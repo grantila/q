@@ -15,8 +15,8 @@ if ( NOT CMAKE_CXX_STANDARD )
 	set( CMAKE_CXX_STANDARD 11 )
 else ( )
 	if ( CMAKE_CXX_STANDARD LESS 11 )
-		message( "Too old C++ standard (${CMAKE_CXX_STANDARD}), q requires C++11" )
-		exit( 1 )
+		message( FATAL_ERROR
+			"Too old C++ standard (${CMAKE_CXX_STANDARD}), q requires C++11" )
 	endif( )
 
 	message( "Using user-provided C++ standard ${CMAKE_CXX_STANDARD}" )
@@ -80,3 +80,23 @@ add_subdirectory( "tests/qtest" )
 add_subdirectory( "tests/q" )
 add_subdirectory( "tests/q-io" )
 
+if ( NOT WIN32 )
+	string( ASCII 27 Esc )
+	set( ColorReset "${Esc}[m" )
+	set( Green      "${Esc}[32m" )
+	set( Magenta    "${Esc}[35m" )
+	set( Cyan       "${Esc}[36m" )
+endif ( )
+
+message( "${Green}q project successfully created!${ColorReset}" )
+if ( APPLE )
+	message( "${Green}You can now open "
+		"${Cyan}${CMAKE_BINARY_DIR}/q.xcodeproj${ColorReset}" )
+elseif ( UNIX )
+	message( "${Green}You can now enter "
+		"${Cyan}${CMAKE_BINARY_DIR}/${Green} and make the libraries"
+		"${ColorReset}" )
+elseif ( MSVC )
+	message( "${Green}You can now open "
+		"${Cyan}${CMAKE_BINARY_DIR}/q.sln${ColorReset}" )
+endif ( )
