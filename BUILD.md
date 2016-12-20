@@ -4,26 +4,6 @@ When building `q`, you won't need any external libraries - just a C++11 compatib
 
 However, building `q-io` requires `libuv`.
 
-## Building
-
-First, ensure the prerequisites are met - that you have the necessary libraries and tools installed. Install the required dependencies for `q` (and `q-io` if you whish), then prepare the build for your platform.
-
-Either just run:
-
-```sh
-./build.sh
-```
-
-and then open the projects files located under the `build/` directory.
-
-Or run CMake manually with the generator of your choice, e.g.
-
-```sh
-cmake -G [your_target_system_generator] -Bbuild -H.
-```
-
-and build using your target system (make, XCode, Visual Studio, etc).
-
 
 # Prerequisites
 
@@ -60,3 +40,29 @@ brew install libuv
 ```sh
 sudo apt install libuv-dev
 ```
+
+
+## Building
+
+First, ensure the prerequisites are met - that you have the necessary libraries and tools installed. Install the required dependencies for `q` (and `q-io` if you whish), then prepare the build for your platform.
+
+Either just run:
+
+```sh
+./build.sh
+```
+
+and then open the projects files located under the `build/` directory.
+
+Or run CMake manually with the generator of your choice, e.g.
+
+```sh
+cmake -G [your_target_system_generator] -Bbuild -H.
+```
+
+and build using your target system (make, XCode, Visual Studio, etc).
+
+
+## Build using custom dependencies
+
+To build `q-io` with a custom built libuv, unpack the `libuv` in the `3rdparty/` directory (as `3rdparty/libuv-x.y.z`) and run `./build.sh deps` to build libuv and prepare CMake to use _that_ instead of the system libuv. You can also use any other already-built `libuv` by specifying a `LIBUV_PATH` environment variable before running `./build.sh`, i.e. `LIBUV_PATH=[the path] ./build.sh`. This path should contain a `lib/` directory and a `include/` directory.
