@@ -19,6 +19,10 @@ if [ "a$1" == "adeps" ]; then
 		./build-deps.sh $BUILDTYPE $CORES
 		cd ..
 	fi
+
+	if [ "a$LIBUV_PATH" == "a" ]; then
+		LIBUV_PATH=${BASEDIR}/3rdparty/dist
+	fi
 fi
 
 if [ "$BUILDTYPE" == "Unix Makefiles" ]; then

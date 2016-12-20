@@ -1,5 +1,5 @@
 
-cmake_minimum_required( VERSION 3.1 )
+cmake_minimum_required( VERSION 3.4 )
 
 project( q )
 
@@ -41,6 +41,18 @@ else ( )
 #        set( GENERIC_LIB_DEPS pthread dl )
 endif ( )
 
+
+##############################################################################
+# libuv
+##############################################################################
+if ( "$ENV{LIBUV_PATH}" STRGREATER "" )
+	q_message ( "Using custom libuv library at " PATH $ENV{LIBUV_PATH} )
+	get_filename_component(
+		PATH_TO_LIBUV "$ENV{LIBUV_PATH}" ABSOLUTE BASE_DIR ${Q_ROOT} )
+	set( LIBUV_USE_BUNDLED ON )
+	set( PC_LIBUV_INCLUDE_DIRS ${PATH_TO_LIBUV}/include )
+	set( PC_LIBUV_LIBRARY_DIRS ${PATH_TO_LIBUV}/lib )
+endif ( )
 find_package( LibUV )
 if ( NOT LIBUV_FOUND )
 	q_warning( "libuv not found, will not build q-io..." )
@@ -48,6 +60,7 @@ if ( NOT LIBUV_FOUND )
 else ( )
 	set ( BUILD_Q_IO YES )
 endif ( )
+
 
 include_directories( "libs/q/include" )
 
