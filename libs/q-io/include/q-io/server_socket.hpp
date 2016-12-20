@@ -41,6 +41,11 @@ public:
 	 */
 	q::readable< socket_ptr > clients( );
 
+	/**
+	 * Close the server
+	 */
+	void close( );
+
 protected:
 	static server_socket_ptr
 	construct( std::uint16_t port, ip_addresses&& bind_to );

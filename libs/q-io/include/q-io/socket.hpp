@@ -65,6 +65,8 @@ public:
 	 */
 	void detach( );
 
+	void set_debug_name( std::string name );
+
 protected:
 	static socket_ptr construct( std::shared_ptr< socket::pimpl >&& );
 
@@ -86,7 +88,6 @@ private:
 
 	void try_write( );
 */
-	void close_socket( );
 
 	std::shared_ptr< pimpl > pimpl_;
 };

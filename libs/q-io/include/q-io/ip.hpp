@@ -31,7 +31,7 @@ Q_MAKE_SIMPLE_EXCEPTION( invalid_ip_address );
 
 struct ipv4_address
 {
-	ipv4_address( ) = default;
+	ipv4_address( ) : valid( false ) { }
 	ipv4_address( ipv4_address&& ) = default;
 	ipv4_address( const ipv4_address& ) = default;
 	ipv4_address( struct sockaddr* addr );
@@ -46,12 +46,21 @@ struct ipv4_address
 
 	void populate( ::sockaddr_in& addr, std::uint16_t port ) const;
 
+	// These are the same as the constructors, but they won't throw,
+	// instead `valid` will be false.
+	static ipv4_address from( const char* addr );
+	static ipv4_address from( const std::string& addr )
+	{
+		return from( addr.c_str( ) );
+	}
+
 	std::uint8_t data[ 4 ];
+	bool valid;
 };
 
 struct ipv6_address
 {
-	ipv6_address( ) = default;
+	ipv6_address( ) : valid( false ) { }
 	ipv6_address( ipv6_address&& ) = default;
 	ipv6_address( const ipv6_address& ) = default;
 	ipv6_address( struct sockaddr* addr );
@@ -66,7 +75,16 @@ struct ipv6_address
 
 	void populate( ::sockaddr_in6& addr, std::uint16_t port ) const;
 
+	// These are the same as the constructors, but they won't throw,
+	// instead `valid` will be false.
+	static ipv6_address from( const char* addr );
+	static ipv6_address from( const std::string& addr )
+	{
+		return from( addr.c_str( ) );
+	}
+
 	q::be< std::uint16_t > data[ 8 ];
+	bool valid;
 };
 
 namespace detail {
@@ -86,6 +104,7 @@ struct ip_addresses
 {
 	template< typename... Ips >
 	ip_addresses( Ips&&... ips )
+	: invalid( 0 )
 	{
 		_add( std::forward< Ips >( ips )... );
 	}
@@ -98,6 +117,7 @@ struct ip_addresses
 
 	std::vector< ipv4_address > ipv4;
 	std::vector< ipv6_address > ipv6;
+	std::size_t invalid;
 
 	class iterator
 	: public virtual std::iterator<
@@ -150,7 +170,7 @@ struct ip_addresses
 private:
 	template< typename First, typename... Ips >
 	typename std::enable_if<
-		q::is_convertible_to<
+		q::is_convertible_to_t<
 			typename std::decay< First >::type,
 			std::string
 		>::value
@@ -158,11 +178,23 @@ private:
 	_add( First&& ip, Ips&&... ips )
 	{
 		if ( detail::might_be_ipv6_address( ip ) )
-			ipv6.push_back(
-				ipv6_address( std::forward< First >( ip ) ) );
+		{
+			ipv6_address addr = ipv6_address::from(
+				std::forward< First >( ip ) );
+			if ( addr.valid )
+				ipv6.push_back( std::move( addr ) );
+			else
+				++invalid;
+		}
 		else
-			ipv4.push_back(
-				ipv4_address( std::forward< First >( ip ) ) );
+		{
+			ipv4_address addr = ipv4_address::from(
+				std::forward< First >( ip ) );
+			if ( addr.valid )
+				ipv4.push_back( std::move( addr ) );
+			else
+				++invalid;
+		}
 
 		add( std::forward< Ips >( ips )... );
 	}

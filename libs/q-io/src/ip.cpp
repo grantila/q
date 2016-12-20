@@ -24,6 +24,7 @@
 namespace q { namespace io {
 
 ipv4_address::ipv4_address( const char* addr )
+: valid( true )
 {
 	auto ret = inet_pton( AF_INET, addr, data );
 
@@ -32,6 +33,7 @@ ipv4_address::ipv4_address( const char* addr )
 }
 
 ipv4_address::ipv4_address( struct sockaddr* addr )
+: valid( true )
 {
 	if ( addr->sa_family != AF_INET )
 		Q_THROW( invalid_ip_address( ) );
@@ -84,7 +86,23 @@ void ipv4_address::populate( ::sockaddr_in& addr, std::uint16_t port ) const
 	memcpy( &addr.sin_addr, &data[ 0 ], 4 );
 }
 
+ipv4_address ipv4_address::from( const char* addr )
+{
+	ipv4_address ipv4;
+
+	auto ret = inet_pton( AF_INET, addr, ipv4.data );
+
+	if ( ret != 1 )
+		std::memset( ipv4.data, 0, sizeof( ipv4.data ) );
+	else
+		ipv4.valid = true;
+
+	return ipv4;
+}
+
+
 ipv6_address::ipv6_address( const char* addr )
+: valid( true )
 {
 	auto ret = inet_pton( AF_INET6, addr, data );
 
@@ -93,6 +111,7 @@ ipv6_address::ipv6_address( const char* addr )
 }
 
 ipv6_address::ipv6_address( struct sockaddr* addr )
+: valid( true )
 {
 	if ( addr->sa_family != AF_INET && addr->sa_family != AF_INET6 )
 		Q_THROW( invalid_ip_address( ) );
@@ -199,6 +218,21 @@ void ipv6_address::populate( ::sockaddr_in6& addr, std::uint16_t port ) const
 	memcpy( &addr.sin6_addr, &data, sizeof( data ) );
 	addr.sin6_scope_id = 0;
 }
+
+ipv6_address ipv6_address::from( const char* addr )
+{
+	ipv6_address ipv6;
+
+	auto ret = inet_pton( AF_INET6, addr, ipv6.data );
+
+	if ( ret != 1 )
+		std::memset( ipv6.data, 0, sizeof( ipv6.data ) );
+	else
+		ipv6.valid = true;
+
+	return ipv6;
+}
+
 
 ip_addresses::iterator::iterator( )
 : root_( nullptr )

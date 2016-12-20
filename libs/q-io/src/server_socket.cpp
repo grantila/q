@@ -36,6 +36,17 @@ void closer( ::uv_handle_t* handle )
 		delete ref;
 };
 
+void server_socket_close( const inner_ref_type& ref )
+{
+	if ( ref->uv_loop_ )
+	{
+		::uv_close(
+			reinterpret_cast< ::uv_handle_t* >( &ref->socket_ ),
+			closer
+		);
+	}
+}
+
 } // anonymous namespace
 
 server_socket::server_socket( std::uint16_t port, ip_addresses&& bind_to )
@@ -63,13 +74,7 @@ server_socket::server_socket( std::uint16_t port, ip_addresses&& bind_to )
 
 server_socket::~server_socket( )
 {
-	if ( pimpl_->uv_loop_ )
-	{
-		::uv_close(
-			reinterpret_cast< ::uv_handle_t* >( &pimpl_->socket_ ),
-			closer
-		);
-	}
+	close( );
 /*
 	auto ref = reinterpret_cast< inner_ref_type* >( pimpl_->socket_.data );
 	if ( ref )
@@ -93,6 +98,11 @@ server_socket::construct( std::uint16_t port, ip_addresses&& bind_to )
 q::readable< socket_ptr > server_socket::clients( )
 {
 	return pimpl_->channel_->get_readable( );
+}
+
+void server_socket::close( )
+{
+	server_socket_close( pimpl_ );
 }
 
 void server_socket::sub_attach( const dispatcher_ptr& dispatcher ) noexcept
@@ -163,7 +173,12 @@ void server_socket::sub_attach( const dispatcher_ptr& dispatcher ) noexcept
 			client_socket->attach( ref->dispatcher_ );
 
 			auto writable = ref->channel_->get_writable( );
-			writable.send( std::move( client_socket ) );
+			if ( !writable.send( std::move( client_socket ) ) )
+				server_socket_close( ref );
+
+			// TODO: Check writable.should_send( ), and stop
+			//       listening for new connections until it
+			//       notifies to continue.
 		}
 		else
 		{

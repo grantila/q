@@ -29,10 +29,6 @@ event::event( )
 
 event::~event( )
 {
-#ifdef QIO_USE_LIBEVENT
-	if ( pimpl_->ev )
-		event_free( pimpl_->ev );
-#endif
 }
 
 dispatcher::pimpl& event::get_dispatcher_pimpl( )

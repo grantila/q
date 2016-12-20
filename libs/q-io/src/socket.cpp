@@ -20,8 +20,6 @@
 
 #include "internals.hpp"
 
-#include <event2/event.h>
-
 #include <unistd.h>
 
 #ifdef LIBQ_ON_WINDOWS
@@ -32,22 +30,6 @@
 #endif
 
 namespace q { namespace io {
-
-/*
-	std::shared_ptr< q::readable< q::byte_block > > readable_in_; // Ext
-	std::shared_ptr< q::writable< q::byte_block > > writable_in_; // Int
-	std::shared_ptr< q::readable< q::byte_block > > readable_out_; // Int
-	std::shared_ptr< q::writable< q::byte_block > > writable_out_; // Ext
-
-	std::atomic< bool > can_read_;
-	std::atomic< bool > can_write_;
-	q::byte_block out_buffer_;
-
-	std::atomic< bool > closed_;
-
-	::uv_tcp_t socket_;
-	::uv_connect_t connect_;
-*/
 
 typedef std::shared_ptr< socket::pimpl > inner_ref_type;
 
@@ -69,17 +51,23 @@ socket::socket( std::shared_ptr< socket::pimpl >&& _pimpl )
 {
 	event::set_pimpl( &pimpl_->event_ );
 
+	pimpl_->self_ = pimpl_;
+
 	pimpl_->socket_.data = nullptr;
-/*
-	pimpl_->can_read_ = false;
-	pimpl_->can_write_ = true;
-*/
 }
 
 socket::~socket( )
 {
-	close_socket( );
+	std::cout << "DESTRUCTING " << pimpl_->debug << std::flush;
+	if ( !!pimpl_->readable_in_ )
+		// Not detached - force close the socket right now.
+		pimpl_->close( );
+	std::cout << ". Done." << std::endl;
 }
+	void socket::set_debug_name( std::string name )
+	{
+		pimpl_->debug = name;
+	}
 
 socket_ptr socket::construct( std::shared_ptr< socket::pimpl >&& pimpl )
 {
@@ -123,13 +111,6 @@ void socket::detach( )
 	std::atomic_store( &pimpl_->writable_out_, out );
 }
 
-/*
-socket_event_ptr socket::socket_event_shared_from_this( )
-{
-	return shared_from_this( );
-}
-*/
-
 void socket::sub_attach( const dispatcher_ptr& dispatcher ) noexcept
 {
 	auto& dispatcher_pimpl = get_dispatcher_pimpl( );
@@ -158,237 +139,269 @@ void socket::sub_attach( const dispatcher_ptr& dispatcher ) noexcept
 		std::make_shared< q::writable< q::byte_block > >(
 			channel_out.get_writable( ) );
 
-	auto self = shared_from_this( );
-	auto weak_self = weak_socket_ptr{ self };
-
-/*
-	auto resume = [ weak_self ]( )
-	{
-		auto self = weak_self.lock( );
-		if ( !self )
-			return; // TODO: Analyze when this can happen
-		self->trigger_read( );
-	};
-
-	pimpl_->writable_in_->set_resume_notification( resume );
-*/
-
-//	detect_readability( );
-//	try_write( );
+	pimpl_->start_read( );
+	pimpl_->begin_write( );
 }
 
-/*
-// TODO: Analyse exceptions
-void socket::on_event_read( ) noexcept
+void socket::pimpl::close( )
 {
-	// Due to potential edge-triggered IO, we'll read everything we
-	// can now, and if necessary mark this socket as still readable
-	// until we get an EAGAIN.
+	close( fulfill< void >( ) );
+}
 
-	bool done = false;
+void socket::pimpl::close( std::exception_ptr err )
+{
+	close( refuse< void >( std::move( err ) ) );
+}
 
-	auto writable_in = std::atomic_load( &pimpl_->writable_in_ );
-
-	if ( !writable_in )
+void socket::pimpl::close( expect< void > status )
+{
+	if ( closed_.exchange( true ) )
 		return;
 
-	auto fd = get_socket( );
+	auto writable_in = std::atomic_load( &writable_in_ );
+	auto readable_out = std::atomic_load( &readable_out_ );
 
-	while ( writable_in->should_send( ) )
-	{
-#ifdef LIBQ_ON_WINDOWS
-		unsigned long nbytes;
-#else
-		int nbytes;
-#endif
-		std::size_t block_size = 8 * 1024;
-		if ( !::ioctl( fd, FIONREAD, &nbytes ) )
-			block_size = std::max( nbytes, 1 );
-
-		q::byte_block block( block_size );
-
-		auto read_bytes = ::read( fd, block.data( ), block.size( ) );
-
-		if ( read_bytes > 0 )
-		{
-			block.resize( read_bytes );
-
-			try
-			{
-				writable_in->send( std::move( block ) );
-			}
-			catch( q::channel_closed_exception& )
-			{
-				// Ignore this error. The user doesn't want to
-				// read more data, but as long as there is more
-				// to read, we'll just keep reading.
-
-				// There shouldn't be any other exceptions
-				// thrown from the channel, we can currently
-				// not handle them anyway.
-				// Potentially we could close the connection
-				// and forward this error to the in-channel...
-			}
-		}
-
-		else if ( read_bytes == 0 )
-		{
-			done = true;
-			close_socket( );
-		}
-
-		else if ( read_bytes == -1 )
-		{
-			if ( errno == EAGAIN )
-			{
-				// We've read all we can
-				done = true;
-				break;
-			}
-			else
-			{
-				// TODO: Handle error
-			}
-		}
-	}
-
-	if ( done )
-	{
-		// Finished reading, we need to ensure we listen to
-		// more reads, by adding the event to the loop.
-		detect_readability( );
-		pimpl_->can_read_ = false;
-	}
-	else
-		// There is more to read, we'll signal this internally
-		// through the channels.
-		pimpl_->can_read_ = true;
-}
-
-// TODO: Analyse exceptions
-void socket::on_event_write( ) noexcept
-{
-	// Write as much as possible.
-	try_write( );
-}
-
-void socket::try_write( )
-{
-	auto self = shared_from_this( );
-
-	weak_socket_ptr weak_ptr{ self };
-
-	auto fd = get_socket( );
-
-	auto try_write_block = [ weak_ptr, this, fd ]( q::byte_block&& block )
-	-> bool // True means we still have things to write - save buffer
-	{
-		auto self = weak_ptr.lock( );
-		if ( !self )
-			// The socket was destructed before the channel
-			return false;
-
-		if ( block.size( ) == 0 )
-			// Empty block? Let's try the next block.
-			try_write( );
-
-		auto written_bytes = ::write(
-			fd, block.data( ), block.size( ) );
-
-		if ( written_bytes < 0 )
-		{
-			if ( errno == EAGAIN )
-				detect_writability( );
-			else
-				// TODO: Handle error
-				std::cout << "ERROR " << strerror( errno ) << std::endl;
-		}
-
-		else if ( written_bytes == block.size( ) )
-		{
-			// Wrote the whole chunk, try to write more
-			try_write( );
-		}
-
-		else
-		{
-			// We wrote something, but not everything. Advance
-			// buffer, save it for next iteration and await
-			// libevent to tell us when we can write again.
-			block.advance(
-				static_cast< std::size_t >( written_bytes ) );
-
-			pimpl_->out_buffer_ = std::move( block );
-
-			detect_writability( );
-
-			return true;
-		}
-
-		return false;
-	};
-
-	if ( pimpl_->out_buffer_.size( ) > 0 )
-	{
-		if ( try_write_block( std::move( pimpl_->out_buffer_ ) ) )
-			return;
-	}
-
-	auto readable_out = std::atomic_load( &pimpl_->readable_out_ );
-
-	if ( !readable_out )
-	{
-		close_socket( );
-		return;
-	}
-
-	readable_out->receive( )
-	.then( [ weak_ptr, this, try_write_block ]( q::byte_block&& block )
-	{
-		auto self = weak_ptr.lock( );
-
-		if ( !self )
-			// Socket was destructed before the channel
-			return;
-
-		try_write_block( std::move( block ) );
-	} )
-	.fail( [ weak_ptr ]( const q::channel_closed_exception& )
-	{
-		auto self = weak_ptr.lock( );
-
-		if ( !self )
-			return;
-
-		// We're never gonna write anything more to the socket.
-	} )
-	.fail( [ ]( std::exception_ptr e )
-	{
-		; // TODO: Do something. Close, set error, ...
-	} );
-}
-*/
-
-void socket::close_socket( )
-{
-	auto writable_in = std::atomic_load( &pimpl_->writable_in_ );
-	auto readable_out = std::atomic_load( &pimpl_->readable_out_ );
-
-#ifdef QIO_USE_LIBEVENT
-	::q::io::socket_event::close_socket( );
-#else
-	auto handle = reinterpret_cast< ::uv_handle_t* >( &pimpl_->socket_ );
-	::uv_close( handle, closer );
-#endif
+	auto self = *reinterpret_cast< inner_ref_type* >( socket_.data );
 
 	if ( !!writable_in )
 	{
-		writable_in->set_resume_notification( nullptr );
-		writable_in->close( );
+		writable_in->unset_resume_notification( );
+		if ( status.has_exception( ) )
+			writable_in->close( status.exception( ) );
+		else
+			writable_in->close( );
 	}
 
 	if ( !!readable_out )
-		readable_out->close( );
+	{
+		if ( status.has_exception( ) )
+			readable_out->close( status.exception( ) );
+		else
+			readable_out->close( );
+	}
+
+	stop_read( );
+
+	writable_in_.reset( );
+	readable_out_.reset( );
+
+	auto handle = reinterpret_cast< ::uv_handle_t* >( &socket_ );
+	::uv_close( handle, closer );
+}
+
+void socket::pimpl::start_read( )
+{
+	auto stream = reinterpret_cast< ::uv_stream_t* >( &socket_ );
+
+	auto alloc_cb = [ ](
+		::uv_handle_t* handle,
+		::size_t suggested_size,
+		::uv_buf_t* buf
+	)
+	{
+		buf->base = new char[ suggested_size ];
+		buf->len = suggested_size;
+	};
+
+	auto read_cb = [ ](
+		::uv_stream_t* stream,
+		::ssize_t nread,
+		const uv_buf_t* buf
+	)
+	{
+		auto pimpl =
+			*reinterpret_cast< inner_ref_type* >( stream->data );
+
+		if ( nread > 0 )
+		{
+			// Data
+
+			byte_block block(
+				nread,
+				reinterpret_cast< std::uint8_t* >( buf->base )
+			);
+
+			if ( !pimpl->writable_in_->send( std::move( block ) ) )
+				pimpl->stop_read( false );
+			else if ( !pimpl->writable_in_->should_send( ) )
+				pimpl->stop_read( true );
+
+			return;
+		}
+
+		// If a buffer has been allocated but we can't read (because
+		// closed connection or error), we need to clean it up.
+		if ( buf->base )
+			delete[ ] buf->base;
+
+		if ( nread == UV_EOF )
+		{
+			// Close without error
+
+			pimpl->close( );
+		}
+		else if ( nread < 0 )
+		{
+			// Error
+
+			auto errno_ = uv_error_to_errno( nread );
+			auto err = get_exception_by_errno( errno_ );
+			pimpl->close( err );
+		}
+	};
+
+	::uv_read_start( stream, alloc_cb, read_cb );
+}
+
+void socket::pimpl::stop_read( bool reschedule )
+{
+	auto stream = reinterpret_cast< ::uv_stream_t* >( &socket_ );
+
+	::uv_read_stop( stream );
+
+	if ( !reschedule )
+		return;
+
+	auto pimpl = self_.lock( );
+
+	writable_in_->set_resume_notification(
+		[ pimpl ]( )
+		{
+			pimpl->start_read( );
+		},
+		true
+	);
+}
+
+void socket::pimpl::begin_write( )
+{
+	auto pimpl = self_.lock( );
+	auto stream = reinterpret_cast< ::uv_stream_t* >( &socket_ );
+
+	::uv_write_cb read_again = [ ]( ::uv_write_t* req, int status )
+	{
+		auto pimpl_ptr =
+			reinterpret_cast< write_req_self_ptr* >( req->data );
+		auto pimpl = *pimpl_ptr;
+		delete pimpl_ptr;
+
+		bool should_write_more = false;
+
+		{
+			Q_AUTO_UNIQUE_LOCK( pimpl->mut_ );
+
+			auto iter = std::find_if(
+				pimpl->write_reqs_.begin( ),
+				pimpl->write_reqs_.end( ),
+				[ req ]( const write_info& item )
+				{
+					return req == item.req_.get( );
+				}
+			);
+
+			if ( iter == pimpl->write_reqs_.end( ) )
+			{
+				// This really cannot happen
+				std::cerr
+					<< "TODO: Remove this check"
+					<< std::endl;
+				pimpl->close( );
+			}
+
+			auto buf_size = iter->buf_len_;
+
+			// This implicitly frees req!
+			pimpl->write_reqs_.erase( iter );
+
+			auto size_before = pimpl->cached_bytes_;
+			pimpl->cached_bytes_ -= buf_size;
+
+			should_write_more = size_before >= pimpl->cache_size &&
+				pimpl->cached_bytes_ < pimpl->cache_size;
+		}
+
+		if ( status == 0 )
+		{
+			// Success, write more if we should
+			if ( should_write_more )
+				pimpl->begin_write( );
+		}
+		else
+		{
+			// Failure, propagate upstream and close
+			// TODO: Potentially check for proper error and
+			//       propagate it. Right now we just close "nicely".
+			pimpl->close( );
+		}
+	};
+
+	if ( !readable_out_ )
+		// Already closed
+		return;
+
+	readable_out_->receive(
+		[ pimpl, stream, read_again ]( byte_block&& block ) mutable
+		{
+			if ( pimpl->closed_ )
+				return;
+
+			auto req = q::make_unique< ::uv_write_t >( );
+			req->data = new write_req_self_ptr( pimpl );
+			// `data` is written here and read by another thread.
+			// When running with race condition analysis, this will
+			// look like a race condition unless we kill_dependency
+			std::kill_dependency( req->data );
+
+			::uv_buf_t buf{
+				.base = reinterpret_cast< char* >(
+					const_cast< std::uint8_t* >(
+						block.data( ) ) ),
+				.len = block.size( )
+			};
+
+			bool should_read_more = true;
+
+			{
+				Q_AUTO_UNIQUE_LOCK( pimpl->mut_ );
+
+				pimpl->cached_bytes_ += buf.len;
+				if ( pimpl->cached_bytes_ >= pimpl->cache_size )
+					should_read_more = false;
+
+				::uv_write_t* write_req = req.get( );
+
+				pimpl->write_reqs_.push_back( write_info{
+					std::move( req ),
+					std::move( block ),
+					buf.len
+				} );
+
+				::uv_write(
+					write_req,
+					stream,
+					&buf,
+					1,
+					read_again );
+			}
+
+			if ( should_read_more )
+				pimpl->begin_write( );
+		},
+		[ pimpl ]( ) mutable
+		{
+			pimpl->close( );
+		}
+	)
+	.fail( [ pimpl ]( std::exception_ptr err ) mutable
+	-> bool
+	{
+		// Internal read error. Not much we can do, except close the
+		// connection.
+		// TODO: Consider allowing a callback or custom handler for
+		// these channel errors (e.g. for logging).
+		pimpl->close( );
+		return false;
+	} );
 }
 
 } } // namespace io, namespace q

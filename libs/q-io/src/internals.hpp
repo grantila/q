@@ -27,9 +27,6 @@
 #include <q/thread.hpp>
 #include <q/execution_context.hpp>
 
-#include <event2/event.h>
-#include <event2/dns.h>
-
 #include <uv.h>
 
 #include <queue>
@@ -41,11 +38,6 @@ namespace q { namespace io {
 
 struct event::pimpl
 {
-#ifdef QIO_USE_LIBEVENT
-	struct ::event* ev;
-	socket_t fd;
-#endif
-
 	std::weak_ptr< dispatcher > dispatcher;
 };
 
@@ -53,71 +45,46 @@ struct dispatcher::pimpl
 {
 	std::shared_ptr< q::thread< void > > thread;
 
-#ifndef QIO_USE_LIBEVENT_DNS
 	q::queue_ptr dns_queue_;
 	q::specific_execution_context_ptr< q::threadpool > dns_context_;
-#endif
 
 	struct {
 		int pipes[ 2 ];
-#ifdef QIO_USE_LIBEVENT
-		::event* ev;
-#else
 		::uv_pipe_t uv_pipe;
-#endif
 	} dummy_event;
 
 	q::queue_ptr user_queue;
 	std::string name;
 
-#ifdef QIO_USE_LIBEVENT
-	// libevent2 types
-	::event_base*           event_base;
-#else
-	// libuv
 	::uv_loop_t uv_loop;
 	::uv_async_t uv_async;
-#endif
 
 	std::queue< q::task > tasks_;
 
 	::q::task_fetcher_task task_fetcher_;
-
-	pimpl( )
-#ifdef QIO_USE_LIBEVENT
-	: event_base( nullptr )
-#endif
-	{ }
 };
 
 /*
 struct socket_event::pimpl
 {
-#ifdef QIO_USE_LIBEVENT
-	socket_t fd_;
-
-	::event* ev_read_;
-	::event* ev_write_;
-#else
 	::uv_tcp_t socket_;
 	::uv_connect_t connect_;
-#endif
 
 	std::atomic< bool > closed_;
-
-#ifdef QIO_USE_LIBEVENT
-	pimpl( socket_t sock )
-	: fd_( sock )
-	, ev_read_( nullptr )
-	, ev_write_( nullptr )
-	, closed_( false )
-	{ }
-#endif
 };
 */
 
 struct socket::pimpl
 {
+std::string debug;
+
+	~pimpl( )
+	{
+		std::cout << "DESTRUCTING pimpl " << debug << std::endl;
+	}
+
+	std::weak_ptr< pimpl > self_;
+
 	event::pimpl event_;
 
 	std::shared_ptr< q::readable< q::byte_block > > readable_in_; // Ext
@@ -133,6 +100,29 @@ struct socket::pimpl
 
 	::uv_tcp_t socket_;
 	::uv_connect_t connect_;
+
+	// Caches necessary for libuv
+	static const std::size_t cache_size = 64 * 1024;
+	q::mutex mut_;
+	typedef std::shared_ptr< pimpl > write_req_self_ptr;
+	// Decremented from libuv-thread, incremented form receive()-thread
+	std::size_t cached_bytes_;
+	struct write_info
+	{
+		std::unique_ptr< ::uv_write_t > req_;
+		byte_block block_; // Ensures we keep the memory while sending
+		std::size_t buf_len_;
+	};
+	std::deque< write_info > write_reqs_;
+
+	void close( );
+	void close( std::exception_ptr err );
+	void close( expect< void > status );
+
+	void start_read( );
+	void stop_read( bool reschedule = false );
+
+	void begin_write( );
 };
 
 struct server_socket::pimpl
@@ -148,21 +138,7 @@ struct server_socket::pimpl
 
 	::uv_loop_t* uv_loop_;
 
-#ifdef QIO_USE_LIBEVENT
-	socket_t socket_;
-	std::size_t backlog_;
-	::event* ev_;
-#else
 	::uv_tcp_t socket_;
-#endif
-
-#ifdef QIO_USE_LIBEVENT
-	std::atomic< bool > can_read_;
-
-	server_socket_ptr self_;
-
-	std::atomic< bool > closed_;
-#endif
 };
 
 struct timer_task::pimpl
@@ -186,16 +162,8 @@ struct timer_task::pimpl
 	{ }
 };
 
-/*
-struct resolver::pimpl
-{
-	dispatcher_ptr dispatcher_;
-	::evdns_base* base_;
-};
-*/
-
 // TODO: Properly implement this for Win32
-static int uv_error_to_errno( int errnum )
+static inline int uv_error_to_errno( int errnum )
 {
 	return -errnum;
 }

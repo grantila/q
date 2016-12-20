@@ -16,10 +16,6 @@
 
 #include <q/lib.hpp>
 
-#include "detail/init_libevent.hpp"
-
-#include <event2/event.h>
-
 namespace {
 
 static struct qio_init
@@ -29,14 +25,11 @@ public:
 	{
 		auto init = [ ]( ) -> void*
 		{
-			q::io::detail::global_init_libevent( );
-
 			return nullptr;
 		};
 
 		auto uninit = [ ]( void* ) -> void
 		{
-			libevent_global_shutdown( );
 		};
 
 		q::register_initialization( init, uninit );

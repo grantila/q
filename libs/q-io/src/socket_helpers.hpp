@@ -19,29 +19,13 @@
 
 #include <q-io/dispatcher.hpp>
 
-#include <event2/event.h>
-#include <event2/dns.h>
-
 namespace q { namespace io {
 
-#ifdef QIO_USE_LIBEVENT
-typedef evutil_socket_t qio_socket_t;
-#else
-typedef uv_os_sock_t qio_socket_t;
-#endif
-
-static inline void prepare_socket( qio_socket_t socket )
-{
-#ifdef QIO_USE_LIBEVENT
-	::evutil_make_socket_nonblocking( socket );
-#endif
-}
+typedef ::uv_os_sock_t qio_socket_t;
 
 static inline qio_socket_t create_socket( int family )
 {
 	qio_socket_t socket = ::socket( family, SOCK_STREAM, 6 );
-
-	prepare_socket( socket );
 
 	return socket;
 }

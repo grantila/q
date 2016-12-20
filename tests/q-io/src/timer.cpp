@@ -27,3 +27,17 @@ TEST_F( timer, on_value )
 
 	run( std::move( promise ) );
 }
+
+TEST_F( timer, delay )
+{
+	auto promise = q::with( io_queue, 4711 )
+	.delay( std::chrono::milliseconds( 1 ) )
+	.then( EXPECT_CALL_WRAPPER(
+		[ ]( int i )
+		{
+			EXPECT_EQ( i, 4711 );
+		}
+	) );
+
+	run( std::move( promise ) );
+}

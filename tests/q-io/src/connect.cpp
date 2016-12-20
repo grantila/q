@@ -17,18 +17,21 @@ TEST_F( connect, client_server_connrefused )
 	);
 }
 
-TEST_F( connect, DISABLED_client_server_send_data )
+TEST_F( connect, client_server_send_data )
 {
 	const std::string test_data = "hello world";
 
 	auto port = ports++;
 
-	auto promise_server = io_dispatcher->listen( port )
+	auto promise_server = io_dispatcher->listen( port ).share( );
+
+	auto server_complete = promise_server
 	.then( [ test_data ]( q::io::server_socket_ptr socket_server )
 	{
 		return socket_server->clients( ).receive( )
 		.then( [ socket_server, &test_data ]( q::io::socket_ptr client )
 		{
+			client->set_debug_name( "RECV" );
 			return client->in( ).receive( )
 			.then( [ client, &test_data ]( q::byte_block&& block )
 			{
@@ -38,10 +41,12 @@ TEST_F( connect, DISABLED_client_server_send_data )
 	} )
 	.share( );
 
-	EVENTUALLY_EXPECT_EQ( promise_server, test_data );
+	EVENTUALLY_EXPECT_EQ( server_complete, test_data );
 
-	auto promise_client = q::with( io_queue )
-	.then( io_dispatcher->delay( std::chrono::milliseconds( 10 ) ) )
+	auto promise_client = promise_server
+	.strip( )
+	.use_queue( io_queue )
+	.delay( std::chrono::milliseconds( 1 ) )
 	.then( [ this, port ]
 	{
 		auto dest_ip = q::io::ip_addresses( "127.0.0.1" );
@@ -49,13 +54,13 @@ TEST_F( connect, DISABLED_client_server_send_data )
 	} )
 	.then( [ &test_data ]( q::io::socket_ptr socket )
 	{
-		socket->out( ).send( q::byte_block( test_data ) );
-		// TODO: Fix this, this sometimes causes failure. Removing the
-		// detach() call causes the same error every time.
+		socket->set_debug_name( "SEND" );
+		auto writable = socket->out( );
+		q::ignore_result( writable.send( q::byte_block( test_data ) ) );
 		socket->detach( );
 	} );
 
-	run( q::all( std::move( promise_client ), std::move( promise_server ) ) );
+	run( q::all( std::move( promise_client ), server_complete ) );
 }
 
 TEST_F( connect, client_server_close_client_on_destruction )
