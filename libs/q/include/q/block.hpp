@@ -38,6 +38,25 @@ public:
 	std::uint8_t const* data( ) const;
 
 	/**
+	 * Returns a new byte_block which is a slice of this byte_block.
+	 * Will throw `std::out_of_range` if the offset and length aren't
+	 * within the boundaries of this byte_block.
+	 *
+	 * If `length` is not provided, it will use the entire length of the
+	 * byte_block.
+	 */
+	byte_block slice( std::size_t offset, std::size_t length ) const;
+	byte_block slice( std::size_t offset ) const;
+
+	/**
+	 * Slices this byte_block to a new byte_block from first byte up to but
+	 * not including the first byte which is not printable ASCII.
+	 * This may be a zero sized byte_block.
+	 */
+	byte_block slice_printable_ascii( ) const;
+	byte_block slice_printable_ascii( std::size_t max_length ) const;
+
+	/**
 	 * Converts this byte block to a string. NOTE; This is not safe for
 	 * strings with ascii zero, and is not safe for non-8-bit strings (such
 	 * as UTF-8).
@@ -45,6 +64,12 @@ public:
 	std::string to_string( ) const;
 
 private:
+	byte_block(
+		std::size_t offset,
+		std::size_t size,
+		std::shared_ptr< const std::uint8_t > data
+	);
+
 	std::size_t size_;
 	std::shared_ptr< const std::uint8_t > data_;
 	std::uint8_t const* ptr_;
