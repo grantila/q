@@ -19,8 +19,6 @@
 #include "internals.hpp"
 #include "socket_helpers.hpp"
 
-#include <event2/event.h>
-
 namespace q { namespace io {
 
 typedef std::shared_ptr< server_socket::pimpl > inner_ref_type;

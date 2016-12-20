@@ -11,12 +11,14 @@ if [ "a$BUILDTYPE" == "a" ]; then
 	fi
 fi
 
-BASEDIR=`pwd`
-THIRD_DIR=${BASEDIR}/3rdparty/dist
-if [ ! -d ${THIRD_DIR}/lib ] ; then
-	cd 3rdparty
-	./build-deps.sh $BUILDTYPE $CORES
-	cd ..
+if [ "a$1" == "adeps" ]; then
+	BASEDIR=`pwd`
+	THIRD_DIR=${BASEDIR}/3rdparty/dist
+	if [ ! -d ${THIRD_DIR}/lib ] ; then
+		cd 3rdparty
+		./build-deps.sh $BUILDTYPE $CORES
+		cd ..
+	fi
 fi
 
 if [ "$BUILDTYPE" == "Unix Makefiles" ]; then

@@ -18,8 +18,6 @@
 
 #include "internals.hpp"
 
-#include <event2/event.h>
-
 namespace q { namespace io {
 
 event::event( )

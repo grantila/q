@@ -5,6 +5,8 @@ project( q )
 
 set( Q_ROOT ${PROJECT_SOURCE_DIR} )
 
+list( APPEND CMAKE_MODULE_PATH "${Q_ROOT}/cmake/modules" )
+
 include( "cmake/projects.cmake" )
 include( "cmake/colors.cmake" )
 
@@ -39,18 +41,23 @@ else ( )
 #        set( GENERIC_LIB_DEPS pthread dl )
 endif ( )
 
+find_package( LibUV )
+if ( NOT LIBUV_FOUND )
+	q_warning( "libuv not found, will not build q-io..." )
+	set ( BUILD_Q_IO NO )
+else ( )
+	set ( BUILD_Q_IO YES )
+endif ( )
+
 include_directories( "libs/q/include" )
 
-include_directories( "3rdparty/dist/include" )
-set( LIBEVENT_LIB "${Q_ROOT}/3rdparty/dist/lib/libevent.${STATIC_LIB_SUFFIX}" )
-set( LIBUV_LIB "${Q_ROOT}/3rdparty/dist/lib/libuv.${STATIC_LIB_SUFFIX}" )
-
-set( LIBCURL_LIB "${Q_ROOT}/3rdparty/dist/lib/libcurl.${STATIC_LIB_SUFFIX}" )
-IF (APPLE)
-	FIND_LIBRARY( COREFOUNDATION_LIBRARY CoreFoundation )
-	FIND_LIBRARY( SECURITY_LIBRARY Security )
-	SET( CURL_EXTRA_LIBS ${COREFOUNDATION_LIBRARY} ${SECURITY_LIBRARY} "ldap" "z" )
-ENDIF (APPLE)
+# # curl
+# set( LIBCURL_LIB "${Q_ROOT}/3rdparty/dist/lib/libcurl.${STATIC_LIB_SUFFIX}" )
+# IF (APPLE)
+# 	FIND_LIBRARY( COREFOUNDATION_LIBRARY CoreFoundation )
+# 	FIND_LIBRARY( SECURITY_LIBRARY Security )
+# 	SET( CURL_EXTRA_LIBS ${COREFOUNDATION_LIBRARY} ${SECURITY_LIBRARY} "ldap" "z" )
+# ENDIF (APPLE)
 
 
 add_subdirectory( "libs/q" )
@@ -64,14 +71,18 @@ add_subdirectory( "libs/q-test" )
 
 include_directories( "3rdparty/dist/include/" )
 
-include_directories( "libs/q-io/include" )
-add_subdirectory( "libs/q-io" )
+if ( BUILD_Q_IO )
+	include_directories( "libs/q-io/include" )
+	add_subdirectory( "libs/q-io" )
+endif ( )
 
 include_directories( "libs/qurl/include" )
 add_subdirectory( "libs/qurl" )
 
 add_subdirectory( "progs/playground" )
-add_subdirectory( "progs/playground-io" )
+if ( BUILD_Q_IO )
+	add_subdirectory( "progs/playground-io" )
+endif ( )
 add_subdirectory( "progs/playground-qurl" )
 add_subdirectory( "progs/benchmark" )
 
@@ -79,7 +90,9 @@ add_subdirectory( "3rdparty/gmock-1.7.0" )
 
 add_subdirectory( "tests/qtest" )
 add_subdirectory( "tests/q" )
-add_subdirectory( "tests/q-io" )
+if ( BUILD_Q_IO )
+	add_subdirectory( "tests/q-io" )
+endif ( )
 
 q_message( "q project successfully created!" )
 if ( APPLE )
