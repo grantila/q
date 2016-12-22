@@ -17,7 +17,6 @@
 #ifndef LIBQIO_SERVER_SOCKET_HPP
 #define LIBQIO_SERVER_SOCKET_HPP
 
-#include <q-io/event.hpp>
 #include <q-io/ip.hpp>
 #include <q-io/socket.hpp>
 #include <q-io/types.hpp>
@@ -28,8 +27,7 @@ namespace q { namespace io {
  * A server_socket is a socket which allows incoming connections.
  */
 class server_socket
-: public event
-, public std::enable_shared_from_this< server_socket >
+: public std::enable_shared_from_this< server_socket >
 {
 public:
 	struct pimpl;
@@ -56,8 +54,6 @@ private:
 	friend class dispatcher;
 
 	template< typename T > friend class q::shared_constructor;
-
-	void sub_attach( const dispatcher_ptr& dispatcher ) noexcept override;
 
 	std::shared_ptr< pimpl > pimpl_;
 };

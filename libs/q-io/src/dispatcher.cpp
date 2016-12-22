@@ -508,11 +508,12 @@ q::promise< std::tuple< server_socket_ptr > >
 dispatcher::listen( std::uint16_t port, ip_addresses&& bind_to )
 {
 	auto self = shared_from_this( );
-	auto server = server_socket::construct( port, std::move( bind_to ) );
+	auto server = q::make_shared< server_socket >(
+		port, std::move( bind_to ) );
 
 	return q::make_promise( get_queue( ), [ self, server ]( )
 	{
-		server->attach( self );
+		server->pimpl_->attach_dispatcher( self );
 
 		return server;
 	} );
