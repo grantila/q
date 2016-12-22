@@ -43,6 +43,7 @@ void server_socket_close( const inner_ref_type& ref )
 			closer
 		);
 	}
+	ref->uv_loop_ = nullptr;
 }
 
 } // anonymous namespace
@@ -100,6 +101,7 @@ q::readable< socket_ptr > server_socket::clients( )
 
 void server_socket::close( )
 {
+	// if detached, just let go
 	server_socket_close( pimpl_ );
 }
 

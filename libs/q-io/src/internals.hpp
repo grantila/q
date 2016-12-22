@@ -139,6 +139,15 @@ struct server_socket::pimpl
 	::uv_loop_t* uv_loop_;
 
 	::uv_tcp_t socket_;
+
+	pimpl( )
+	{
+		std::cout << "CONSTRUCTING socket_server::pimpl" << std::endl;
+	}
+	~pimpl( )
+	{
+		std::cout << "DESTRUCTING socket_server::pimpl" << std::endl;
+	}
 };
 
 struct timer_task::pimpl

@@ -67,6 +67,16 @@ class dispatcher
 public:
 	struct pimpl;
 
+	struct event_descriptor
+	{
+		void*       handle;
+		std::string type;
+		bool        active;
+		bool        closing;
+		int         fd;
+		std::string fd_err;
+	};
+
 	/**
 	 * Constructs a dispatcher object which handles IO. This function will
 	 * likely block for a long time (or until the program ends), so the
@@ -88,10 +98,15 @@ public:
 	std::string backend_method( ) const;
 
 	/**
-	 * @returns a string describing all currently existing events in the
-	 * dispatcher pool.
+	 * @returns The events existing in the dispatcher pool, in a vector of
+	 *          `event_descriptor`s.
 	 */
-	std::string dump_events( ) const;
+	std::vector< event_descriptor > dump_events( ) const;
+
+	/**
+	 * @returns The events existing in the dispatcher pool, as json string.
+	 */
+	std::string dump_events_json( ) const;
 
 	/**
 	 * Starts the I/O event dispatcher. This will not return until the

@@ -71,73 +71,128 @@ std::string dispatcher::backend_method( ) const
 	return method;
 }
 
-std::string dispatcher::dump_events( ) const
+std::string handle_type_name( ::uv_handle_type type )
 {
-	std::string s;
-
-	uv_walk_cb walker = [ ]( ::uv_handle_t* handle, void* arg )
+	switch ( type )
 	{
-		auto handle_type_name = [ ]( ::uv_handle_type type )
-		-> std::string
+		case ::uv_handle_type::UV_ASYNC: return "async";
+		case ::uv_handle_type::UV_CHECK: return "check";
+		case ::uv_handle_type::UV_FS_EVENT: return "fs_event";
+		case ::uv_handle_type::UV_FS_POLL: return "fs_poll";
+		case ::uv_handle_type::UV_HANDLE: return "handle";
+		case ::uv_handle_type::UV_IDLE: return "idle";
+		case ::uv_handle_type::UV_NAMED_PIPE: return "pipe";
+		case ::uv_handle_type::UV_POLL: return "poll";
+		case ::uv_handle_type::UV_PREPARE: return "prepare";
+		case ::uv_handle_type::UV_PROCESS: return "process";
+		case ::uv_handle_type::UV_STREAM: return "stream";
+		case ::uv_handle_type::UV_TCP: return "tcp";
+		case ::uv_handle_type::UV_TIMER: return "timer";
+		case ::uv_handle_type::UV_TTY: return "tty";
+		case ::uv_handle_type::UV_UDP: return "udp";
+		case ::uv_handle_type::UV_SIGNAL: return "signal";
+		case ::uv_handle_type::UV_FILE: return "file";
+		case ::uv_handle_type::UV_UNKNOWN_HANDLE: return "{unknown}";
+		default: return "{invalid type!}";
+	}
+};
+
+uv_walk_cb event_walker = [ ]( ::uv_handle_t* handle, void* arg )
+{
+	typedef std::vector< dispatcher::event_descriptor > arg_type;
+	auto events = reinterpret_cast< arg_type* >( arg );
+
+	bool is_fd_backed =
+		handle->type == ::uv_handle_type::UV_TCP ||
+		handle->type == ::uv_handle_type::UV_NAMED_PIPE ||
+		handle->type == ::uv_handle_type::UV_TTY ||
+		handle->type == ::uv_handle_type::UV_UDP ||
+		handle->type == ::uv_handle_type::UV_POLL;
+
+	uv_os_fd_t fd = -1;
+	std::string fd_err;
+	if ( is_fd_backed )
+	{
+		auto ret = ::uv_fileno( handle, &fd );
+		if ( ret )
 		{
-			switch ( type )
-			{
-				case ::uv_handle_type::UV_ASYNC: return "async";
-				case ::uv_handle_type::UV_CHECK: return "check";
-				case ::uv_handle_type::UV_FS_EVENT: return "fs_event";
-				case ::uv_handle_type::UV_FS_POLL: return "fs_poll";
-				case ::uv_handle_type::UV_HANDLE: return "handle";
-				case ::uv_handle_type::UV_IDLE: return "idle";
-				case ::uv_handle_type::UV_NAMED_PIPE: return "pipe";
-				case ::uv_handle_type::UV_POLL: return "poll";
-				case ::uv_handle_type::UV_PREPARE: return "prepare";
-				case ::uv_handle_type::UV_PROCESS: return "process";
-				case ::uv_handle_type::UV_STREAM: return "stream";
-				case ::uv_handle_type::UV_TCP: return "tcp";
-				case ::uv_handle_type::UV_TIMER: return "timer";
-				case ::uv_handle_type::UV_TTY: return "tty";
-				case ::uv_handle_type::UV_UDP: return "udp";
-				case ::uv_handle_type::UV_SIGNAL: return "signal";
-				case ::uv_handle_type::UV_FILE: return "file";
-				case ::uv_handle_type::UV_UNKNOWN_HANDLE: return "{unknown}";
-				default: return "{invalid type!}";
-			}
-		};
-
-		std::cout << "EVENT" << std::endl;
-		std::cout << "    Type       : " << handle_type_name( handle->type ) << std::endl;
-		std::cout << "    Active     : " << ::uv_is_active( handle ) << std::endl;
-		std::cout << "    Is closing : " << ::uv_is_closing( handle ) << std::endl;
-
-		bool is_fd_backed =
-			handle->type == ::uv_handle_type::UV_TCP ||
-			handle->type == ::uv_handle_type::UV_NAMED_PIPE ||
-			handle->type == ::uv_handle_type::UV_TTY ||
-			handle->type == ::uv_handle_type::UV_UDP ||
-			handle->type == ::uv_handle_type::UV_POLL;
-
-		if ( is_fd_backed )
-		{
-			uv_os_fd_t fd;
-			auto ret = ::uv_fileno( handle, &fd );
-			if ( ret )
-			{
-				std::cout << "    fd error   : ";
-				if ( ret == UV_EINVAL )
-					std::cout << "UV_EINVAL";
-				else if ( ret == UV_EBADF )
-					std::cout << "UV_EBADF";
-				else
-					std::cout << ret;
-				std::cout << std::endl;
-			}
+			if ( ret == UV_EINVAL )
+				fd_err = "UV_EINVAL";
+			else if ( ret == UV_EBADF )
+				fd_err = "UV_EBADF";
 			else
-				std::cout << "    fd         : " << fd << std::endl;
+			{
+				std::stringstream ss;
+				ss << ret;
+				fd_err = ss.str( );
+			}
+			fd = -1;
 		}
-	};
-	::uv_walk( &pimpl_->uv_loop, walker, nullptr );
+	}
 
-	return s;
+	events->push_back( dispatcher::event_descriptor{
+		handle,
+		handle_type_name( handle->type ),
+		static_cast< bool >( ::uv_is_active( handle ) ),
+		static_cast< bool >( ::uv_is_closing( handle ) ),
+		fd,
+		std::move( fd_err )
+	} );
+};
+
+std::vector< dispatcher::event_descriptor > dispatcher::dump_events( ) const
+{
+	std::vector< event_descriptor > events;
+
+	::uv_walk( &pimpl_->uv_loop, event_walker, &events );
+
+	return events;
+}
+
+static inline const char* json_bool( bool b, bool with_comma = true )
+{
+	return b
+		? ( with_comma ? "true," : "true" )
+		: ( with_comma ? "false," : "false" );
+}
+
+std::string dispatcher::dump_events_json( ) const
+{
+	auto events = dump_events( );
+
+	std::stringstream ss;
+
+	ss << "[";
+
+	for ( auto& desc : events )
+	{
+		ss << std::endl << "\t{" << std::endl;
+		ss << "\t\t\"type\": \"" << desc.type << "\"," << std::endl;
+		if ( desc.fd != -1 )
+			ss << "\t\t\"fd\": " << desc.fd << "," << std::endl;
+		if ( !desc.fd_err.empty( ) )
+			ss
+				<< "\t\t\"error\": \"" << desc.fd_err << "\","
+				<< std::endl;
+		ss
+			<< "\t\t\"active\": " << json_bool( desc.active )
+			<< std::endl;
+		ss
+			<< "\t\t\"closing\": "
+			<< json_bool( desc.closing, false )
+			<< std::endl;
+		ss << "\t},";
+	}
+
+	if ( !events.empty( ) )
+	{
+		ss.seekp( -1, ss.cur );
+		ss << std::endl;
+	}
+
+	ss << "]";
+
+	return ss.str( );
 }
 
 void dispatcher::_make_dummy_event( )
@@ -199,6 +254,8 @@ void dispatcher::start_blocking( )
 	::uv_run( &pimpl_->uv_loop, UV_RUN_DEFAULT );
 
 	_cleanup_dummy_event( );
+
+	std::cout << dump_events_json( ) << std::endl;
 
 	::uv_loop_close( &pimpl_->uv_loop );
 
