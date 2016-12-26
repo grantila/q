@@ -47,6 +47,28 @@ ipv4_address::ipv4_address( struct sockaddr* addr )
 	);
 }
 
+bool ipv4_address::operator==( const ipv4_address& other ) const
+{
+	if ( valid != other.valid )
+		return false;
+
+	if ( !valid )
+		return true;
+
+	return *reinterpret_cast< const std::uint32_t* >( data ) ==
+		*reinterpret_cast< const std::uint32_t* >( other.data );
+}
+
+bool ipv4_address::operator!=( const ipv4_address& other ) const
+{
+	return !( *this == other );
+}
+
+bool ipv4_address::operator<( const ipv4_address& other ) const
+{
+	return std::memcmp( data, other.data, 4 ) < 0;
+}
+
 std::string ipv4_address::string( ) const
 {
 	if ( true )
@@ -127,6 +149,28 @@ ipv6_address::ipv6_address( struct sockaddr* addr )
 		&addr_in->sin6_addr,
 		std::min< std::size_t >( 16, sizeof addr_in->sin6_addr )
 	);
+}
+
+
+bool ipv6_address::operator==( const ipv6_address& other ) const
+{
+	if ( valid != other.valid )
+		return false;
+
+	if ( !valid )
+		return true;
+
+	return !std::memcmp( data, other.data, sizeof( data[ 0 ] ) * 8 );
+}
+
+bool ipv6_address::operator!=( const ipv6_address& other ) const
+{
+	return !( *this == other );
+}
+
+bool ipv6_address::operator<( const ipv6_address& other ) const
+{
+	return std::memcmp( data, other.data, sizeof( data[ 0 ] ) * 8 ) < 0;
 }
 
 static std::string ipv6_address_to_string( const ipv6_address& ipv6 )
@@ -231,6 +275,270 @@ ipv6_address ipv6_address::from( const char* addr )
 		ipv6.valid = true;
 
 	return ipv6;
+}
+
+
+ip_address::ip_address( )
+: state_( state_type::uninitialized )
+{ }
+
+ip_address::ip_address( ipv4_address addr )
+: state_( state_type::ipv4 )
+, ipv4_( std::move( addr ) )
+{ }
+
+ip_address::ip_address( ipv6_address addr )
+: state_( state_type::ipv6 )
+, ipv6_( std::move( addr ) )
+{ }
+
+ip_address::ip_address( const ip_address& ref )
+: state_( ref.state_ )
+{
+	if ( state_ == state_type::ipv4 )
+		::new ( &ipv4_ ) ipv4_address( ref.ipv4_ );
+	else if ( state_ == state_type::ipv6 )
+		::new ( &ipv6_ ) ipv6_address( ref.ipv6_ );
+}
+
+ip_address::ip_address( ip_address&& ref )
+: state_( ref.state_ )
+{
+	if ( state_ == state_type::ipv4 )
+		::new ( &ipv4_ ) ipv4_address( std::move( ref.ipv4_ ) );
+	else if ( state_ == state_type::ipv6 )
+		::new ( &ipv6_ ) ipv6_address( std::move( ref.ipv6_ ) );
+}
+
+ip_address::ip_address( struct sockaddr* addr )
+{
+	if ( addr->sa_family != AF_INET && addr->sa_family != AF_INET6 )
+		Q_THROW( invalid_ip_address( ) );
+
+	if ( addr->sa_family == AF_INET )
+	{
+		::new ( &ipv4_ ) ipv4_address( addr );
+		state_ = state_type::ipv4;
+	}
+	else
+	{
+		::new ( &ipv6_ ) ipv6_address( addr );
+		state_ = state_type::ipv6;
+	}
+}
+
+ip_address::ip_address( const char* addr )
+{
+	std::uint32_t _data;
+	auto ret = ::inet_pton( AF_INET, addr, &_data );
+
+	if ( ret == 1 ) // IPv4
+	{
+		::new ( &ipv4_ ) ipv4_address( addr );
+		state_ = state_type::ipv4;
+		return;
+	}
+	else // Maybe IPv6
+	{
+		::new ( &ipv6_ ) ipv6_address( addr );
+		state_ = state_type::ipv6;
+		return;
+	}
+}
+
+ip_address::~ip_address( )
+{
+	_clear( );
+}
+
+ip_address& ip_address::operator=( ipv4_address addr )
+{
+	if ( &addr == & ipv4_ )
+		return *this;
+
+	_clear( );
+
+	state_ = state_type::ipv4;
+	::new ( &ipv4_ ) ipv4_address( std::move( addr ) );
+
+	return *this;
+}
+
+ip_address& ip_address::operator=( ipv6_address addr )
+{
+	if ( &addr == & ipv6_ )
+		return *this;
+
+	_clear( );
+
+	state_ = state_type::ipv6;
+	::new ( &ipv6_ ) ipv6_address( std::move( addr ) );
+
+	return *this;
+}
+
+ip_address& ip_address::operator=( const ip_address& ref )
+{
+	if ( &ref == this )
+		return *this;
+
+	_clear( );
+
+	state_ = ref.state_;
+
+	if ( state_ == state_type::ipv4 )
+		::new ( &ipv4_ ) ipv4_address( ref.ipv4_ );
+	else if ( state_ == state_type::ipv6 )
+		::new ( &ipv6_ ) ipv6_address( ref.ipv6_ );
+
+	return *this;
+}
+
+ip_address& ip_address::operator=( ip_address&& ref )
+{
+	if ( &ref == this )
+		return *this;
+
+	_clear( );
+
+	state_ = ref.state_;
+
+	if ( state_ == state_type::ipv4 )
+		::new ( &ipv4_ ) ipv4_address( std::move( ref.ipv4_ ) );
+	else if ( state_ == state_type::ipv6 )
+		::new ( &ipv6_ ) ipv6_address( std::move( ref.ipv6_ ) );
+
+	return *this;
+}
+
+bool ip_address::operator==( const ip_address& other ) const
+{
+	if ( &other == this )
+		return true;
+
+	if ( other.operator bool( ) != operator bool( ) )
+		return false;
+
+	if ( !operator bool( ) )
+		return true;
+
+	if ( is_v4( ) != other.is_v4( ) )
+		return false;
+
+	if ( is_v4( ) )
+		return ipv4( ) == other.ipv4( );
+	else
+		return ipv6( ) == other.ipv6( );
+}
+
+bool ip_address::operator!=( const ip_address& other ) const
+{
+	return !( *this == other );
+}
+
+bool ip_address::operator<( const ip_address& other ) const
+{
+	if ( &other == this )
+		return false;
+
+	if ( other.operator bool( ) != operator bool( ) )
+		return !operator bool( );
+
+	if ( !operator bool( ) )
+		return false;
+
+	if ( is_v4( ) != other.is_v4( ) )
+		return is_v4( );
+
+	if ( is_v4( ) )
+		return ipv4( ) < other.ipv4( );
+	else
+		return ipv6( ) < other.ipv6( );
+}
+
+bool ip_address::is_v4( ) const
+{
+	return state_ == state_type::ipv4;
+}
+
+bool ip_address::is_v6( ) const
+{
+	return state_ == state_type::ipv6;
+}
+
+const ipv4_address& ip_address::ipv4( ) const
+{
+	if ( !is_v4( ) )
+		Q_THROW( invalid_ip_address( ) );
+	return ipv4_;
+}
+
+const ipv6_address& ip_address::ipv6( ) const
+{
+	if ( !is_v6( ) )
+		Q_THROW( invalid_ip_address( ) );
+	return ipv6_;
+}
+
+ip_address::operator bool( ) const
+{
+	if ( state_ == state_type::uninitialized )
+		return false;
+	else if ( state_ == state_type::ipv4 )
+		return ipv4( ).valid;
+	else
+		return ipv6( ).valid;
+}
+
+std::string ip_address::string( ) const
+{
+	if ( !*this )
+		Q_THROW( invalid_ip_address( ) );
+
+	if ( is_v4( ) )
+		return ipv4( ).string( );
+	else
+		return ipv6( ).string( );
+}
+
+void ip_address::populate( ::sockaddr_in& addr, std::uint16_t port ) const
+{
+	if ( !is_v4( ) )
+		Q_THROW( invalid_ip_address( ) );
+
+	ipv4( ).populate( addr, port );
+}
+
+void ip_address::populate( ::sockaddr_in6& addr, std::uint16_t port ) const
+{
+	if ( !is_v6( ) )
+		Q_THROW( invalid_ip_address( ) );
+
+	ipv6( ).populate( addr, port );
+}
+
+ip_address ip_address::from( const char* addr )
+{
+	ip_address ip;
+
+	ip = ipv4_address::from( addr );
+	if ( ip.ipv4_.valid )
+		return ip;
+
+	ip = ipv6_address::from( addr );
+	if ( ip.ipv6_.valid )
+		return ip;
+
+	ip._clear( );
+	return ip;
+}
+
+void ip_address::_clear( )
+{
+	if ( state_ == state_type::ipv4 )
+		ipv4_.~ipv4_address( );
+	else if ( state_ == state_type::ipv6 )
+		ipv6_.~ipv6_address( );
 }
 
 
@@ -372,3 +680,43 @@ ip_addresses::iterator ip_addresses::end( std::uint16_t port )
 }
 
 } } // namespace io, namespace q
+
+namespace std {
+
+size_t
+hash< q::io::ipv4_address >::
+operator( )( const q::io::ipv4_address& ip ) const
+{
+	if ( !ip.valid )
+		return 11;
+	return hash< uint32_t >( )(
+		*reinterpret_cast< const uint32_t* >( ip.data ) );
+}
+
+size_t
+hash< q::io::ipv6_address >::
+operator( )( const q::io::ipv6_address& ip ) const
+{
+	if ( !ip.valid )
+		return 13;
+
+	hash< uint64_t > _hash;
+
+	auto data = reinterpret_cast< const uint64_t* >( ip.data );
+	return _hash( data[ 0 ] ) ^ _hash( data[ 1 ] );
+}
+
+size_t
+hash< q::io::ip_address >::
+operator( )( const q::io::ip_address& ip ) const
+{
+	if ( !ip )
+		return 7;
+
+	if ( ip.is_v4( ) )
+		return hash< q::io::ipv4_address >( )( ip.ipv4( ) );
+	else
+		return hash< q::io::ipv6_address >( )( ip.ipv6( ) );
+}
+
+} // namespace std

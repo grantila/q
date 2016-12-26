@@ -42,6 +42,13 @@ struct ipv4_address
 	: ipv4_address( addr.c_str( ) )
 	{ }
 
+	ipv4_address& operator=( ipv4_address&& ) = default;
+	ipv4_address& operator=( const ipv4_address& ) = default;
+
+	bool operator==( const ipv4_address& other ) const;
+	bool operator!=( const ipv4_address& other ) const;
+	bool operator<( const ipv4_address& other ) const;
+
 	std::string string( ) const;
 
 	void populate( ::sockaddr_in& addr, std::uint16_t port ) const;
@@ -71,6 +78,13 @@ struct ipv6_address
 	: ipv6_address( addr.c_str( ) )
 	{ }
 
+	ipv6_address& operator=( ipv6_address&& ) = default;
+	ipv6_address& operator=( const ipv6_address& ) = default;
+
+	bool operator==( const ipv6_address& other ) const;
+	bool operator!=( const ipv6_address& other ) const;
+	bool operator<( const ipv6_address& other ) const;
+
 	std::string string( ) const;
 
 	void populate( ::sockaddr_in6& addr, std::uint16_t port ) const;
@@ -85,6 +99,74 @@ struct ipv6_address
 
 	q::be< std::uint16_t > data[ 8 ];
 	bool valid;
+};
+
+class ip_address
+{
+public:
+	ip_address( );
+	ip_address( ipv4_address addr );
+	ip_address( ipv6_address addr );
+	ip_address( const ip_address& );
+	ip_address( ip_address&& );
+	ip_address( struct sockaddr* addr );
+	ip_address( struct sockaddr_in* addr )
+	: ip_address( reinterpret_cast< struct sockaddr* >( addr ) ) { }
+	ip_address( struct sockaddr_in6* addr )
+	: ip_address( reinterpret_cast< struct sockaddr* >( addr ) ) { }
+	ip_address( const char* addr );
+	explicit ip_address( const std::string& addr )
+	: ip_address( addr.c_str( ) )
+	{ }
+	~ip_address( );
+
+	ip_address& operator=( ipv4_address addr );
+	ip_address& operator=( ipv6_address addr );
+	ip_address& operator=( const ip_address& );
+	ip_address& operator=( ip_address&& );
+
+	bool operator==( const ip_address& other ) const;
+	bool operator!=( const ip_address& other ) const;
+	bool operator<( const ip_address& other ) const;
+
+	bool is_v4( ) const;
+	bool is_v6( ) const;
+
+	const ipv4_address& ipv4( ) const;
+	const ipv6_address& ipv6( ) const;
+
+	operator bool( ) const;
+
+	std::string string( ) const;
+
+	void populate( ::sockaddr_in& addr, std::uint16_t port ) const;
+	void populate( ::sockaddr_in6& addr, std::uint16_t port ) const;
+
+	// These are the same as the constructors, but they won't throw,
+	// instead the ip_address will not be "valid" (operator bool will
+	// return false), as if it was default constructed.
+	static ip_address from( const char* addr );
+	static ip_address from( const std::string& addr )
+	{
+		return from( addr.c_str( ) );
+	}
+
+private:
+	void _clear( );
+
+	enum class state_type
+	{
+		uninitialized,
+		ipv4,
+		ipv6
+	};
+	state_type state_;
+
+	union
+	{
+		ipv4_address ipv4_;
+		ipv6_address ipv6_;
+	};
 };
 
 namespace detail {
@@ -232,5 +314,24 @@ private:
 };
 
 } } // namespace io, namespace q
+
+namespace std {
+
+template< > struct hash< q::io::ipv4_address >
+{
+	size_t operator( )( const q::io::ipv4_address& ip ) const;
+};
+
+template< > struct hash< q::io::ipv6_address >
+{
+	size_t operator( )( const q::io::ipv6_address& ip ) const;
+};
+
+template< > struct hash< q::io::ip_address >
+{
+	size_t operator( )( const q::io::ip_address& ip ) const;
+};
+
+} // namespace std
 
 #endif // LIBQIO_IP_HPP
