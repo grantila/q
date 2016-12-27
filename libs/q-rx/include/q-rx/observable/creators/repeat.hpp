@@ -148,12 +148,12 @@ repeat( std::size_t limit, combine_options options )
 	// When we're done with all values, we'll go into another loop,
 	// iterating these saved values over and over again to repeat n times.
 	consume( [ ctx ]( void_safe_type t ) mutable
-	-> q::promise< std::tuple< > >
+	-> q::promise< >
 	{
 		ctx->readable_back_pressure.clear( );
 
 		if ( !ctx->writable.send( t ) )
-			return reject< arguments< > >(
+			return q::reject< >(
 				ctx->queue, ctx->writable.get_exception( ) );
 		ctx->values.push_back( std::move( t ) );
 
@@ -161,14 +161,14 @@ repeat( std::size_t limit, combine_options options )
 			return q::with( ctx->queue );
 
 		else if ( ctx->writable.is_closed( ) )
-			return q::reject< q::arguments< > >(
+			return q::reject< >(
 				ctx->queue, ctx->writable.get_exception( ) );
 
 		else
 			return ctx->readable_back_pressure.receive( );
 	} )
 	.then( [ ctx, limit ]( ) mutable
-	-> q::promise< std::tuple< > >
+	-> q::promise< >
 	{
 		// The input observable is now complete, with success. This is
 		// when we take over and start repeating...

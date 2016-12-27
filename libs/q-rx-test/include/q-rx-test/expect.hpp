@@ -177,12 +177,12 @@ protected:
 		return get_value( )->root( ).fixture( );
 	}
 
-	void await_promise( ::q::promise< std::tuple< > >&& promise )
+	void await_promise( ::q::promise< >&& promise )
 	{
 		get_fixture( ).await_promise( std::move( promise ) );
 	}
 
-	void await_promise( ::q::shared_promise< std::tuple< > >&& promise )
+	void await_promise( ::q::shared_promise< >&& promise )
 	{
 		get_fixture( ).await_promise( promise.unshare( ) );
 	}
@@ -200,8 +200,8 @@ public:
 	typedef expected_comparator_base< Value, Parent, T... > this_type;
 	typedef std::tuple< T... > tuple_type;
 	typedef std::function< void( const tuple_type& ) > testee_type;
-	typedef ::q::promise< tuple_type > promise_type;
-	typedef ::q::shared_promise< tuple_type > shared_promise_type;
+	typedef ::q::promise< T... > promise_type;
+	typedef ::q::shared_promise< T... > shared_promise_type;
 
 	template< typename Promise >
 	struct is_any_promise
@@ -711,16 +711,14 @@ private:
  * Unique promise
  */
 template< typename... T >
-class expected_comparator< q::promise< std::tuple< T... > >, true >
-: public expected_promise_comparator< q::promise< std::tuple< T... > >, T... >
+class expected_comparator< q::promise< T... >, true >
+: public expected_promise_comparator< q::promise< T... >, T... >
 {
 public:
-	typedef q::promise< std::tuple< T... > > promise_type;
+	typedef q::promise< T... > promise_type;
 	typedef expected_comparator_base<
-		expected_value< q::promise< std::tuple< T... > > >,
-		expected_promise_comparator<
-			q::promise< std::tuple< T... > >, T...
-		>,
+		expected_value< q::promise< T... > >,
+		expected_promise_comparator< q::promise< T... >, T... >,
 		T...
 	> base;
 
@@ -742,18 +740,16 @@ public:
  * Shared promise
  */
 template< typename... T >
-class expected_comparator< q::shared_promise< std::tuple< T... > >, true >
+class expected_comparator< q::shared_promise< T... >, true >
 : public expected_promise_comparator<
-	q::shared_promise< std::tuple< T... > >, T...
+	q::shared_promise< T... >, T...
 >
 {
 public:
-	typedef q::shared_promise< std::tuple< T... > > promise_type;
+	typedef q::shared_promise< T... > promise_type;
 	typedef expected_comparator_base<
-		expected_value< q::shared_promise< std::tuple< T... > > >,
-		expected_promise_comparator<
-			q::shared_promise< std::tuple< T... > >, T...
-		>,
+		expected_value< q::shared_promise< T... > >,
+		expected_promise_comparator< q::shared_promise< T... >, T... >,
 		T...
 	> base;
 

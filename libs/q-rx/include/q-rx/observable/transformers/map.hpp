@@ -57,7 +57,7 @@ struct map_context
 		writable_ = std::move( writable );
 	}
 
-	promise< std::tuple< > > on_data( from_type&& in )
+	promise< > on_data( from_type&& in )
 	{
 		writable_.send( fn_( std::move( in ) ) );
 

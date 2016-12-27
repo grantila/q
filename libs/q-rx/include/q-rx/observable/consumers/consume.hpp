@@ -33,8 +33,7 @@ struct consume_context
 	q::queue_ptr next_queue;
 	std::size_t max_concurrency;
 	std::atomic< std::size_t > concurrency;
-	std::shared_ptr< std::vector< q::promise< std::tuple< > > > >
-		concurrent_readers;
+	std::shared_ptr< std::vector< q::promise< > > > concurrent_readers;
 	q::resolver< > resolver;
 	q::rejecter< > rejecter;
 
@@ -112,7 +111,7 @@ struct consume_context
 		self->rejecter = reject;
 
 		self->concurrent_readers = std::make_shared<
-			std::vector< q::promise< std::tuple< > > >
+			std::vector< q::promise< > >
 		>( );
 
 		while ( self->concurrency < self->max_concurrency )
@@ -165,7 +164,7 @@ struct consume_context
 		} );
 	}
 
-	::q::promise< std::tuple< > >
+	::q::promise< >
 	consume( )
 	{
 		auto self = this->shared_from_this( );
@@ -211,7 +210,7 @@ typename std::enable_if<
 	)
 	and
 	std::is_void< ::q::result_of_t< Fn > >::value,
-	::q::promise< std::tuple< > >
+	::q::promise< >
 >::type
 observable< T >::
 consume( Fn&& fn, base_options options )
@@ -253,7 +252,7 @@ typename std::enable_if<
 	::q::is_promise_v< std::decay_t< ::q::result_of_t< Fn > > >
 	and
 	::q::result_of_t< Fn >::argument_types::empty_v,
-	::q::promise< std::tuple< > >
+	::q::promise< >
 >::type
 observable< T >::
 consume( Fn&& fn, base_options options )
@@ -348,7 +347,7 @@ typename std::enable_if<
 	q::arity_of_v< Fn > == 0
 	and
 	std::is_same< objectify_t< T >, void_t >::value,
-	::q::promise< std::tuple< > >
+	::q::promise< >
 >::type
 observable< T >::
 consume( Fn&& fn, base_options options )

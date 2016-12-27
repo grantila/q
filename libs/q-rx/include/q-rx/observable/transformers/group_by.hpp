@@ -179,7 +179,7 @@ struct group_by_context
 		self_ptr_.reset( );
 	}
 
-	q::promise< std::tuple< > >
+	q::promise< >
 	send( key_type&& key, void_safe_type&& value )
 	{
 		inner_writable_type writable;
@@ -249,7 +249,7 @@ struct group_by_context
 	}
 
 	template< bool _IsAsync = IsAsync >
-	typename std::enable_if< !_IsAsync, q::promise< std::tuple< > > >::type
+	typename std::enable_if< !_IsAsync, q::promise< > >::type
 	on_data( void_safe_type&& value )
 	{
 		auto self = self_ptr_;
@@ -272,7 +272,7 @@ struct group_by_context
 	}
 
 	template< bool _IsAsync = IsAsync >
-	typename std::enable_if< _IsAsync, q::promise< std::tuple< > > >::type
+	typename std::enable_if< _IsAsync, q::promise< > >::type
 	on_data( void_safe_type&& value )
 	{
 		auto self = self_ptr_;

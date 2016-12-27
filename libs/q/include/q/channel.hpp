@@ -1650,7 +1650,7 @@ class backpressure
 {
 public:
 	template< typename... T >
-	static promise< std::tuple< > > await_writable(
+	static promise< > await_writable(
 		const queue_ptr& queue, writable< T... > writable
 	)
 	{

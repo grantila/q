@@ -29,6 +29,8 @@ struct observable_types
 	typedef q::readable< T > readable_type;
 	typedef q::writable< T > writable_type;
 	typedef std::tuple< T > tuple_type;
+	typedef q::promise< T > promise_type;
+	typedef q::shared_promise< T > shared_promise_type;
 };
 
 template< typename... T >
@@ -39,6 +41,8 @@ struct observable_types< std::tuple< T... > >
 	typedef q::readable< T... > readable_type;
 	typedef q::writable< T... > writable_type;
 	typedef std::tuple< T... > tuple_type;
+	typedef q::promise< T... > promise_type;
+	typedef q::shared_promise< T... > shared_promise_type;
 };
 
 template< >
@@ -49,6 +53,8 @@ struct observable_types< void >
 	typedef q::readable< > readable_type;
 	typedef q::writable< > writable_type;
 	typedef std::tuple< > tuple_type;
+	typedef q::promise< > promise_type;
+	typedef q::shared_promise< > shared_promise_type;
 };
 
 } // namespace detail
@@ -63,6 +69,8 @@ class observable
 	typedef typename base_types::readable_type readable_type;
 	typedef typename base_types::writable_type writable_type;
 	typedef typename base_types::tuple_type tuple_type;
+	typedef typename base_types::promise_type promise_type;
+	typedef typename base_types::shared_promise_type shared_promise_type;
 	typedef typename q::objectify< T >::type void_safe_type;
 
 public:
@@ -104,23 +112,23 @@ public:
 	: observable( channel.get_readable( ) )
 	{ }
 
-	observable( q::readable< q::promise< tuple_type > >&& readable )
+	observable( q::readable< promise_type >&& readable )
 	: readable_( std::make_shared<
 		detail::observable_readable_promise< T >
 	>( std::move( readable ) ) )
 	{ }
 
-	observable( q::channel< q::promise< tuple_type > > channel )
+	observable( q::channel< promise_type > channel )
 	: observable( channel.get_readable( ) )
 	{ }
 
-	observable( q::readable< q::shared_promise< tuple_type > >&& readable )
+	observable( q::readable< shared_promise_type >&& readable )
 	: readable_( std::make_shared<
 		detail::observable_readable_shared_promise< T >
 	>( std::move( readable ) ) )
 	{ }
 
-	observable( q::channel< q::shared_promise< tuple_type > > channel )
+	observable( q::channel< shared_promise_type > channel )
 	: observable( channel.get_readable( ) )
 	{ }
 
@@ -614,7 +622,7 @@ public:
 		)
 		and
 		std::is_void< ::q::result_of_t< Fn > >::value,
-		::q::promise< std::tuple< > >
+		::q::promise< >
 	>::type
 	consume( Fn&& fn, base_options options = base_options( ) );
 
@@ -651,7 +659,7 @@ public:
 		::q::is_promise_v< std::decay_t< ::q::result_of_t< Fn > > >
 		and
 		::q::result_of_t< Fn >::argument_types::empty_v,
-		::q::promise< std::tuple< > >
+		::q::promise< >
 	>::type
 	consume( Fn&& fn, base_options options = base_options( ) );
 
@@ -664,7 +672,7 @@ public:
 		q::arity_of_v< Fn > == 0
 		and
 		std::is_same< objectify_t< T >, void_t >::value,
-		::q::promise< std::tuple< > >
+		::q::promise< >
 	>::type
 	consume( Fn&& fn, base_options options = base_options( ) );
 

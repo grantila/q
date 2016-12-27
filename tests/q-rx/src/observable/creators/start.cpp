@@ -45,7 +45,7 @@ TEST_F( ob_create_start, async_void_return_failure )
 {
 	auto starter = [ this ]( )
 	{
-		return q::reject< q::arguments< > >( queue, Error( ) );
+		return q::reject< >( queue, Error( ) );
 	};
 
 	auto o_start = q::rx::observable< void >::start( starter, { queue } );
@@ -61,7 +61,7 @@ TEST_F( ob_create_start, async_void_return_failure )
 TEST_F( ob_create_start, async_void_return_failure_sync )
 {
 	auto starter = [ ]( )
-	-> q::promise< std::tuple< > >
+	-> q::promise< >
 	{
 		Q_THROW( Error( ) );
 	};
@@ -132,7 +132,7 @@ TEST_F( ob_create_start, async_int_return_failure )
 {
 	auto starter = [ this ]( )
 	{
-		return q::reject< q::arguments< int > >( queue, Error( ) );
+		return q::reject< int >( queue, Error( ) );
 	};
 
 	auto o_start = q::rx::observable< int >::start( starter, { queue } );
@@ -148,7 +148,7 @@ TEST_F( ob_create_start, async_int_return_failure )
 TEST_F( ob_create_start, async_int_return_failure_sync )
 {
 	auto starter = [ ]( )
-	-> q::promise< std::tuple< int > >
+	-> q::promise< int >
 	{
 		Q_THROW( Error( ) );
 	};

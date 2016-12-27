@@ -164,7 +164,7 @@ buffer( std::size_t count, std::size_t stride, combine_options options )
 			return true;
 		}
 
-		q::promise< std::tuple< > > on_data( void_safe_type&& t )
+		q::promise< > on_data( void_safe_type&& t )
 		{
 			if ( step( std::move( t ) ) )
 				// We can keep getting more data
@@ -271,7 +271,7 @@ buffer( observable< void > closing_observable, combine_options options )
 			writable.close( );
 		}
 
-		q::promise< std::tuple< > > push( )
+		q::promise< > push( )
 		{
 			decltype( buf ) swapped_buf;
 
