@@ -27,24 +27,19 @@ struct promisifier;
 template< typename Ret, typename... Args >
 struct promisifier< Ret, ::q::arguments< Args... > >
 {
-	typedef typename std::conditional<
-		std::is_same< Ret, void >::value,
-		::q::arguments< >,
-		::q::arguments< Ret >
-	>::type arguments_type;
-	typedef typename arguments_type::tuple_type tuple_type;
-	typedef typename arguments_type::template apply< defer > defer_type;
+	typedef suitable_defer_t< Ret > defer_type;
+	typedef suitable_promise_t< Ret > promise_type;
 
 	template< typename Fn >
-	static q::function< promise< tuple_type >( Args... ) >
+	static q::function< promise_type( Args... ) >
 	promisify( queue_ptr&& queue, Fn&& fn )
 	{
 		Q_MAKE_MOVABLE( fn );
 
-		return q::unique_function< promise< tuple_type >( Args... ) >(
+		return q::unique_function< promise_type( Args... ) >(
 			[ queue, Q_MOVABLE_FORWARD( fn ) ]( Args... args )
 			mutable
-			-> promise< tuple_type >
+			-> promise_type
 			{
 				auto deferred = defer_type::construct( queue );
 
@@ -67,7 +62,7 @@ struct promisifier< Ret, ::q::arguments< Args... > >
  */
 template< typename Fn >
 typename std::enable_if<
-	!is_promise< Q_RESULT_OF( Fn ) >::value,
+	!is_promise< result_of_t< Fn > >::value,
 	decltype(
 		detail::promisifier< result_of_t< Fn >, arguments_of_t< Fn > >
 		::promisify( nullptr, std::declval< Fn >( ) )
@@ -81,7 +76,7 @@ promisify( queue_ptr queue, Fn&& fn )
 
 // No-op fallback for already promise-returning functions
 template< typename Fn >
-typename std::enable_if< is_promise< Q_RESULT_OF( Fn ) >::value, Fn >::type
+typename std::enable_if< is_promise< result_of_t< Fn > >::value, Fn >::type
 promisify( queue_ptr, Fn&& fn )
 {
 	return fn;

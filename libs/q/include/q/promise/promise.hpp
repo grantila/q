@@ -25,21 +25,36 @@ namespace detail {
 template< bool Shared, typename... T >
 struct make_promise_type
 {
-	typedef ::q::promise< std::tuple< T... > > type;
+	typedef ::q::promise< T... > type;
 };
 template< typename... T >
 struct make_promise_type< true, T... >
 {
-	typedef ::q::shared_promise< std::tuple< T... > > type;
+	typedef ::q::shared_promise< T... > type;
 };
 template< bool Shared, typename... T >
 using make_promise_type_t = typename make_promise_type< Shared, T... >::type;
 
+template< typename... Args >
+struct suitable_promise
+{
+	typedef promise< Args... > type;
+};
+template< >
+struct suitable_promise< void >
+: suitable_promise< >
+{ };
+template< typename... Args >
+struct suitable_promise< std::tuple< Args... > >
+: suitable_promise< Args... >
+{ };
+
+template< typename... Args >
+using suitable_promise_t = typename suitable_promise< Args... >::type;
 
 template< bool Shared, typename... Args >
-class generic_promise< Shared, std::tuple< Args... > >
+class generic_promise
 {
-
 public:
 	static_assert(
 		q::all_types_are_non_references< Args... >::value,
@@ -49,9 +64,9 @@ public:
 	typedef bool_type_t< Shared >                  shared_type;
 	typedef arguments< Args... >                   argument_types;
 	typedef std::tuple< Args... >                  tuple_type;
-	typedef generic_promise< Shared, tuple_type >  this_type;
-	typedef promise< tuple_type >                  unique_this_type;
-	typedef shared_promise< tuple_type >           shared_this_type;
+	typedef generic_promise< Shared, Args... >     this_type;
+	typedef promise< Args... >                     unique_this_type;
+	typedef shared_promise< Args... >              shared_this_type;
 	typedef make_promise_type_t< Shared, Args... > promise_this_type;
 	typedef promise_state< tuple_type, Shared >    state_type;
 	typedef promise_state< tuple_type, false >     unique_state_type;
@@ -92,7 +107,9 @@ public:
 	, queue_( queue )
 	{ }
 
-	generic_promise( std::shared_ptr< state_type > state, const queue_ptr& queue )
+	generic_promise(
+		std::shared_ptr< state_type > state, const queue_ptr& queue
+	)
 	: state_( state )
 	, queue_( queue )
 	{ }
@@ -140,11 +157,12 @@ public:
 	 * exceptions will be tried to be caught.
 	 * A generic_promise of type T... (actually tuple<T...>) has:
 	 *
-	 *   * then( T, ... )        -> X... => generic_promise< tuple< X > >
-	 *   * then( tuple< T... > ) -> X... => generic_promise< tuple< X > >
+	 *   * then( T, ... )        -> X... => generic_promise< X... >
+	 *   * then( tuple< T... > ) -> X... => generic_promise< X... >
 	 *
 	 *   * fail( E ) -> void // Can not be continued (except for done())
-	 *   * fail( E ) -> generic_promise< tuple< T... > > // Can be continued, suitable for "retry" flow
+	 *   * fail( E ) -> generic_promise< tuple< T... > >
+	 *                  // Can be continued, suitable for "retry" flow
 	 *
 	 *   * done( ) -> void
 	 *
@@ -166,7 +184,7 @@ public:
 		!is_promise< result_of_t< Fn > >::value
 		and
 		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
-		promise< result_of_as_tuple_t< Fn > >
+		suitable_promise_t< result_of_as_tuple_t< Fn > >
 	>::type
 	then( Fn&& fn, Queue&& queue = nullptr );
 
@@ -187,7 +205,7 @@ public:
 		!is_promise< result_of_t< Fn > >::value
 		and
 		Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
-		promise< result_of_as_tuple_t< Fn > >
+		suitable_promise_t< result_of_as_tuple_t< Fn > >
 	>::type
 	then( Fn&& fn, Queue&& queue = nullptr );
 
@@ -605,7 +623,7 @@ public:
 	 * expect-wrapped value, is always successful, so the set of promises
 	 * can be inspected for success or failure individually.
 	 */
-	q::promise< std::tuple< tuple_expect_type > > reflect_tuple( );
+	q::promise< tuple_expect_type > reflect_tuple( );
 
 	/**
 	 * Same as reflect_tuple( ), except this will shortcut the inner tuple
@@ -624,14 +642,14 @@ public:
 	template< bool Simplified = sizeof...( Args ) < 2 >
 	typename std::enable_if<
 		Simplified,
-		q::promise< std::tuple< short_expect_type > >
+		q::promise< short_expect_type >
 	>::type
 	reflect( );
 
 	template< bool Simplified = sizeof...( Args ) < 2 >
 	typename std::enable_if<
 		!Simplified,
-		q::promise< std::tuple< tuple_expect_type > >
+		q::promise< tuple_expect_type >
 	>::type
 	reflect( )
 	{
@@ -643,7 +661,7 @@ public:
 		std::is_void< _V >::value
 		and
 		argument_types::empty::value,
-		promise< std::tuple< U... > >
+		promise< U... >
 	>::type
 	forward( U&&... values );
 
@@ -661,8 +679,8 @@ public:
 	}
 
 private:
-	friend class ::q::promise< tuple_type >;
-	friend class ::q::shared_promise< tuple_type >;
+	friend class ::q::promise< Args... >;
+	friend class ::q::shared_promise< Args... >;
 
 	template< typename Queue >
 	typename std::enable_if<
@@ -685,17 +703,19 @@ private:
 
 } // namespace detail
 
-template< typename T >
+template< typename... T >
 class promise
-: public detail::generic_promise< false, T >
+: public detail::generic_promise< false, T... >
 {
-	typedef promise< T >                        this_type;
-	typedef detail::generic_promise< false, T > base_type;
+	typedef promise< T... >                        this_type;
+	typedef detail::generic_promise< false, T... > base_type;
 
 public:
-	typedef ::q::is_copy_constructible< T > shareable;
+	typedef ::q::is_copy_constructible< T... > shareable;
 
-	promise( typename base_type::state_type&& state, const queue_ptr& queue )
+	promise(
+		typename base_type::state_type&& state, const queue_ptr& queue
+	)
 	: base_type( std::move( state ), queue )
 	{ }
 
@@ -705,18 +725,18 @@ public:
 	promise& operator=( this_type&& ) = default;
 	promise& operator=( const this_type& ) = delete;
 
-	promise( detail::generic_promise< false, T >&& ref )
+	promise( detail::generic_promise< false, T... >&& ref )
 	: base_type( std::move( ref.state_ ), ref.queue_ )
 	{ }
 
-	template< typename T_ = T >
+	template< bool B = true >
 	typename std::enable_if<
-		shareable::value and std::is_same< T_, T >::value,
-		shared_promise< T >
+		shareable::value && B,
+		shared_promise< T... >
 	>::type
 	share( )
 	{
-		return shared_promise< T >(
+		return shared_promise< T... >(
 			base_type::state_->acquire( ), this->get_queue( ) );
 	}
 
@@ -724,15 +744,15 @@ public:
 	 * Throws away the value this promise holds, and returns an empty
 	 * promise.
 	 */
-	::q::promise< std::tuple< > > strip( );
+	::q::promise< > strip( );
 };
 
-template< typename T >
+template< typename... T >
 class shared_promise
-: public detail::generic_promise< true, T >
+: public detail::generic_promise< true, T... >
 {
-	typedef shared_promise< T >                this_type;
-	typedef detail::generic_promise< true, T > base_type;
+	typedef shared_promise< T... >                this_type;
+	typedef detail::generic_promise< true, T... > base_type;
 
 public:
 	shared_promise( typename base_type::state_type&& state,
@@ -741,12 +761,12 @@ public:
 	{ }
 
 	shared_promise(
-		detail::promise_state_data< T, false >&& state,
+		detail::promise_state_data< std::tuple< T... >, false >&& state,
 		const queue_ptr& queue )
 	: base_type( std::move( state ), queue )
 	{ }
 
-	shared_promise( detail::generic_promise< true, T >&& ref )
+	shared_promise( detail::generic_promise< true, T... >&& ref )
 	: base_type( std::move( ref.state_ ), ref.queue_ )
 	{ }
 
@@ -756,7 +776,7 @@ public:
 	shared_promise& operator=( this_type&& ) = default;
 	shared_promise& operator=( const this_type& ) = default;
 
-	promise< T > unshare( ) noexcept // TODO: analyze noexcept here
+	promise< T... > unshare( ) noexcept // TODO: analyze noexcept here
 	{
 		return this->then( [ ]( typename base_type::tuple_type&& value )
 		{
@@ -768,7 +788,7 @@ public:
 	 * Throws away the value this shared_promise holds, and returns an
 	 * empty shared_promise.
 	 */
-	::q::shared_promise< std::tuple< > > strip( );
+	::q::shared_promise< > strip( );
 };
 
 } // namespace q

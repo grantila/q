@@ -68,8 +68,6 @@ template< typename... Args >
 struct resolve_helper_
 : std::enable_shared_from_this< resolve_helper_< Args... > >
 {
-	typedef std::tuple< Args... > tuple_type;
-
 	resolve_helper_( const ::q::queue_ptr& queue )
 	: deferred_( q::detail::defer< Args... >::construct( queue ) )
 	, resolver_( deferred_ )
@@ -89,7 +87,7 @@ struct resolve_helper_
 		}
 	}
 
-	::q::promise< tuple_type > get_promise( ) const
+	::q::promise< Args... > get_promise( ) const
 	{
 		return deferred_->get_promise( );
 	}
@@ -117,12 +115,12 @@ struct resolve_helper
 
 template< typename Fn >
 typename std::enable_if<
-	Q_ARITY_OF( Fn ) == 0,
-	promise< Q_RESULT_OF_AS_TUPLE_TYPE( Fn ) >
+	arity_of_t< Fn >::value == 0,
+	detail::suitable_promise_t< result_of_as_tuple_t< Fn > >
 >::type
 make_promise( const queue_ptr& queue, Fn&& fn )
 {
-	auto deferred = Q_RESULT_OF_AS_ARGUMENT( Fn )
+	auto deferred = result_of_as_argument_t< Fn >
 		::template apply< ::q::detail::defer >
 		::construct( queue );
 
@@ -138,12 +136,12 @@ make_promise( const queue_ptr& queue, Fn&& fn )
 
 template< typename Fn >
 typename std::enable_if<
-	Q_ARITY_OF( Fn ) == 0,
-	promise< Q_RESULT_OF_AS_TUPLE_TYPE( Fn ) >
+	arity_of_t< Fn >::value == 0,
+	detail::suitable_promise_t< result_of_as_tuple_t< Fn > >
 >::type
 make_promise_sync( const queue_ptr& queue, Fn&& fn )
 {
-	auto deferred = Q_RESULT_OF_AS_ARGUMENT( Fn )
+	auto deferred = result_of_as_argument_t< Fn >
 		::template apply< ::q::detail::defer >
 		::construct( queue );
 
@@ -164,17 +162,17 @@ struct extract_resolver_args< ::q::resolver< Args... > >
 template< typename Fn >
 typename std::enable_if<
 	true,
-	q::promise<
+	detail::suitable_promise_t<
 		typename extract_resolver_args<
 			typename std::decay<
-				Q_FIRST_ARGUMENT_OF( Fn )
+				first_argument_of_t< Fn >
 			>::type
 		>::type::tuple_type
 	>
 >::type
 make_promise( const ::q::queue_ptr& queue, Fn&& fn )
 {
-	typedef Q_FIRST_ARGUMENT_OF( Fn ) resolve_signature;
+	typedef first_argument_of_t< Fn > resolve_signature;
 	typedef typename extract_resolver_args<
 		typename std::decay< resolve_signature >::type
 	>::type                                  value_types;
@@ -197,17 +195,17 @@ make_promise( const ::q::queue_ptr& queue, Fn&& fn )
 template< typename Fn >
 typename std::enable_if<
 	true,
-	q::promise<
+	detail::suitable_promise_t<
 		typename extract_resolver_args<
 			typename std::decay<
-				Q_FIRST_ARGUMENT_OF( Fn )
+				first_argument_of_t< Fn >
 			>::type
 		>::type::tuple_type
 	>
 >::type
 make_promise_sync( const ::q::queue_ptr& queue, Fn&& fn )
 {
-	typedef Q_FIRST_ARGUMENT_OF( Fn ) resolve_signature;
+	typedef first_argument_of_t< Fn > resolve_signature;
 	typedef typename extract_resolver_args<
 		typename std::decay< resolve_signature >::type
 	>::type                                  value_types;
@@ -225,7 +223,7 @@ make_promise_sync( const ::q::queue_ptr& queue, Fn&& fn )
 #ifdef LIBQ_WITH_CPP14
 
 template< typename... Args, typename Fn >
-q::promise< std::tuple< typename q::remove_rvalue_reference< Args >::type... > >
+q::promise< typename q::remove_rvalue_reference< Args >::type... >
 make_promise_of( const ::q::queue_ptr& queue, Fn&& fn )
 {
 	typedef std::tuple<
@@ -263,7 +261,7 @@ make_promise_of( const ::q::queue_ptr& queue, Fn&& fn )
 }
 
 template< typename... Args, typename Fn >
-q::promise< std::tuple< typename q::remove_rvalue_reference< Args >::type... > >
+q::promise< typename q::remove_rvalue_reference< Args >::type... >
 make_promise_sync_of( const ::q::queue_ptr& queue, Fn&& fn )
 {
 	typedef std::tuple<

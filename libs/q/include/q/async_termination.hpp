@@ -57,11 +57,11 @@ protected:
 
 // Asynchronous termination
 
-template< typename Parameters, typename Completion >
+template< typename Parameters, typename... Completion >
 class async_termination_interface;
 
-template< typename... Args, typename Completion >
-class async_termination_interface< q::arguments< Args... >, Completion >
+template< typename... Args, typename... Completion >
+class async_termination_interface< q::arguments< Args... >, Completion... >
 {
 public:
 	template< typename... FnArgs >
@@ -70,7 +70,7 @@ public:
 			q::arguments< FnArgs... >,
 			q::arguments< Args... >
 		>::value,
-		promise< Completion >
+		promise< Completion... >
 	>::type
 	terminate( FnArgs&&... args );
 
@@ -80,14 +80,13 @@ protected:
 
 template<
 	typename Parameters = q::arguments< >,
-	typename Completion = std::tuple< >
+	typename... Completion
 >
 class async_termination
-: public async_termination_interface< Parameters, Completion >
+: public async_termination_interface< Parameters, Completion... >
 {
 public:
-	typedef typename ::q::tuple_arguments_t< Completion >
-		::template apply< ::q::detail::defer > defer_type;
+	typedef detail::suitable_defer_t< Completion... > defer_type;
 
 	virtual ~async_termination( ) { }
 
@@ -103,12 +102,12 @@ protected:
 		return *deferred_termination_.get( );
 	}
 
-	void termination_done( Completion&& completion )
+	void termination_done( std::tuple< Completion... >&& completion )
 	{
 		termination_deferer( ).set_value( std::move( completion ) );
 	}
 
-	void termination_done( const Completion& completion )
+	void termination_done( const std::tuple< Completion... >& completion )
 	{
 		termination_deferer( ).set_value( completion );
 	}
@@ -117,7 +116,7 @@ protected:
 	typename std::enable_if<
 		::q::is_argument_same_or_convertible_t<
 			::q::arguments< Args... >,
-			::q::tuple_arguments_t< Completion >
+			::q::arguments< Completion... >
 		>::value
 	>::type
 	termination_done( Args&&... args )
@@ -126,26 +125,29 @@ protected:
 	}
 
 private:
-	template< typename, typename >
+	template< typename, typename... >
 	friend class async_termination_interface;
 
 	// TODO: Convert to safe_shared_ptr
 	std::shared_ptr< defer_type > deferred_termination_;
 };
 
-template< typename... Args, typename Completion >
+template< typename... Args, typename... Completion >
 template< typename... FnArgs >
 typename std::enable_if<
 	::q::is_argument_same_or_convertible_t<
 		q::arguments< FnArgs... >,
 		q::arguments< Args... >
 	>::value,
-	promise< Completion >
+	promise< Completion... >
 >::type
-async_termination_interface< q::arguments< Args... >, Completion >::
+async_termination_interface< q::arguments< Args... >, Completion... >::
 terminate( FnArgs&&... args )
 {
-	typedef async_termination< q::arguments< Args...>, Completion > subclass;
+	typedef async_termination<
+		q::arguments< Args...>, Completion...
+	> subclass;
+
 	auto& at = static_cast< subclass& >( *this );
 
 	try
@@ -186,10 +188,10 @@ terminate( FnArgs&&... args )
  */
 template<
 	typename Parameters = q::arguments< >,
-	typename Completion = std::tuple< >
+	typename... Completion
 >
 class async_termination
-: public detail::async_termination< Parameters, Completion >
+: public detail::async_termination< Parameters, Completion... >
 {
 public:
 	virtual ~async_termination( ) { }
@@ -200,15 +202,15 @@ protected:
 	async_termination( async_termination&& ) = delete;
 
 	async_termination( const queue_ptr& queue )
-	: detail::async_termination< Parameters, Completion >( queue )
+	: detail::async_termination< Parameters, Completion... >( queue )
 	{ }
 };
 
 template<
 	typename Parameters
 >
-class async_termination< Parameters, std::tuple< > >
-: public detail::async_termination< Parameters, std::tuple< > >
+class async_termination< Parameters >
+: public detail::async_termination< Parameters >
 {
 public:
 	virtual ~async_termination( ) { }
@@ -219,7 +221,7 @@ protected:
 	async_termination( async_termination&& ) = delete;
 
 	async_termination( const queue_ptr& queue )
-	: detail::async_termination< Parameters, std::tuple< > >( queue )
+	: detail::async_termination< Parameters >( queue )
 	{ }
 };
 

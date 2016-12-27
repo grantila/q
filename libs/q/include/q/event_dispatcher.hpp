@@ -124,10 +124,10 @@ protected:
 
 template<
 	typename TerminationArgs = q::arguments< >,
-	typename Completion = std::tuple< >
+	typename... Completion
 >
 class event_dispatcher
-: public async_termination< TerminationArgs, Completion >
+: public async_termination< TerminationArgs, Completion... >
 , public basic_event_dispatcher
 {
 public:
@@ -146,11 +146,11 @@ public:
 	 */
 	virtual q::expect< > await_termination( ) = 0;
 
-	using async_termination< TerminationArgs, Completion >::do_terminate;
+	using async_termination< TerminationArgs, Completion... >::do_terminate;
 
 protected:
 	event_dispatcher( const queue_ptr& queue )
-	: async_termination< TerminationArgs, Completion >( queue )
+	: async_termination< TerminationArgs, Completion... >( queue )
 	{ }
 };
 

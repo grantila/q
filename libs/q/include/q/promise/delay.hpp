@@ -20,7 +20,7 @@
 namespace q {
 
 template< typename... Args >
-promise< std::tuple< typename std::decay< Args >::type... > >
+promise< typename std::decay< Args >::type... >
 delay( const queue_ptr& queue, timer::point_type run_at, Args&&... args )
 {
 	typedef detail::defer< typename std::decay< Args >::type... >
@@ -39,7 +39,7 @@ delay( const queue_ptr& queue, timer::point_type run_at, Args&&... args )
 }
 
 template< typename... Args >
-promise< std::tuple< typename std::decay< Args >::type... > >
+promise< typename std::decay< Args >::type... >
 delay( const queue_ptr& queue, timer::duration_type duration, Args&&... args )
 {
 	return delay(
