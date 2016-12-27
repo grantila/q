@@ -37,16 +37,14 @@ typename std::enable_if<
 	tuple_arguments_t< result_of_t< Fn > >
 		::template is_convertible_to<
 			typename generic_promise<
-				Shared, std::tuple< Args... >
+				Shared, Args...
 			>::argument_types
 		>::value
 	and
 	Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
-	typename generic_promise<
-		Shared, std::tuple< Args... >
-	>::promise_this_type
+	typename generic_promise< Shared, Args... >::promise_this_type
 >::type
-generic_promise< Shared, std::tuple< Args... > >::
+generic_promise< Shared, Args... >::
 fail( Fn&& fn, Queue&& queue )
 {
 	auto deferred = detail::defer< Args... >::construct(
@@ -106,16 +104,14 @@ typename std::enable_if<
 	result_of_t< Fn >::argument_types
 		::template is_convertible_to<
 			typename generic_promise<
-				Shared, std::tuple< Args... >
+				Shared, Args...
 			>::argument_types
 		>::value
 	and
 	Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
-	typename generic_promise<
-		Shared, std::tuple< Args... >
-	>::promise_this_type
+	typename generic_promise< Shared, Args... >::promise_this_type
 >::type
-generic_promise< Shared, std::tuple< Args... > >::
+generic_promise< Shared, Args... >::
 fail( Fn&& fn, Queue&& queue )
 {
 	auto deferred = detail::defer< tuple_type >::construct(
@@ -171,16 +167,14 @@ typename std::enable_if<
 	tuple_arguments_t< result_of_t< Fn > >
 		::template is_convertible_to<
 			typename generic_promise<
-				Shared, std::tuple< Args... >
+				Shared, Args...
 			>::argument_types
 		>::value
 	and
 	Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
-	typename generic_promise<
-		Shared, std::tuple< Args... >
-	>::promise_this_type
+	typename generic_promise< Shared, Args... >::promise_this_type
 >::type
-generic_promise< Shared, std::tuple< Args... > >::
+generic_promise< Shared, Args... >::
 fail( Fn&& fn, Queue&& queue )
 {
 	auto deferred = detail::defer< tuple_type >::construct(
@@ -252,16 +246,14 @@ typename std::enable_if<
 	result_of_t< Fn >::argument_types
 		::template is_convertible_to<
 			typename generic_promise<
-				Shared, std::tuple< Args... >
+				Shared, Args...
 			>::argument_types
 		>::value
 	and
 	Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
-	typename generic_promise<
-		Shared, std::tuple< Args... >
-	>::promise_this_type
+	typename generic_promise< Shared, Args... >::promise_this_type
 >::type
-generic_promise< Shared, std::tuple< Args... > >::
+generic_promise< Shared, Args... >::
 fail( Fn&& fn, Queue&& queue )
 {
 	auto deferred = detail::defer< tuple_type >::construct(

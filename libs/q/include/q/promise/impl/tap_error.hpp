@@ -37,9 +37,9 @@ typename std::enable_if<
 	std::is_void< result_of_t< Fn > >::value
 	and
 	Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
-	promise< std::tuple< Args... > >
+	promise< Args... >
 >::type
-generic_promise< Shared, std::tuple< Args... > >::
+generic_promise< Shared, Args... >::
 tap_error( Fn&& fn, Queue&& queue )
 {
 	auto deferred = detail::defer< Args... >::construct(
@@ -98,9 +98,9 @@ typename std::enable_if<
 	result_of_t< Fn >::argument_types::empty_or_voidish::value
 	and
 	Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
-	promise< std::tuple< Args... > >
+	promise< Args... >
 >::type
-generic_promise< Shared, std::tuple< Args... > >::
+generic_promise< Shared, Args... >::
 tap_error( Fn&& fn, Queue&& queue )
 {
 	auto deferred = detail::defer< Args... >::construct(
@@ -164,9 +164,9 @@ typename std::enable_if<
 	std::is_void< result_of_t< Fn > >::value
 	and
 	Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
-	promise< std::tuple< Args... > >
+	promise< Args... >
 >::type
-generic_promise< Shared, std::tuple< Args... > >::
+generic_promise< Shared, Args... >::
 tap_error( Fn&& fn, Queue&& queue )
 {
 	auto deferred = detail::defer< Args... >::construct(
@@ -238,9 +238,9 @@ typename std::enable_if<
 	result_of_t< Fn >::argument_types::empty_or_voidish::value
 	and
 	Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
-	promise< std::tuple< Args... > >
+	promise< Args... >
 >::type
-generic_promise< Shared, std::tuple< Args... > >::
+generic_promise< Shared, Args... >::
 tap_error( Fn&& fn, Queue&& queue )
 {
 	auto deferred = detail::defer< Args... >::construct(

@@ -42,7 +42,7 @@ TEST_F( forward, forward_two_values )
 TEST_F( forward, forward_with_exception )
 {
 	run(
-		q::reject< q::arguments< > >( queue, Error( ) )
+		q::reject< >( queue, Error( ) )
 		.forward( 5 )
 		.then( EXPECT_NO_CALL_WRAPPER( [ ]( int i ) { } ) )
 		.fail( EXPECT_CALL_WRAPPER( [ ]( const Error& ) { } ) )

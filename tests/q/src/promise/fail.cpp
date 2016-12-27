@@ -170,26 +170,26 @@ TEST_F( fail, exception_ptr_fail_twice_on_promises )
 	run(
 		q::with( queue )
 		.then( EXPECT_CALL_WRAPPER(
-		[ magic ]( ) -> q::promise< std::tuple< int > >
+		[ magic ]( ) -> q::promise< int >
 		{
 			Q_THROW( Error( ), std::move( magic ) );
 		} ) )
 		.then( EXPECT_NO_CALL_WRAPPER(
 			[ queue ]( int )
-			-> q::promise< std::tuple< int > >
+			-> q::promise< int >
 			{
 				return q::with( queue, 4711 );
 			}
 		) )
 		.fail( EXPECT_CALL_WRAPPER(
 		[ ]( std::exception_ptr e )
-		-> q::promise< std::tuple< int > >
+		-> q::promise< int >
 		{
 			std::rethrow_exception( e );
 		} ) )
 		.fail( EXPECT_CALL_WRAPPER( (
 		[ magic, queue ]( std::exception_ptr e )
-		-> q::promise< std::tuple< int > >
+		-> q::promise< int >
 		{
 			try
 			{

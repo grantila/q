@@ -46,7 +46,7 @@ TEST( execution_context, thread_pool_dispatcher )
 
 	std::size_t tasks = 1000;
 	auto prom = q::with( tpqu, num ).share( );
-	std::vector< q::promise< std::tuple< > > > promises;
+	std::vector< q::promise< > > promises;
 
 	for ( std::size_t i = 0; i < tasks; ++i )
 		promises.push_back(

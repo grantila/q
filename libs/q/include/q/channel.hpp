@@ -51,7 +51,8 @@ static constexpr std::size_t default_resume_count( std::size_t count )
 template< typename... T >
 struct channel_traits
 {
-	typedef q::promise< std::tuple< T... > > promise_type;
+	typedef q::promise< T... > promise_type;
+	typedef q::promise< T... > unique_promise_type;
 	typedef std::tuple< > promise_tuple_type;
 	typedef q::arguments< > promise_arguments_type;
 	typedef std::false_type is_shared;
@@ -66,9 +67,10 @@ struct channel_traits
 };
 
 template< typename... T >
-struct channel_traits< q::promise< std::tuple< T... > > >
+struct channel_traits< q::promise< T... > >
 {
-	typedef q::promise< std::tuple< T... > > promise_type;
+	typedef q::promise< T... > promise_type;
+	typedef q::promise< T... > unique_promise_type;
 	typedef std::tuple< T... > promise_tuple_type;
 	typedef arguments< T... > promise_arguments_type;
 	typedef std::false_type is_shared;
@@ -83,9 +85,10 @@ struct channel_traits< q::promise< std::tuple< T... > > >
 };
 
 template< typename... T >
-struct channel_traits< q::shared_promise< std::tuple< T... > > >
+struct channel_traits< q::shared_promise< T... > >
 {
-	typedef q::shared_promise< std::tuple< T... > > promise_type;
+	typedef q::shared_promise< T... > promise_type;
+	typedef q::promise< T... > unique_promise_type;
 	typedef std::tuple< T... > promise_tuple_type;
 	typedef arguments< T... > promise_arguments_type;
 	typedef std::true_type is_shared;
@@ -527,14 +530,14 @@ public:
 	}
 
 	Q_NODISCARD
-	promise< tuple_type > receive( )
+	promise< T... > receive( )
 	{
 		Q_AUTO_UNIQUE_LOCK( mutex_ );
 
 		if ( queue_.empty( ) )
 		{
 			if ( closed_.load( std::memory_order_seq_cst ) )
-				return reject< arguments_type >(
+				return reject< T... >(
 					default_queue_,
 					std::get< 0 >( close_exception_ )
 					? std::get< 1 >( close_exception_ )
@@ -602,7 +605,7 @@ public:
 			decayed_function_t< FnValue >,
 			decayed_function_t< FnClosed >
 		>::callbacks_are_valid::value,
-		promise< std::tuple< bool > >
+		promise< bool >
 	>::type
 	receive( FnValue&& fn_value, FnClosed&& fn_closed )
 	{
@@ -621,7 +624,7 @@ public:
 			{
 				if ( std::get< 0 >( close_exception_ ) )
 					// There was a real error
-					return reject< arguments< bool > >(
+					return reject< bool >(
 						default_queue_,
 						std::get< 1 >(
 							close_exception_ ) );
@@ -868,6 +871,7 @@ public:
 
 	using is_promise = typename traits::is_promise;
 	using promise_type = typename traits::promise_type;
+	using unique_promise_type = typename traits::unique_promise_type;
 	using tuple_type = typename traits::inner_tuple_type;
 	using promise_arguments_type = typename traits::promise_arguments_type;
 
@@ -882,7 +886,7 @@ public:
 	Q_NODISCARD
 	typename std::enable_if<
 		!IsPromise,
-		promise_type
+		unique_promise_type
 	>::type
 	receive( )
 	{
@@ -893,13 +897,13 @@ public:
 	Q_NODISCARD
 	typename std::enable_if<
 		IsPromise,
-		promise_type
+		unique_promise_type
 	>::type
 	receive( )
 	{
 		auto shared_channel = shared_channel_;
 
-		return maybe_share( shared_channel_->receive( )
+		return maybe_unshare( shared_channel_->receive( )
 		.then( [ shared_channel ](
 			promise_type&& promise
 		)
@@ -929,7 +933,7 @@ public:
 			::inner_callbacks_are_valid::value
 		and
 		!IsPromise,
-		promise< std::tuple< bool > >
+		promise< bool >
 	>::type
 	receive( FnValue&& fn_value, FnClosed&& fn_closed )
 	{
@@ -951,7 +955,7 @@ public:
 			::inner_callbacks_are_valid::value
 		and
 		IsPromise,
-		promise< std::tuple< bool > >
+		promise< bool >
 	>::type
 	receive( FnValue&& fn_value, FnClosed&& fn_closed )
 	{
@@ -963,7 +967,7 @@ public:
 		auto on_value =
 			[ shared_channel, Q_MOVABLE_MOVE( on_data ) ]
 			( typename traits::promise_type&& promise )
-		mutable -> ::q::promise< std::tuple< > >
+		mutable -> ::q::promise< >
 		{
 			return promise
 			.then( Q_MOVABLE_CONSUME( on_data ) )
@@ -991,7 +995,7 @@ public:
 		detail::shared_channel< T... >
 			::template fast_waiter_type< Fn, function< void( ) > >
 			::inner_callbacks_are_valid::value,
-		promise< std::tuple< > >
+		promise< >
 	>::type
 	consume( Fn&& fn, consume_options options = consume_options( ) )
 	{
@@ -1010,7 +1014,7 @@ public:
 			mutable
 		{
 			auto recurser = std::make_shared<
-				function< promise< std::tuple< > >( ) >
+				function< promise< >( ) >
 			>( );
 
 			auto completer = [ recurser, resolve ]( ) mutable
@@ -1056,7 +1060,7 @@ public:
 			( resolver< > resolve, rejecter< > reject )
 			mutable
 		{
-			typedef function< promise< std::tuple< > >( ) >
+			typedef function< promise< >( ) >
 				function_type;
 
 			struct recurse_type
@@ -1305,24 +1309,24 @@ private:
 		std::make_shared< detail::shared_channel_owner< T... > >( ch ) )
 	{ }
 
-	template< typename Promise, bool Shared = traits::is_shared::value >
+	template< typename Promise, bool Shared = Promise::shared_type::value >
 	typename std::enable_if<
 		!Shared,
-		promise_type
+		typename Promise::unique_this_type
 	>::type
-	maybe_share( Promise&& promise )
+	maybe_unshare( Promise&& promise )
 	{
 		return std::forward< Promise >( promise );
 	}
 
-	template< typename Promise, bool Shared = traits::is_shared::value >
+	template< typename Promise, bool Shared = Promise::shared_type::value >
 	typename std::enable_if<
 		Shared,
-		promise_type
+		typename Promise::unique_this_type
 	>::type
-	maybe_share( Promise&& promise )
+	maybe_unshare( Promise&& promise )
 	{
-		return promise.share( );
+		return promise.unshare( );
 	}
 
 	friend class channel< T... >;
@@ -1461,7 +1465,7 @@ public:
 
 	/**
 	 * Promise-channel:
-	 * ( tuple< T... > ) -> tuple< promise< tuple< T... > > >
+	 * ( tuple< T... > ) -> tuple< promise< T... > >
 	 */
 	template< typename Tuple >
 	Q_NODISCARD
@@ -1681,7 +1685,7 @@ public:
 		return back_ch_.get_readable( );
 	}
 
-	promise< std::tuple< > > get_promise( )
+	promise< > get_promise( )
 	{
 		++counter_;
 

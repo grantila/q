@@ -137,7 +137,7 @@ TEST_F( finally, asynchronous_with_value_synchronous_failed_finally )
 		} ) )
 		.finally( EXPECT_CALL_WRAPPER(
 		[ queue ]( )
-		-> q::promise< std::tuple< > >
+		-> q::promise< >
 		{
 			Q_THROW( Error( ) );
 		} ) )

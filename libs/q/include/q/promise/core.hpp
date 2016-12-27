@@ -21,38 +21,43 @@
 
 namespace q {
 
-template< typename T >
+template< typename... T >
 class promise;
 
-template< typename T >
+template< typename... T >
 class shared_promise;
 
-namespace detail { template< bool, typename > class generic_promise; }
+namespace detail {
+
+template< typename... T > class defer;
+template< bool, typename... > class generic_promise;
+
+} // namespace detail
 
 template< class T >
 struct is_promise
 : std::false_type
 { };
 
-template< bool B, typename T >
-struct is_promise< detail::generic_promise< B, T > >
+template< bool B, typename... T >
+struct is_promise< detail::generic_promise< B, T... > >
 : std::true_type
 { };
 
-template< class T >
-struct is_promise< promise< T > >
+template< typename... T >
+struct is_promise< promise< T... > >
 : std::true_type
 { };
 
-template< class T >
-struct is_promise< shared_promise< T > >
+template< typename... T >
+struct is_promise< shared_promise< T... > >
 : std::true_type
 { };
 
 #ifdef LIBQ_WITH_CPP14
 
-template< typename T >
-constexpr bool is_promise_v = is_promise< T >::value;
+template< typename... T >
+constexpr bool is_promise_v = is_promise< T... >::value;
 
 #endif // LIBQ_WITH_CPP14
 
@@ -85,19 +90,19 @@ struct promise_if_first_and_only
 };
 
 template< typename... Args >
-struct promise_if_first_and_only< ::q::promise< std::tuple< Args... > > >
+struct promise_if_first_and_only< ::q::promise< Args... > >
 {
 	typedef std::true_type valid;
-	typedef promise< std::tuple< Args... > > type;
+	typedef promise< Args... > type;
 	typedef typename type::tuple_type tuple_type;
 	typedef arguments< Args... > arguments_type;
 };
 
 template< typename... Args >
-struct promise_if_first_and_only< ::q::shared_promise< std::tuple< Args... > > >
+struct promise_if_first_and_only< ::q::shared_promise< Args... > >
 {
 	typedef std::true_type valid;
-	typedef promise< std::tuple< Args... > > type;
+	typedef promise< Args... > type;
 	typedef typename type::tuple_type tuple_type;
 	typedef arguments< Args... > arguments_type;
 };
@@ -180,22 +185,22 @@ struct promise_arguments
 	typedef ::q::arguments< T > type;
 };
 
-template< typename T, bool B >
-struct promise_arguments< generic_promise< B, T > >
+template< typename... T, bool B >
+struct promise_arguments< generic_promise< B, T... > >
 {
-	typedef typename generic_promise< B, T >::argument_types type;
+	typedef typename generic_promise< B, T... >::argument_types type;
 };
 
-template< typename T >
-struct promise_arguments< ::q::promise< T > >
+template< typename... T >
+struct promise_arguments< ::q::promise< T... > >
 {
-	typedef typename ::q::promise< T >::argument_types type;
+	typedef typename ::q::promise< T... >::argument_types type;
 };
 
-template< typename T >
-struct promise_arguments< ::q::shared_promise< T > >
+template< typename... T >
+struct promise_arguments< ::q::shared_promise< T... > >
 {
-	typedef typename ::q::shared_promise< T >::argument_types type;
+	typedef typename ::q::shared_promise< T... >::argument_types type;
 };
 
 } // namespace detail

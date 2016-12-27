@@ -28,14 +28,14 @@ namespace q {
  * Returns an immediately rejected promise with exception, either as a
  * std::exception_ptr or as an exception object.
  */
-template< typename Arguments, typename E >
+template< typename... Arguments, typename E >
 typename std::enable_if<
 	is_same_type< E, std::exception_ptr >::value,
-	promise< typename Arguments::tuple_type >
+	promise< Arguments... >
 >::type
 reject( const queue_ptr& queue, E&& e )
 {
-	typedef typename Arguments::template apply< detail::defer > defer_type;
+	typedef detail::defer< Arguments... > defer_type;
 
 	auto deferred = ::q::make_shared< defer_type >( queue );
 
@@ -44,14 +44,14 @@ reject( const queue_ptr& queue, E&& e )
 	return deferred->get_promise( );
 }
 
-template< typename Arguments, typename E >
+template< typename... Arguments, typename E >
 typename std::enable_if<
 	!is_same_type< E, std::exception_ptr >::value,
-	promise< typename Arguments::tuple_type >
+	promise< Arguments... >
 >::type
 reject( const queue_ptr& queue, E&& e )
 {
-	typedef typename Arguments::template apply< detail::defer > defer_type;
+	typedef detail::defer< Arguments... > defer_type;
 
 	auto deferred = ::q::make_shared< defer_type >( queue );
 

@@ -28,11 +28,11 @@ class concurrency_counter
 	struct continuation
 	{
 		std::shared_ptr< detail::defer< > > defer_;
-		shared_promise< std::tuple< > > promise_;
+		shared_promise< > promise_;
 
 		continuation(
 			std::shared_ptr< detail::defer< > >&& defer,
-			shared_promise< std::tuple< > >&& promise
+			shared_promise< >&& promise
 		)
 		: defer_( std::move( defer ) )
 		, promise_( std::move( promise ) )
@@ -98,7 +98,7 @@ public:
 		zero_fn_ = std::move( fn );
 	}
 
-	promise< std::tuple< > > get_promise( )
+	promise< > get_promise( )
 	{
 		Q_AUTO_UNIQUE_LOCK( mut_ );
 

@@ -43,7 +43,7 @@ typename std::enable_if<
 	>::value
 	and
 	( sizeof...( Rest ) > 0 ),
-	promise<
+	detail::suitable_promise_t<
 		typename merge_promise_arguments< First, Rest... >::tuple_type
 	>
 >::type
@@ -60,7 +60,7 @@ all( First&& first, Rest&&... rest )
 		full_tuple_type;
 
 	return first.then( [ when_rest_tmp ]( first_tuple_type&& data ) mutable
-	-> promise< full_tuple_type >
+	-> detail::suitable_promise_t< full_tuple_type >
 	{
 		auto rest_promise = when_rest_tmp.consume( );
 		auto data_tmp = Q_MOVE_TEMPORARILY_COPYABLE( data );
@@ -145,7 +145,9 @@ typename std::enable_if<
 	( std::tuple_size<
 		typename std::decay< List >::type::value_type::tuple_type
 	>::value >= 2 ),
-	promise< typename detail::all_return_type< List >::tuple_type >
+	detail::suitable_promise_t<
+		typename detail::all_return_type< List >::tuple_type
+	>
 >::type
 all( List&& list, const queue_ptr& queue )
 {
@@ -232,7 +234,9 @@ typename std::enable_if<
 	std::tuple_size<
 		typename std::decay< List >::type::value_type::tuple_type
 	>::value == 1,
-	promise< typename detail::all_return_type< List >::tuple_type >
+	detail::suitable_promise_t<
+		typename detail::all_return_type< List >::tuple_type
+	>
 >::type
 all( List&& list, const queue_ptr& queue )
 {
@@ -320,7 +324,9 @@ typename std::enable_if<
 	std::tuple_size<
 		typename std::decay< List >::type::value_type::tuple_type
 	>::value == 0,
-	promise< typename detail::all_return_type< List >::tuple_type >
+	detail::suitable_promise_t<
+		typename detail::all_return_type< List >::tuple_type
+	>
 >::type
 all( List&& list, const queue_ptr& queue )
 {

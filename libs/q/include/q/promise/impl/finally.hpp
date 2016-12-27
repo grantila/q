@@ -32,11 +32,9 @@ typename std::enable_if<
 	arity_of_t< Fn >::value == 0
 	and
 	Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
-	typename generic_promise<
-		Shared, std::tuple< Args... >
-	>::promise_this_type
+	typename generic_promise< Shared, Args... >::promise_this_type
 >::type
-generic_promise< Shared, std::tuple< Args... > >::
+generic_promise< Shared, Args... >::
 finally( Fn&& fn, Queue&& queue )
 {
 	auto deferred = ::q::make_shared< detail::defer< Args... > >(
@@ -82,11 +80,9 @@ typename std::enable_if<
 	result_of_t< Fn >::argument_types::empty::value
 	and
 	Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
-	typename generic_promise<
-		Shared, std::tuple< Args... >
-	>::promise_this_type
+	typename generic_promise< Shared, Args... >::promise_this_type
 >::type
-generic_promise< Shared, std::tuple< Args... > >::
+generic_promise< Shared, Args...>::
 finally( Fn&& fn, Queue&& queue )
 {
 	auto deferred = ::q::make_shared< detail::defer< Args... > >(

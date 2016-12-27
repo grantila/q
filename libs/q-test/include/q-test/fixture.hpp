@@ -39,7 +39,7 @@ public:
 
 	Q_MAKE_SIMPLE_EXCEPTION( Error );
 
-	void await_promise( ::q::promise< std::tuple< > >&& promise )
+	void await_promise( ::q::promise< >&& promise )
 	{
 		Q_AUTO_UNIQUE_LOCK( mutex_ );
 
@@ -128,9 +128,9 @@ protected:
 	q::test::spy spy;
 
 private:
-	q::promise< std::tuple< > > await_all( )
+	q::promise< > await_all( )
 	{
-		std::vector< q::promise< std::tuple< > > > promises_;
+		std::vector< q::promise< > > promises_;
 		{
 			Q_AUTO_UNIQUE_LOCK( mutex_ );
 			std::swap( promises_, awaiting_promises_ );
@@ -149,7 +149,7 @@ private:
 	}
 
 	q::mutex mutex_;
-	std::vector< q::promise< std::tuple< > > > awaiting_promises_;
+	std::vector< q::promise< > > awaiting_promises_;
 
 	q::scope scope_;
 	std::vector< q::scope > test_scopes_;

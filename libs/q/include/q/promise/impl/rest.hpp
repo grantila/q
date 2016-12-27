@@ -25,11 +25,9 @@ inline typename std::enable_if<
 	is_same_type< Logger, log_chain_generator >::value
 	and
 	Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
-	typename generic_promise<
-		Shared, std::tuple< Args... >
-	>::promise_this_type
+	typename generic_promise< Shared, Args... >::promise_this_type
 >::type
-generic_promise< Shared, std::tuple< Args... > >::
+generic_promise< Shared, Args... >::
 then( Logger&& logger, Queue&& queue )
 {
 	Q_MAKE_MOVABLE( logger );
@@ -48,8 +46,8 @@ then( Logger&& logger, Queue&& queue )
 }
 
 template< bool Shared, typename... Args >
-typename generic_promise< Shared, std::tuple< Args... > >::promise_this_type
-generic_promise< Shared, std::tuple< Args... > >::
+typename generic_promise< Shared, Args... >::promise_this_type
+generic_promise< Shared, Args... >::
 delay( timer::duration_type duration, queue_options options )
 {
 	auto queue = options.move< queue_ptr >( queue_ );
@@ -80,12 +78,8 @@ delay( timer::duration_type duration, queue_options options )
 }
 
 template< bool Shared, typename... Args >
-q::promise< std::tuple<
-	typename generic_promise<
-		Shared, std::tuple< Args... >
-	>::tuple_expect_type
-> >
-generic_promise< Shared, std::tuple< Args... > >::
+q::promise< typename generic_promise< Shared, Args... >::tuple_expect_type >
+generic_promise< Shared, Args... >::
 reflect_tuple( )
 {
 	auto deferred = ::q::make_shared< detail::defer<
@@ -109,13 +103,11 @@ template< bool Shared, typename... Args >
 template< bool Simplified >
 typename std::enable_if<
 	Simplified,
-	::q::promise< std::tuple<
-		typename generic_promise<
-			Shared, std::tuple< Args... >
-		>::short_expect_type
-	> >
+	::q::promise<
+		typename generic_promise< Shared, Args... >::short_expect_type
+	>
 >::type
-generic_promise< Shared, std::tuple< Args... > >::
+generic_promise< Shared, Args... >::
 reflect( )
 {
 	auto deferred = ::q::make_shared< detail::defer<
@@ -140,11 +132,11 @@ template< typename... U, typename _V >
 typename std::enable_if<
 	std::is_void< _V >::value
 	and
-	generic_promise< Shared, std::tuple< Args... > >
+	generic_promise< Shared, Args... >
 		::argument_types::empty::value,
-	promise< std::tuple< U... > >
+	promise< U... >
 >::type
-generic_promise< Shared, std::tuple< Args... > >::
+generic_promise< Shared, Args... >::
 forward( U&&... values )
 {
 	auto deferred = ::q::make_shared< detail::defer< U... > >(
@@ -173,15 +165,15 @@ forward( U&&... values )
 
 namespace q {
 
-template< typename T >
-::q::promise< std::tuple< > > promise< T >::
+template< typename... T >
+::q::promise< > promise< T... >::
 strip( )
 {
 	return this->then( [ ]( const typename base_type::tuple_type& ){ } );
 }
 
-template< typename T >
-::q::shared_promise< std::tuple< > > shared_promise< T >::
+template< typename... T >
+::q::shared_promise< > shared_promise< T... >::
 strip( )
 {
 	return this->then( [ ]( const typename base_type::tuple_type& ){ } )
