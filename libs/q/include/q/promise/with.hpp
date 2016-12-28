@@ -28,9 +28,7 @@ namespace q {
  */
 template< typename... T >
 promise<
-	typename decayed_tuple<
-		typename std::decay< T >::type...
-	>::type
+	typename std::decay< T >::type...
 >
 with( const queue_ptr& queue, T&&... t )
 {
@@ -50,7 +48,7 @@ with( const queue_ptr& queue, T&&... t )
 template< typename Tuple >
 typename std::enable_if<
 	is_tuple< typename std::decay< Tuple >::type >::value,
-	promise< typename std::decay< Tuple >::type >
+	detail::suitable_promise_t< typename std::decay< Tuple >::type >
 >::type
 with( const queue_ptr& queue, Tuple&& t )
 {

@@ -142,6 +142,20 @@ make_execution_context( Args&&... args )
 	return ec;
 }
 
+template<
+	typename EventDispatcher,
+	typename Scheduler = ::q::direct_scheduler,
+	typename... Args
+>
+std::tuple< std::shared_ptr< EventDispatcher >, queue_ptr >
+make_event_dispatcher_and_queue( Args&&... args )
+{
+	auto ec = make_execution_context< EventDispatcher, Scheduler >(
+		std::forward< Args >( args )... );
+
+	return std::make_pair( ec->dispatcher( ), ec->queue( ) );
+}
+
 } // namespace q
 
 #endif // LIBQ_EXECUTION_CONTEXT_HPP

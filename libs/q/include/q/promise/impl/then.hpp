@@ -29,18 +29,16 @@ inline typename std::enable_if<
 	and
 	!first_argument_is_tuple< Fn >::value
 	and
-	generic_promise<
-		Shared, std::tuple< Args... >
-	>::template is_valid_arguments<
+	generic_promise< Shared, Args... >::template is_valid_arguments<
 		arguments_of_t< Fn >
 	>::value
 	and
 	!is_promise< result_of_t< Fn > >::value
 	and
 	Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
-	promise< result_of_as_tuple_t< Fn > >
+	suitable_promise_t< result_of_as_tuple_t< Fn > >
 >::type
-generic_promise< Shared, std::tuple< Args... > >::
+generic_promise< Shared, Args... >::
 then( Fn&& fn, Queue&& queue )
 {
 	typedef result_of_as_tuple_t< Fn > return_tuple_type;
@@ -86,9 +84,9 @@ typename std::enable_if<
 	!is_promise< result_of_t< Fn > >::value
 	and
 	Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
-	promise< result_of_as_tuple_t< Fn > >
+	suitable_promise_t< result_of_as_tuple_t< Fn > >
 >::type
-generic_promise< Shared, std::tuple< Args... > >::
+generic_promise< Shared, Args... >::
 then( Fn&& fn, Queue&& queue )
 {
 	typedef result_of_as_tuple_t< Fn > return_tuple_type;
@@ -126,9 +124,7 @@ typename std::enable_if<
 	and
 	!first_argument_is_tuple< Fn >::value
 	and
-	generic_promise<
-		Shared, std::tuple< Args... >
-	>::template is_valid_arguments<
+	generic_promise< Shared, Args... >::template is_valid_arguments<
 		arguments_of_t< Fn >
 	>::value
 	and
@@ -137,7 +133,7 @@ typename std::enable_if<
 	Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
 	typename result_of_t< Fn >::unique_this_type
 >::type
-generic_promise< Shared, std::tuple< Args... > >::
+generic_promise< Shared, Args... >::
 then( Fn&& fn, Queue&& queue )
 {
 	typedef typename result_of_t< Fn >::tuple_type return_tuple_type;
@@ -185,7 +181,7 @@ typename std::enable_if<
 	Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
 	typename result_of_t< Fn >::unique_this_type
 >::type
-generic_promise< Shared, std::tuple< Args... > >::
+generic_promise< Shared, Args... >::
 then( Fn&& fn, Queue&& queue )
 {
 	typedef typename result_of_t< Fn >::tuple_type return_tuple_type;
@@ -217,11 +213,9 @@ template< bool Shared, typename... Args >
 template< typename AsyncTask >
 inline typename std::enable_if<
 	is_same_type< AsyncTask, async_task >::value,
-	typename generic_promise<
-		Shared, std::tuple< Args... >
-	>::promise_this_type
+	typename generic_promise< Shared, Args... >::promise_this_type
 >::type
-generic_promise< Shared, std::tuple< Args... > >::
+generic_promise< Shared, Args... >::
 then( AsyncTask&& task )
 {
 	auto deferred = detail::defer< std::tuple< Args... > >::construct(

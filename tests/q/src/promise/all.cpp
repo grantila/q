@@ -54,7 +54,7 @@ TEST_F( promise_all_test, all_same_voids )
 		} );
 	};
 
-	std::vector< q::promise< std::tuple< > > > promises;
+	std::vector< q::promise< > > promises;
 	std::size_t iterations = 10;
 
 	for ( std::size_t i = 0; i < iterations; ++i )

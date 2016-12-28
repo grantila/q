@@ -29,6 +29,7 @@ namespace q {
 
 class basic_event_dispatcher;
 typedef std::shared_ptr< basic_event_dispatcher > event_dispatcher_ptr;
+typedef std::weak_ptr< basic_event_dispatcher > weak_event_dispatcher_ptr;
 
 typedef q::function< timer_task( void ) noexcept > task_fetcher_task;
 
@@ -124,10 +125,10 @@ protected:
 
 template<
 	typename TerminationArgs = q::arguments< >,
-	typename Completion = std::tuple< >
+	typename... Completion
 >
 class event_dispatcher
-: public async_termination< TerminationArgs, Completion >
+: public async_termination< TerminationArgs, Completion... >
 , public basic_event_dispatcher
 {
 public:
@@ -146,11 +147,11 @@ public:
 	 */
 	virtual q::expect< > await_termination( ) = 0;
 
-	using async_termination< TerminationArgs, Completion >::do_terminate;
+	using async_termination< TerminationArgs, Completion... >::do_terminate;
 
 protected:
 	event_dispatcher( const queue_ptr& queue )
-	: async_termination< TerminationArgs, Completion >( queue )
+	: async_termination< TerminationArgs, Completion... >( queue )
 	{ }
 };
 

@@ -21,6 +21,23 @@ namespace q {
 
 namespace detail {
 
+template< typename... Args >
+struct suitable_defer
+{
+	typedef defer< Args... > type;
+};
+template< >
+struct suitable_defer< void >
+: suitable_defer< >
+{ };
+template< typename... Args >
+struct suitable_defer< std::tuple< Args... > >
+: suitable_defer< Args... >
+{ };
+
+template< typename... Args >
+using suitable_defer_t = typename suitable_defer< Args... >::type;
+
 template< typename... T >
 class defer
 : public std::enable_shared_from_this< defer< T... > >
@@ -31,8 +48,8 @@ public:
 	typedef expect< tuple_type >                            expect_type;
 	typedef detail::promise_state_data< tuple_type, false > state_data_type;
 	typedef detail::promise_state< tuple_type, false >      state_type;
-	typedef promise< tuple_type >                           promise_type;
-	typedef shared_promise< tuple_type >                    shared_promise_type;
+	typedef promise< T... >                                 promise_type;
+	typedef shared_promise< T... >                          shared_promise_type;
 
 	void set_expect( expect_type&& exp )
 	{
@@ -355,7 +372,9 @@ public:
 			>::template same< arguments< void_t > >::value
 			or
 			!std::is_same<
-				typename std::decay< first_argument_of_t< Fn > >::type,
+				typename std::decay<
+					first_argument_of_t< Fn >
+				>::type,
 				void_t
 			>::value
 		)

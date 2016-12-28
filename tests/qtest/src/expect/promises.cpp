@@ -30,7 +30,7 @@ TEST_F( expect_promises, eventual_resolution_of_shared_int )
 TEST_F( expect_promises, eventual_rejection )
 {
 	auto err = std::logic_error( "err" );
-	auto p = q::reject< q::arguments< int > >( queue, err ).share( );
+	auto p = q::reject< int >( queue, err ).share( );
 
 	EVENTUALLY_EXPECT_REJECTION( p );
 }
@@ -38,7 +38,7 @@ TEST_F( expect_promises, eventual_rejection )
 TEST_F( expect_promises, eventual_rejection_with_exception )
 {
 	auto err = std::logic_error( "err" );
-	auto p = q::reject< q::arguments< int > >( queue, err ).share( );
+	auto p = q::reject< int >( queue, err ).share( );
 
 	EVENTUALLY_EXPECT_REJECTION( p );
 	EVENTUALLY_EXPECT_REJECTION_WITH( p, std::logic_error );

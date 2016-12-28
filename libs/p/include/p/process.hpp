@@ -28,14 +28,14 @@ class process
 : public std::enable_shared_from_this< process >
 , public q::async_termination<
 	q::arguments< >,
-	std::tuple< int >
+	int
 >
 {
 public:
 	template< typename Fn >
 	typename std::enable_if<
 		false,
-		::q::promise< Q_RESULT_OF_AS_ARGUMENT_TYPE( Fn )::tuple_type >
+		::q::detail::suitable_promise_t< Q_RESULT_OF_AS_ARGUMENT_TYPE( Fn )::tuple_type >
 	>::type
 	run( Fn&& fn )
 	{

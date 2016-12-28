@@ -56,18 +56,12 @@ std::string get_thread_name( );
 template< typename Ret = void >
 class thread
 : public std::enable_shared_from_this< thread< Ret > >
-, public async_termination<
-	q::arguments< >,
-	std::tuple< expect< Ret > >
->
+, public async_termination< arguments< >, expect< Ret > >
 {
 public:
-	typedef expect< Ret >             expect_type;
-	typedef std::tuple< expect_type > result_type;
-	typedef async_termination<
-		q::arguments< >,
-		result_type
-	>                                 async_terminate_base;
+	typedef expect< Ret > expect_type;
+	typedef async_termination< q::arguments< >, expect< Ret > >
+		async_terminate_base;
 
 	thread( ) = delete;
 	thread( thread< Ret >&& ) = delete;
@@ -92,7 +86,7 @@ public:
 		return name_;
 	}
 
-	promise< result_type > terminate( )
+	promise< expect_type > terminate( )
 	{
 		auto _this = this->shared_from_this( );
 

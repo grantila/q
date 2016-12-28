@@ -56,21 +56,21 @@ struct threadpool::pimpl
 	, stop_asap_( false )
 	{ }
 
-	typedef std::shared_ptr< thread< > >         thread_type;
-	typedef expect< void >                       result_type;
-	typedef promise< std::tuple< result_type > > promise_type;
+	typedef std::shared_ptr< thread< > > thread_type;
+	typedef expect< void >               result_type;
+	typedef promise< result_type >       promise_type;
 
-	queue_ptr                         queue_;
-	std::string                       name_;
-	mutex                             mutex_;
-	std::size_t                       num_threads_;
-	std::vector< thread_type >        threads_;
-	std::condition_variable           cond_;
-	bool                              started_;
-	bool                              running_;
-	bool                              stop_asap_;
-	task_fetcher_task                 task_fetcher_;
-	time_set< task >                  timer_tasks_;
+	queue_ptr                  queue_;
+	std::string                name_;
+	mutex                      mutex_;
+	std::size_t                num_threads_;
+	std::vector< thread_type > threads_;
+	std::condition_variable    cond_;
+	bool                       started_;
+	bool                       running_;
+	bool                       stop_asap_;
+	task_fetcher_task          task_fetcher_;
+	time_set< task >           timer_tasks_;
 };
 
 threadpool::threadpool( const std::string& name,
@@ -279,6 +279,7 @@ q::expect< > threadpool::await_termination( )
 	{
 		t->await_termination( );
 	}
+	pimpl_->threads_.clear( );
 
 	return ::q::fulfill< void >( );
 }

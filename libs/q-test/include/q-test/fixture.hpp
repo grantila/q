@@ -39,7 +39,7 @@ public:
 
 	Q_MAKE_SIMPLE_EXCEPTION( Error );
 
-	void await_promise( ::q::promise< std::tuple< > >&& promise )
+	void await_promise( ::q::promise< >&& promise )
 	{
 		Q_AUTO_UNIQUE_LOCK( mutex_ );
 
@@ -82,12 +82,12 @@ protected:
 		} )
 		.finally( [ this ]( )
 		{
-			bd->dispatcher( )->terminate( q::termination::linger );
+			bd->terminate( q::termination::linger );
 		} );
 
 		started_ = true;
 
-		bd->dispatcher( )->start( );
+		bd->start( );
 	}
 
 	// We only allow to run promises by r-value reference (i.e. we take
@@ -119,8 +119,8 @@ protected:
 		_run( std::forward< Promise >( promise ) );
 	}
 
-	q::specific_execution_context_ptr< q::blocking_dispatcher > bd;
-	q::specific_execution_context_ptr< q::threadpool > tp;
+	std::shared_ptr< q::blocking_dispatcher > bd;
+	std::shared_ptr< q::threadpool > tp;
 
 	q::queue_ptr queue;
 	q::queue_ptr tp_queue;
@@ -128,9 +128,9 @@ protected:
 	q::test::spy spy;
 
 private:
-	q::promise< std::tuple< > > await_all( )
+	q::promise< > await_all( )
 	{
-		std::vector< q::promise< std::tuple< > > > promises_;
+		std::vector< q::promise< > > promises_;
 		{
 			Q_AUTO_UNIQUE_LOCK( mutex_ );
 			std::swap( promises_, awaiting_promises_ );
@@ -149,9 +149,8 @@ private:
 	}
 
 	q::mutex mutex_;
-	std::vector< q::promise< std::tuple< > > > awaiting_promises_;
+	std::vector< q::promise< > > awaiting_promises_;
 
-	q::scope scope_;
 	std::vector< q::scope > test_scopes_;
 
 	std::atomic< bool > started_;

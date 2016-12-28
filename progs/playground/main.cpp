@@ -240,7 +240,7 @@ int main( int argc, char** argv )
 	{
 		e_f( );
 	} )
-	.fail( [ queue ]( std::exception_ptr e ) -> q::promise< std::tuple< > >
+	.fail( [ queue ]( std::exception_ptr e ) -> q::promise< >
 	{
 		try
 		{
@@ -265,7 +265,7 @@ int main( int argc, char** argv )
 	std::cerr << "are promise: " << q::are_promises< decltype( error_stuff2 ) >::value << std::endl;
 	std::cerr << "are promises: " << q::are_promises< decltype( error_stuff2 ), decltype( thread_stuff ) >::value << std::endl;
 	std::cerr << "are promises: " << q::are_promises< decltype( error_stuff2 ), std::true_type >::value << std::endl;
-	std::cerr << "are promises2: " << q::are_promises< q::promise< std::tuple< > >, q::promise< std::tuple< > > >::value << std::endl;
+	std::cerr << "are promises2: " << q::are_promises< q::promise< >, q::promise< > >::value << std::endl;
 
 	q::all( std::move( error_stuff2 ), std::move( thread_stuff ) )
 	.then( [ bd ]( )
@@ -312,7 +312,7 @@ int main( int argc, char** argv )
 	typedef std::tuple< std::tuple< std::string > > my_type;
 	bool are_same = Q_ARGUMENTS_ARE( fn_type, my_type )::value;
 
-	bool is_arg_same = ::q::is_argument_same_or_convertible<
+	bool is_arg_same = ::q::is_argument_same_or_convertible_t<
 		Q_ARGUMENTS_OF( fn_type ),
 		::q::arguments< my_type >
 	>::value;
@@ -329,10 +329,10 @@ int main( int argc, char** argv )
 		std::cout << "then got \"" << msg << "\", .stopping..." << std::endl;
 	};
 
-	typedef std::tuple< std::string >                    type_from;
-	typedef Q_ARGUMENTS_OF( decltype( string_to_void ) ) type_to;
+	typedef std::tuple< std::string >                       type_from;
+	typedef q::arguments_of_t< decltype( string_to_void ) > type_to;
 
-	auto is_conv = ::q::tuple_arguments< type_from >::is_convertible_to< type_to >::value;
+	auto is_conv = ::q::tuple_arguments_t< type_from >::template is_convertible_to< type_to >::value;
 	std::cout << "::::: " << is_conv << std::endl;
 
 

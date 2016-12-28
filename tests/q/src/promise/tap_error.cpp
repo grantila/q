@@ -131,19 +131,19 @@ TEST_F( tap_error, exception_ptr_throwing_handler_promise_sync )
 	run(
 		q::with( queue )
 		.then( EXPECT_CALL_WRAPPER(
-		[ magic ]( ) -> q::promise< std::tuple< int > >
+		[ magic ]( ) -> q::promise< int >
 		{
 			Q_THROW( Error( ), std::move( magic ) );
 		} ) )
 		.fail( EXPECT_CALL_WRAPPER(
 		[ magic ]( std::exception_ptr e )
-		-> q::promise< std::tuple< int > >
+		-> q::promise< int >
 		{
 			Q_THROW( Error( ), magic * 2 );
 		} ) )
 		.fail( EXPECT_CALL_WRAPPER( (
 		[ magic, queue ]( std::exception_ptr e )
-		-> q::promise< std::tuple< int > >
+		-> q::promise< int >
 		{
 			try
 			{
@@ -178,15 +178,15 @@ TEST_F( tap_error, exception_ptr_throwing_handler_promise_async )
 	run(
 		q::with( queue )
 		.then( EXPECT_CALL_WRAPPER(
-		[ magic ]( ) -> q::promise< std::tuple< int > >
+		[ magic ]( ) -> q::promise< int >
 		{
 			Q_THROW( Error( ), std::move( magic ) );
 		} ) )
 		.fail( EXPECT_CALL_WRAPPER( (
 		[ queue, magic ]( std::exception_ptr e )
-		-> q::promise< std::tuple< int > >
+		-> q::promise< int >
 		{
-			return q::reject< q::arguments< int > >(
+			return q::reject< int >(
 				queue,
 				::q::add_exception_properties(
 					Error( ),
@@ -196,7 +196,7 @@ TEST_F( tap_error, exception_ptr_throwing_handler_promise_async )
 		} ) ) )
 		.fail( EXPECT_CALL_WRAPPER( (
 		[ magic, queue ]( std::exception_ptr e )
-		-> q::promise< std::tuple< int > >
+		-> q::promise< int >
 		{
 			try
 			{

@@ -212,7 +212,7 @@ TEST_F( channel, auto_close_on_readable_destruction )
 TEST_F( channel, auto_close_on_writable_destruction )
 {
 	auto channel_creator = [ this ]( )
-	-> std::tuple< q::promise< std::tuple< > >, q::writable< int > >
+	-> std::tuple< q::promise< >, q::writable< int > >
 	{
 		q::channel< int > ch( queue, 5 );
 
@@ -247,7 +247,7 @@ TEST_F( channel, auto_close_on_writable_destruction )
 
 TEST_F( channel, channel_empty_promise_specialization )
 {
-	typedef q::promise< std::tuple< > > promise_type;
+	typedef q::promise< > promise_type;
 
 	q::channel< promise_type > ch( queue, 5 );
 
@@ -287,7 +287,7 @@ TEST_F( channel, channel_empty_promise_specialization )
 
 TEST_F( channel, channel_non_empty_promise_specialization )
 {
-	typedef q::promise< std::tuple< int > > promise_type;
+	typedef q::promise< int > promise_type;
 
 	q::channel< promise_type > ch( queue, 5 );
 
@@ -330,7 +330,7 @@ TEST_F( channel, channel_non_empty_promise_specialization )
 
 TEST_F( channel, channel_promise_specialization_rejection )
 {
-	typedef q::promise< std::tuple< int > > promise_type;
+	typedef q::promise< int > promise_type;
 
 	q::channel< promise_type > ch( queue, 5 );
 
@@ -395,7 +395,7 @@ TEST_F( channel, channel_promise_specialization_rejection )
 
 TEST_F( channel, channel_empty_shared_promise_specialization )
 {
-	typedef q::shared_promise< std::tuple< > > promise_type;
+	typedef q::shared_promise< > promise_type;
 
 	q::channel< promise_type > ch( queue, 5 );
 
@@ -434,7 +434,7 @@ TEST_F( channel, channel_empty_shared_promise_specialization )
 
 TEST_F( channel, channel_non_empty_shared_promise_specialization )
 {
-	typedef q::shared_promise< std::tuple< int > > promise_type;
+	typedef q::shared_promise< int > promise_type;
 
 	q::channel< promise_type > ch( queue, 5 );
 
@@ -477,7 +477,7 @@ TEST_F( channel, channel_non_empty_shared_promise_specialization )
 
 TEST_F( channel, channel_shared_promise_specialization_rejection )
 {
-	typedef q::shared_promise< std::tuple< int > > promise_type;
+	typedef q::shared_promise< int > promise_type;
 
 	q::channel< promise_type > ch( queue, 5 );
 
@@ -772,7 +772,7 @@ TEST_F( channel, channel_pipe_void )
 
 	auto on_close = EXPECT_N_CALLS_WRAPPER( 1, [ ]{ } );
 
-	typedef std::function< q::promise< std::tuple< bool > >( ) > fun_type;
+	typedef std::function< q::promise< bool >( ) > fun_type;
 	auto receive = std::make_shared< fun_type >( );
 	*receive = EXPECT_N_CALLS_WRAPPER( 11, (
 		[ receive, readable_b, on_close ]( ) mutable
@@ -815,7 +815,7 @@ TEST_F( channel, channel_pipe_void_with_error )
 
 	auto on_close = EXPECT_N_CALLS_WRAPPER( 0, [ ]{ } );
 
-	typedef std::function< q::promise< std::tuple< bool > >( ) > fun_type;
+	typedef std::function< q::promise< bool >( ) > fun_type;
 	auto receive = std::make_shared< fun_type >( );
 	*receive = EXPECT_N_CALLS_WRAPPER( 11, (
 		[ receive, readable_b, on_close ]( ) mutable
@@ -864,7 +864,7 @@ TEST_F( channel, channel_pipe_int )
 
 	auto on_close = EXPECT_N_CALLS_WRAPPER( 1, [ ]{ } );
 
-	typedef std::function< q::promise< std::tuple< bool > >( ) > fun_type;
+	typedef std::function< q::promise< bool >( ) > fun_type;
 	auto receive = std::make_shared< fun_type >( );
 	*receive = EXPECT_N_CALLS_WRAPPER( 11, (
 		[ receive, readable_b, &counter, on_close ]( ) mutable
@@ -915,7 +915,7 @@ TEST_F( channel, channel_pipe_int_with_error )
 
 	auto on_close = EXPECT_N_CALLS_WRAPPER( 0, [ ]{ } );
 
-	typedef std::function< q::promise< std::tuple< bool > >( ) > fun_type;
+	typedef std::function< q::promise< bool >( ) > fun_type;
 	auto receive = std::make_shared< fun_type >( );
 	*receive = EXPECT_N_CALLS_WRAPPER( 11, (
 		[ receive, readable_b, &counter, on_close ]( ) mutable
@@ -941,8 +941,8 @@ TEST_F( channel, channel_pipe_int_with_error )
 
 TEST_F( channel, channel_pipe_async_void )
 {
-	q::channel< q::promise< std::tuple< > > > ch_a( queue, 3 );
-	q::channel< q::promise< std::tuple< > > > ch_b( queue, 2 );
+	q::channel< q::promise< > > ch_a( queue, 3 );
+	q::channel< q::promise< > > ch_b( queue, 2 );
 
 	auto readable_a = ch_a.get_readable( );
 	auto writable_a = ch_a.get_writable( );
@@ -967,11 +967,11 @@ TEST_F( channel, channel_pipe_async_void )
 
 	auto on_close = EXPECT_N_CALLS_WRAPPER( 1, [ ]{ } );
 
-	typedef std::function< q::promise< std::tuple< bool > >( ) > fun_type;
+	typedef std::function< q::promise< bool >( ) > fun_type;
 	auto receive = std::make_shared< fun_type >( );
 	*receive = EXPECT_N_CALLS_WRAPPER( 11, (
 		[ receive, readable_b, on_close ]( ) mutable
-		-> q::promise< std::tuple< bool > >
+		-> q::promise< bool >
 		{
 			return readable_b.receive( q::decay_function( [ receive ]( )
 			{
@@ -985,8 +985,8 @@ TEST_F( channel, channel_pipe_async_void )
 
 TEST_F( channel, channel_pipe_async_void_with_error )
 {
-	q::channel< q::promise< std::tuple< > > > ch_a( queue, 3 );
-	q::channel< q::promise< std::tuple< > > > ch_b( queue, 2 );
+	q::channel< q::promise< > > ch_a( queue, 3 );
+	q::channel< q::promise< > > ch_b( queue, 2 );
 
 	auto readable_a = ch_a.get_readable( );
 	auto writable_a = ch_a.get_writable( );
@@ -1011,7 +1011,7 @@ TEST_F( channel, channel_pipe_async_void_with_error )
 
 	auto on_close = EXPECT_N_CALLS_WRAPPER( 0, [ ]{ } );
 
-	typedef std::function< q::promise< std::tuple< bool > >( ) > fun_type;
+	typedef std::function< q::promise< bool >( ) > fun_type;
 	auto receive = std::make_shared< fun_type >( );
 	*receive = EXPECT_N_CALLS_WRAPPER( 11, (
 		[ receive, readable_b, on_close ]( ) mutable
@@ -1032,8 +1032,8 @@ TEST_F( channel, channel_pipe_async_void_with_error )
 
 TEST_F( channel, channel_pipe_async_int )
 {
-	q::channel< q::promise< std::tuple< int > > > ch_a( queue, 3 );
-	q::channel< q::promise< std::tuple< int > > > ch_b( queue, 2 );
+	q::channel< q::promise< int > > ch_a( queue, 3 );
+	q::channel< q::promise< int > > ch_b( queue, 2 );
 
 	auto readable_a = ch_a.get_readable( );
 	auto writable_a = ch_a.get_writable( );
@@ -1060,7 +1060,7 @@ TEST_F( channel, channel_pipe_async_int )
 
 	auto on_close = EXPECT_N_CALLS_WRAPPER( 1, [ ]{ } );
 
-	typedef std::function< q::promise< std::tuple< bool > >( ) > fun_type;
+	typedef std::function< q::promise< bool >( ) > fun_type;
 	auto receive = std::make_shared< fun_type >( );
 	*receive = EXPECT_N_CALLS_WRAPPER( 11, (
 		[ receive, readable_b, &counter, on_close ]( ) mutable
@@ -1083,8 +1083,8 @@ TEST_F( channel, channel_pipe_async_int )
 
 TEST_F( channel, channel_pipe_async_int_with_error )
 {
-	q::channel< q::promise< std::tuple< int > > > ch_a( queue, 3 );
-	q::channel< q::promise< std::tuple< int > > > ch_b( queue, 2 );
+	q::channel< q::promise< int > > ch_a( queue, 3 );
+	q::channel< q::promise< int > > ch_b( queue, 2 );
 
 	auto readable_a = ch_a.get_readable( );
 	auto writable_a = ch_a.get_writable( );
@@ -1111,7 +1111,7 @@ TEST_F( channel, channel_pipe_async_int_with_error )
 
 	auto on_close = EXPECT_N_CALLS_WRAPPER( 0, [ ]{ } );
 
-	typedef std::function< q::promise< std::tuple< bool > >( ) > fun_type;
+	typedef std::function< q::promise< bool >( ) > fun_type;
 	auto receive = std::make_shared< fun_type >( );
 	*receive = EXPECT_N_CALLS_WRAPPER( 11, (
 		[ receive, readable_b, &counter, on_close ]( ) mutable
@@ -1200,7 +1200,7 @@ TEST_F( channel, consume_one_type_concurrent )
 	auto queue = this->queue;
 
 	auto on_value = [ & ]( int i )
-	-> q::promise< std::tuple< > >
+	-> q::promise< >
 	{
 		EXPECT_EQ( expected[ counter ], i );
 		++counter;

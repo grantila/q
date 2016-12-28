@@ -21,7 +21,6 @@ namespace q { namespace test {
 
 fixture::fixture( )
 : mutex_( "q test fixture" )
-, scope_( nullptr )
 { }
 
 fixture::~fixture( )
@@ -29,15 +28,13 @@ fixture::~fixture( )
 
 void fixture::SetUp( )
 {
-	bd = q::make_execution_context<
+	std::tie( bd, queue ) = q::make_event_dispatcher_and_queue<
 		q::blocking_dispatcher, q::direct_scheduler
 	>( "all" );
-	queue = bd->queue( );
 
-	tp = q::make_execution_context<
+	std::tie( tp, tp_queue ) = q::make_event_dispatcher_and_queue<
 		q::threadpool, q::direct_scheduler
 	>( "test pool", queue );
-	tp_queue = tp->queue( );
 
 	on_setup( );
 
@@ -58,11 +55,20 @@ void fixture::TearDown( )
 
 	on_teardown( );
 
-	scope_ = q::make_scope( nullptr );
-	tp->dispatcher( )->terminate( q::termination::linger );
-	tp->dispatcher( )->await_termination( );
-	bd->dispatcher( )->await_termination( );
+	tp->terminate( q::termination::linger )
+	.finally( [ this ]( )
+	{
+		tp->await_termination( );
+		tp.reset( );
+		tp_queue.reset( );
+		bd->terminate( q::termination::linger );
+	}, queue );
+
+	bd->start( );
+
+	bd->await_termination( );
 	bd.reset( );
+	queue.reset( );
 	test_scopes_.clear( );
 }
 

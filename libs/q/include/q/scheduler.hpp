@@ -62,7 +62,6 @@ protected:
 	priority_scheduler( const event_dispatcher_ptr& event_dispatcher );
 
 private:
-	void poke( );
 	timer_task next_task( );
 
 	struct pimpl;
@@ -97,7 +96,6 @@ protected:
 	direct_scheduler( const event_dispatcher_ptr& event_dispatcher );
 
 private:
-	void poke( );
 	timer_task next_task( );
 
 	struct pimpl;
