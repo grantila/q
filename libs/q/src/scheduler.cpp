@@ -200,7 +200,7 @@ struct priority_scheduler::pimpl
 	: event_dispatcher_( event_dispatcher )
 	{ }
 
-	event_dispatcher_ptr event_dispatcher_;
+	weak_event_dispatcher_ptr event_dispatcher_;
 	round_robin_priority_list< priority_t, queue_ptr > queues_;
 };
 
@@ -217,11 +217,17 @@ void priority_scheduler::add_queue( queue_ptr queue )
 {
 	pimpl_->queues_.add( queue->priority( ), queue_ptr( queue ) );
 
-	event_dispatcher_ptr ed = pimpl_->event_dispatcher_;
-	queue->set_consumer( [ ed ]( )
+	weak_event_dispatcher_ptr wed = pimpl_->event_dispatcher_;
+	event_dispatcher_ptr ed = wed.lock( );
+	queue->set_consumer( [ wed ]( )
 	{
-		ed->notify( );
-	}, pimpl_->event_dispatcher_->parallelism( ) );
+		auto ed = wed.lock( );
+
+		if ( ed )
+			ed->notify( );
+		else
+			; // TODO: Warn or error somehow
+	}, ed->parallelism( ) );
 
 	auto _this = shared_from_this( );
 
@@ -230,14 +236,7 @@ void priority_scheduler::add_queue( queue_ptr queue )
 		return _this->next_task( );
 	};
 
-	pimpl_->event_dispatcher_->set_task_fetcher( fetcher );
-}
-
-void priority_scheduler::poke( )
-{
-	auto _this = shared_from_this( );
-
-	pimpl_->event_dispatcher_->notify( );
+	ed->set_task_fetcher( fetcher );
 }
 
 timer_task priority_scheduler::next_task( )
@@ -248,7 +247,7 @@ timer_task priority_scheduler::next_task( )
 
 struct direct_scheduler::pimpl
 {
-	event_dispatcher_ptr event_dispatcher_;
+	weak_event_dispatcher_ptr event_dispatcher_;
 	q::mutex mutex_;
 	queue_ptr queue_;
 };
@@ -265,15 +264,22 @@ void direct_scheduler::add_queue( queue_ptr queue )
 {
 	Q_AUTO_UNIQUE_LOCK( pimpl_->mutex_ );
 
+	event_dispatcher_ptr ed = pimpl_->event_dispatcher_.lock( );
+
 	if ( !pimpl_->queue_ )
 	{
 		pimpl_->queue_ = queue;
 
-		event_dispatcher_ptr ed = pimpl_->event_dispatcher_;
-		queue->set_consumer( [ ed ]( )
+		auto wed = pimpl_->event_dispatcher_;
+		queue->set_consumer( [ wed ]( )
 		{
-			ed->notify( );
-		}, pimpl_->event_dispatcher_->parallelism( ) );
+			auto ed = wed.lock( );
+
+			if ( ed )
+				ed->notify( );
+			else
+				; // TODO: Warn or error somehow
+		}, ed->parallelism( ) );
 	}
 	else
 	{
@@ -287,12 +293,7 @@ void direct_scheduler::add_queue( queue_ptr queue )
 		return _this->next_task( );
 	};
 
-	pimpl_->event_dispatcher_->set_task_fetcher( fetcher );
-}
-
-void direct_scheduler::poke( )
-{
-	pimpl_->event_dispatcher_->notify( );
+	ed->set_task_fetcher( fetcher );
 }
 
 timer_task direct_scheduler::next_task( )

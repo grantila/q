@@ -279,6 +279,7 @@ q::expect< > threadpool::await_termination( )
 	{
 		t->await_termination( );
 	}
+	pimpl_->threads_.clear( );
 
 	return ::q::fulfill< void >( );
 }

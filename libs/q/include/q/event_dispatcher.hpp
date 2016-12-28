@@ -29,6 +29,7 @@ namespace q {
 
 class basic_event_dispatcher;
 typedef std::shared_ptr< basic_event_dispatcher > event_dispatcher_ptr;
+typedef std::weak_ptr< basic_event_dispatcher > weak_event_dispatcher_ptr;
 
 typedef q::function< timer_task( void ) noexcept > task_fetcher_task;
 
