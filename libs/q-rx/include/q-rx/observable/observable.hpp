@@ -301,7 +301,7 @@ public:
 
 	template< typename Fn >
 	static typename std::enable_if<
-		!q::is_promise< q::result_of_t< Fn > >::value
+		!q::is_promise_v< q::result_of_t< Fn > >
 		and
 		std::is_same< q::result_of_t< Fn >, T >::value,
 		observable< T >
@@ -310,7 +310,7 @@ public:
 
 	template< typename Fn >
 	static typename std::enable_if<
-		q::is_promise< q::result_of_t< Fn > >::value
+		q::is_promise_v< q::result_of_t< Fn > >
 		and
 		q::result_of_t< Fn >::argument_types
 		::template is_convertible_to< q::arguments< T > >::value,
@@ -321,6 +321,50 @@ public:
 	/************************************************
 	 * Creators: Timer
 	 ***********************************************/
+
+	static observable< T >
+	timer( q::timer::duration_type duration, create_options options );
+
+	static observable< T >
+	timer(
+		q::timer::duration_type first_duration,
+		q::timer::duration_type duration,
+		create_options options
+	);
+
+	template< typename U = T >
+	static typename std::enable_if<
+		q::is_argument_same_or_convertible_incl_void_t<
+			q::arguments< typename std::decay< U >::type >,
+			q::arguments< T >
+		>::value
+		and
+		!std::is_same<
+			typename std::decay< U >::type,
+			q::timer::duration_type
+		>::value,
+		observable< T >
+	>::type
+	timer(
+		q::timer::duration_type duration,
+		U&& value,
+		create_options options
+	);
+
+	template< typename U = T >
+	static typename std::enable_if<
+		q::is_argument_same_or_convertible_incl_void_t<
+			q::arguments< typename std::decay< U >::type >,
+			q::arguments< T >
+		>::value,
+		observable< T >
+	>::type
+	timer(
+		q::timer::duration_type first_duration,
+		q::timer::duration_type duration,
+		U&& value,
+		create_options options
+	);
 
 
 	/**********************************************************************
