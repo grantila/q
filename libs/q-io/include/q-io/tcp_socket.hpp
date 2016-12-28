@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef LIBQIO_SOCKET_HPP
-#define LIBQIO_SOCKET_HPP
+#ifndef LIBQIO_TCP_SOCKET_HPP
+#define LIBQIO_TCP_SOCKET_HPP
 
 #include <q-io/ip.hpp>
 #include <q-io/types.hpp>
@@ -29,14 +29,13 @@ namespace q { namespace io {
 /**
  * A socket is a socket connection to a remote peer.
  */
-class socket
-: public std::enable_shared_from_this< socket >
-, public event
+class tcp_socket
+: public std::enable_shared_from_this< tcp_socket >
 {
 public:
 	struct pimpl;
 
-	~socket( );
+	~tcp_socket( );
 
 	/**
 	 * Get the incoming channel, to read data from the socket
@@ -53,7 +52,7 @@ public:
 	 * delete its last reference to this socket, and rely on the channels
 	 * to ensure the socket isn't deleted prematurely.
 	 *
-	 * When both channels are closed, and all outoing data on the writable
+	 * When both channels are closed, and all outgoing data on the writable
 	 * channel is written to the socket, the channels will remove their
 	 * references to the socket and it will be destructed/deleted if they
 	 * held the last references.
@@ -65,33 +64,22 @@ public:
 	 */
 	void detach( );
 
-	void set_debug_name( std::string name );
+	socket_t get_native_socket( );
 
 protected:
-	static socket_ptr construct( std::shared_ptr< socket::pimpl >&& );
+	static tcp_socket_ptr construct( std::shared_ptr< tcp_socket::pimpl >&& );
 
 private:
-	socket( std::shared_ptr< socket::pimpl >&& );
+	tcp_socket( std::shared_ptr< tcp_socket::pimpl >&& );
 
 	friend class dispatcher;
 	friend class server_socket;
 
 	template< typename T > friend class q::shared_constructor;
 
-	void sub_attach( const dispatcher_ptr& dispatcher ) noexcept override;
-
-/*
-	socket_event_ptr socket_event_shared_from_this( ) override;
-
-	void on_event_read( ) noexcept override;
-	void on_event_write( ) noexcept override;
-
-	void try_write( );
-*/
-
 	std::shared_ptr< pimpl > pimpl_;
 };
 
 } } // namespace io, namespace q
 
-#endif // LIBQIO_SOCKET_HPP
+#endif // LIBQIO_TCP_SOCKET_HPP

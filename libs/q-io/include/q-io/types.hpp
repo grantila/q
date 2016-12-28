@@ -32,9 +32,9 @@ class socket_event;
 typedef std::shared_ptr< socket_event > socket_event_ptr;
 typedef std::weak_ptr< socket_event > weak_socket_event_ptr;
 
-class socket;
-typedef std::shared_ptr< socket > socket_ptr;
-typedef std::weak_ptr< socket > weak_socket_ptr;
+class tcp_socket;
+typedef std::shared_ptr< tcp_socket > tcp_socket_ptr;
+typedef std::weak_ptr< tcp_socket > weak_tcp_socket_ptr;
 
 class server_socket;
 typedef std::shared_ptr< server_socket > server_socket_ptr;

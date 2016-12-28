@@ -29,9 +29,9 @@ TEST_F( connect, client_server_send_data )
 	.then( [ test_data ]( q::io::server_socket_ptr socket_server )
 	{
 		return socket_server->clients( ).receive( )
-		.then( [ socket_server, &test_data ]( q::io::socket_ptr client )
+		.then(
+		[ socket_server, &test_data ]( q::io::tcp_socket_ptr client )
 		{
-			client->set_debug_name( "RECV" );
 			return client->in( ).receive( )
 			.then( [ client, &test_data ]( q::byte_block&& block )
 			{
@@ -52,9 +52,8 @@ TEST_F( connect, client_server_send_data )
 		auto dest_ip = q::io::ip_addresses( "127.0.0.1" );
 		return io_dispatcher->connect_to( dest_ip, port );
 	} )
-	.then( [ &test_data ]( q::io::socket_ptr socket )
+	.then( [ &test_data ]( q::io::tcp_socket_ptr socket )
 	{
-		socket->set_debug_name( "SEND" );
 		auto writable = socket->out( );
 		q::ignore_result( writable.send( q::byte_block( test_data ) ) );
 		socket->detach( );
@@ -71,7 +70,7 @@ TEST_F( connect, client_server_close_client_on_destruction )
 	.then( [ this ]( q::io::server_socket_ptr socket_server )
 	{
 		return socket_server->clients( ).receive( )
-		.then( [ this, socket_server ]( q::io::socket_ptr client )
+		.then( [ this, socket_server ]( q::io::tcp_socket_ptr client )
 		{
 			EVENTUALLY_EXPECT_REJECTION_WITH(
 				client->in( ).receive( ),
@@ -89,7 +88,7 @@ TEST_F( connect, client_server_close_client_on_destruction )
 		auto dest_ip = q::io::ip_addresses( "127.0.0.1" );
 		return io_dispatcher->connect_to( dest_ip, port )
 		// Get the socket and then let it destruct
-		.then( [ ]( q::io::socket_ptr socket ) { } );
+		.then( [ ]( q::io::tcp_socket_ptr socket ) { } );
 	} );
 
 	run( q::all( std::move( promise_client ), std::move( promise_server ) ) );

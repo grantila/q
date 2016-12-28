@@ -18,7 +18,7 @@
 #define LIBQIO_SERVER_SOCKET_HPP
 
 #include <q-io/ip.hpp>
-#include <q-io/socket.hpp>
+#include <q-io/tcp_socket.hpp>
 #include <q-io/types.hpp>
 
 namespace q { namespace io {
@@ -37,7 +37,7 @@ public:
 	/**
 	 * Channel used to get incoming connections.
 	 */
-	q::readable< socket_ptr > clients( );
+	q::readable< tcp_socket_ptr > clients( );
 
 	/**
 	 * Close the server

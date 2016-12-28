@@ -19,24 +19,19 @@
 
 #include "stream.hpp"
 
+#include <q-io/tcp_socket.hpp>
+
 namespace q { namespace io {
 
-struct socket::pimpl : stream
+struct tcp_socket::pimpl
+: stream
+, std::enable_shared_from_this< tcp_socket::pimpl >
 {
-std::string debug;
+	typedef std::shared_ptr< tcp_socket::pimpl > data_ref_type;
 
-	pimpl( )
-	: stream( reinterpret_cast< ::uv_stream_t* >( &socket_ ) )
-	{ }
-
-	~pimpl( )
-	{
-		std::cout << "DESTRUCTING pimpl " << debug << std::endl;
-	}
+	static std::shared_ptr< tcp_socket::pimpl > construct( );
 
 	std::weak_ptr< pimpl > self_;
-
-	event::pimpl event_;
 
 	std::shared_ptr< q::readable< q::byte_block > > readable_in_; // Ext
 	std::shared_ptr< q::writable< q::byte_block > > writable_in_; // Int
@@ -66,6 +61,9 @@ std::string debug;
 	};
 	std::deque< write_info > write_reqs_;
 
+	void
+	attach_dispatcher( const dispatcher_ptr& dispatcher ) noexcept override;
+
 	void close( ) override;
 	void close( std::exception_ptr err );
 	void close( expect< void > status );
@@ -74,6 +72,18 @@ std::string debug;
 	void stop_read( bool reschedule = false );
 
 	void begin_write( );
+
+protected:
+	pimpl( )
+	: stream( reinterpret_cast< ::uv_stream_t* >( &socket_ ) )
+	, can_read_( false )
+	, can_write_( false )
+	, closed_( false )
+	, cached_bytes_( 0 )
+	{
+		socket_.data = nullptr;
+		socket_.loop = nullptr;
+	}
 };
 
 } } // namespace io, namespace q

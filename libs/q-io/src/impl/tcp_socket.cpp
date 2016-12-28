@@ -14,24 +14,12 @@
  * limitations under the License.
  */
 
-#include <q-io/socket.hpp>
-
-#include <q/scope.hpp>
-
-#include "internals.hpp"
-
-#include <unistd.h>
-
-#ifdef LIBQ_ON_WINDOWS
-#	include <winsock2.h>
-#	define ioctl ioctlsocket
-#else
-#	include <sys/ioctl.h>
-#endif
+#include "tcp_socket.hpp"
+#include "dispatcher.hpp"
 
 namespace q { namespace io {
 
-typedef std::shared_ptr< socket::pimpl > inner_ref_type;
+typedef std::shared_ptr< tcp_socket::pimpl > inner_ref_type;
 
 namespace {
 
@@ -39,6 +27,7 @@ void closer( ::uv_handle_t* handle )
 {
 	auto socket = reinterpret_cast< ::uv_tcp_t* >( handle );
 	auto ref = reinterpret_cast< inner_ref_type* >( socket->data );
+	socket->data = nullptr;
 
 	if ( ref )
 		delete ref;
@@ -46,76 +35,24 @@ void closer( ::uv_handle_t* handle )
 
 } // anonymous namespace
 
-socket::socket( std::shared_ptr< socket::pimpl >&& _pimpl )
-: pimpl_( std::move( _pimpl ) )
+std::shared_ptr< tcp_socket::pimpl > tcp_socket::pimpl::construct( )
 {
-	event::set_pimpl( &pimpl_->event_ );
-
-	pimpl_->self_ = pimpl_;
-
-	pimpl_->socket_.data = nullptr;
+	auto pimpl = q::make_shared_using_constructor< tcp_socket::pimpl >( );
+	pimpl->self_ = pimpl;
+	pimpl->socket_.data = nullptr;
+	return pimpl;
 }
 
-socket::~socket( )
+void
+tcp_socket::pimpl::attach_dispatcher( const dispatcher_ptr& dispatcher )
+noexcept
 {
-	std::cout << "DESTRUCTING " << pimpl_->debug << std::flush;
-	if ( !!pimpl_->readable_in_ )
-		// Not detached - force close the socket right now.
-		pimpl_->close( );
-	std::cout << ". Done." << std::endl;
-}
-	void socket::set_debug_name( std::string name )
-	{
-		pimpl_->debug = name;
-	}
+	auto& dispatcher_pimpl = *dispatcher->pimpl_;
 
-socket_ptr socket::construct( std::shared_ptr< socket::pimpl >&& pimpl )
-{
-	return q::make_shared_using_constructor< socket >( std::move( pimpl ) );
-}
+	auto u_ref = q::make_unique< data_ref_type >( shared_from_this( ) );
+	auto ref = u_ref.release( );
 
-
-q::readable< q::byte_block > socket::in( )
-{
-	return *pimpl_->readable_in_;
-}
-
-q::writable< q::byte_block > socket::out( )
-{
-	return *pimpl_->writable_out_;
-}
-
-void socket::detach( )
-{
-	// Remove references to the user-ends of the channels, and let them own
-	// these sides of the socket. When they are destructed, they'll close
-	// the channels, and we can adapt to this, and eventually destruct when
-	// all data is sent.
-
-	auto in = std::atomic_load( &pimpl_->readable_in_ );
-	auto out = std::atomic_load( &pimpl_->writable_out_ );
-
-	if ( !in )
-		// Already detached (probably)
-		return;
-
-	in->add_scope_until_closed(
-		::q::make_scope( shared_from_this( ) ) );
-	out->add_scope_until_closed(
-		::q::make_scope( shared_from_this( ) ) );
-
-	in.reset( );
-	out.reset( );
-
-	std::atomic_store( &pimpl_->readable_in_, in );
-	std::atomic_store( &pimpl_->writable_out_, out );
-}
-
-void socket::sub_attach( const dispatcher_ptr& dispatcher ) noexcept
-{
-	auto& dispatcher_pimpl = get_dispatcher_pimpl( );
-
-	pimpl_->socket_.data = new inner_ref_type( pimpl_ );
+	socket_.data = reinterpret_cast< void* >( ref );
 
 	// TODO: Reconsider these
 	std::size_t backlog_in = 6;
@@ -126,34 +63,30 @@ void socket::sub_attach( const dispatcher_ptr& dispatcher ) noexcept
 	channel< q::byte_block > channel_in( queue, backlog_in );
 	channel< q::byte_block > channel_out( queue, backlog_out );
 
-	pimpl_->readable_in_ =
-		std::make_shared< q::readable< q::byte_block > >(
-			channel_in.get_readable( ) );
-	pimpl_->writable_in_ =
-		std::make_shared< q::writable< q::byte_block > >(
-			channel_in.get_writable( ) );
-	pimpl_->readable_out_ =
-		std::make_shared< q::readable< q::byte_block > >(
-			channel_out.get_readable( ) );
-	pimpl_->writable_out_ =
-		std::make_shared< q::writable< q::byte_block > >(
-			channel_out.get_writable( ) );
+	readable_in_ = std::make_shared< q::readable< q::byte_block > >(
+		channel_in.get_readable( ) );
+	writable_in_ = std::make_shared< q::writable< q::byte_block > >(
+		channel_in.get_writable( ) );
+	readable_out_ = std::make_shared< q::readable< q::byte_block > >(
+		channel_out.get_readable( ) );
+	writable_out_ = std::make_shared< q::writable< q::byte_block > >(
+		channel_out.get_writable( ) );
 
-	pimpl_->start_read( );
-	pimpl_->begin_write( );
+	start_read( );
+	begin_write( );
 }
 
-void socket::pimpl::close( )
+void tcp_socket::pimpl::close( )
 {
 	close( fulfill< void >( ) );
 }
 
-void socket::pimpl::close( std::exception_ptr err )
+void tcp_socket::pimpl::close( std::exception_ptr err )
 {
 	close( refuse< void >( std::move( err ) ) );
 }
 
-void socket::pimpl::close( expect< void > status )
+void tcp_socket::pimpl::close( expect< void > status )
 {
 	if ( closed_.exchange( true ) )
 		return;
@@ -161,7 +94,12 @@ void socket::pimpl::close( expect< void > status )
 	auto writable_in = std::atomic_load( &writable_in_ );
 	auto readable_out = std::atomic_load( &readable_out_ );
 
-	auto self = *reinterpret_cast< inner_ref_type* >( socket_.data );
+	if ( !socket_.data )
+	{
+		auto unique_ref =
+			q::make_unique< inner_ref_type >( shared_from_this( ) );
+		socket_.data = unique_ref.release( );
+	}
 
 	if ( !!writable_in )
 	{
@@ -189,7 +127,7 @@ void socket::pimpl::close( expect< void > status )
 	::uv_close( handle, closer );
 }
 
-void socket::pimpl::start_read( )
+void tcp_socket::pimpl::start_read( )
 {
 	auto stream = reinterpret_cast< ::uv_stream_t* >( &socket_ );
 
@@ -253,7 +191,7 @@ void socket::pimpl::start_read( )
 	::uv_read_start( stream, alloc_cb, read_cb );
 }
 
-void socket::pimpl::stop_read( bool reschedule )
+void tcp_socket::pimpl::stop_read( bool reschedule )
 {
 	auto stream = reinterpret_cast< ::uv_stream_t* >( &socket_ );
 
@@ -273,7 +211,7 @@ void socket::pimpl::stop_read( bool reschedule )
 	);
 }
 
-void socket::pimpl::begin_write( )
+void tcp_socket::pimpl::begin_write( )
 {
 	auto pimpl = self_.lock( );
 	auto stream = reinterpret_cast< ::uv_stream_t* >( &socket_ );

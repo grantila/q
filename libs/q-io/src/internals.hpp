@@ -20,7 +20,7 @@
 #include <q-io/event.hpp>
 #include <q-io/dispatcher.hpp>
 #include <q-io/dns.hpp>
-#include <q-io/socket.hpp>
+#include <q-io/tcp_socket.hpp>
 #include <q-io/server_socket.hpp>
 #include <q-io/timer_task.hpp>
 
@@ -32,17 +32,23 @@
 #include "impl/server_socket.hpp"
 #include "impl/tcp_socket.hpp"
 
+#include <unistd.h>
+
+#ifdef LIBQ_ON_WINDOWS
+#	include <winsock2.h>
+#	define ioctl ioctlsocket
+#else
+#	include <sys/ioctl.h>
+#endif
+
 namespace q { namespace io {
 
-/*
-struct socket_event::pimpl
-{
-	::uv_tcp_t socket_;
-	::uv_connect_t connect_;
 
-	std::atomic< bool > closed_;
+// TODO: Reconsider, potentially remove
+struct event::pimpl
+{
+	std::weak_ptr< dispatcher > dispatcher;
 };
-*/
 
 struct timer_task::pimpl
 {

@@ -29,13 +29,6 @@ static inline int uv_error_to_errno( int errnum )
 	return -errnum;
 }
 
-// TODO: Reconsider, potentially remove
-struct event::pimpl
-{
-	std::weak_ptr< dispatcher > dispatcher;
-};
-
-
 struct handle
 {
 	::uv_handle_t* handle_;

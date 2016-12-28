@@ -68,7 +68,7 @@ server_socket::construct( std::uint16_t port, ip_addresses&& bind_to )
 	return q::make_shared< server_socket >( port, std::move( bind_to ) );
 }
 
-q::readable< socket_ptr > server_socket::clients( )
+q::readable< tcp_socket_ptr > server_socket::clients( )
 {
 	return pimpl_->channel_->get_readable( );
 }

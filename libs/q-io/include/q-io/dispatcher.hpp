@@ -24,6 +24,8 @@
 #include <q/event_dispatcher.hpp>
 #include <q/promise.hpp>
 #include <q/timer.hpp>
+#include <q/channel.hpp>
+#include <q/block.hpp>
 
 namespace q { namespace io {
 
@@ -42,9 +44,6 @@ enum class dispatcher_exit
 	forced,
 	failed
 };
-
-class dispatcher;
-typedef std::shared_ptr< dispatcher > dispatcher_ptr;
 
 /**
  * The @c dispatcher class is the core execution loop for qio, and forwards
@@ -154,10 +153,10 @@ public:
 	/**
 	 * Connect to a remote peer given a set of ip addresses and a port.
 	 */
-	q::promise< socket_ptr >
+	q::promise< tcp_socket_ptr >
 	connect_to( ip_addresses&& addresses, std::uint16_t port );
 
-	q::promise< socket_ptr >
+	q::promise< tcp_socket_ptr >
 	connect_to( const ip_addresses& addresses, std::uint16_t port )
 	{
 		return connect_to( ip_addresses( addresses ), port );
@@ -172,7 +171,7 @@ public:
 			typename q::arguments< Ips... >::first_type::type,
 			typename std::decay< ip_addresses >::type
 		>::value,
-		q::promise< socket_ptr >
+		q::promise< tcp_socket_ptr >
 	>::type
 	connect_to( Ips&&... ips, std::uint16_t port )
 	{
@@ -222,6 +221,7 @@ private:
 
 	friend class event;
 	friend class resolver;
+	friend class tcp_socket;
 	friend class server_socket;
 	friend class timer_task;
 

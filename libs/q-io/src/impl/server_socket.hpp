@@ -29,9 +29,7 @@ struct server_socket::pimpl
 {
 	typedef std::shared_ptr< server_socket::pimpl > data_ref_type;
 
-//	event::pimpl event_;
-
-	std::shared_ptr< q::channel< socket_ptr > > channel_;
+	std::shared_ptr< q::channel< tcp_socket_ptr > > channel_;
 
 	std::uint16_t port_;
 	ip_addresses bind_to_;
@@ -46,13 +44,7 @@ struct server_socket::pimpl
 
 	pimpl( )
 	: stream( reinterpret_cast< ::uv_stream_t* >( &socket_ ) )
-	{
-		std::cout << "CONSTRUCTING socket_server::pimpl" << std::endl;
-	}
-	~pimpl( )
-	{
-		std::cout << "DESTRUCTING socket_server::pimpl" << std::endl;
-	}
+	{ }
 
 	void
 	attach_dispatcher( const dispatcher_ptr& dispatcher ) noexcept override;

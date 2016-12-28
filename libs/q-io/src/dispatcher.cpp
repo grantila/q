@@ -16,11 +16,12 @@
 
 #include <q-io/dispatcher.hpp>
 #include <q-io/config.hpp>
-#include <q-io/socket.hpp>
+#include <q-io/tcp_socket.hpp>
 #include <q-io/server_socket.hpp>
 
 #include "internals.hpp"
 #include "socket_helpers.hpp"
+#include "impl/handle.hpp"
 
 #include <q/queue.hpp>
 #include <q/promise.hpp>
@@ -226,7 +227,7 @@ void dispatcher::_make_dummy_event( )
 	::uv_async_init( &pimpl_->uv_loop, &pimpl_->uv_async, async_callback );
 	pimpl_->uv_async.data = this;
 }
-std::atomic< int > _pipes;
+
 void dispatcher::_cleanup_dummy_event( )
 {
 	if ( true ) // TODO: If ever started
@@ -241,8 +242,6 @@ void dispatcher::_cleanup_dummy_event( )
 
 		::close( pimpl_->dummy_event.pipes[ 0 ] );
 		::close( pimpl_->dummy_event.pipes[ 1 ] );
-		++_pipes;
-		std::cout << "Deleted pipes (iteration " << _pipes << ")" << std::endl;
 	}
 }
 
@@ -356,7 +355,7 @@ dispatcher::lookup( const std::string& name )
 
 // Tries to connect to the first IP address, then the next, etc, until all
 // addresses are tried.
-q::promise< socket_ptr > dispatcher::connect_to(
+q::promise< tcp_socket_ptr > dispatcher::connect_to(
 	ip_addresses&& addr, std::uint16_t port )
 {
 	struct destination
@@ -368,7 +367,7 @@ q::promise< socket_ptr > dispatcher::connect_to(
 
 		ip_addresses::iterator cur_addr;
 		ip_addresses::iterator end_addr;
-		std::shared_ptr< socket::pimpl > socket_pimpl;
+		std::shared_ptr< tcp_socket::pimpl > socket_pimpl;
 	};
 
 	auto dest = std::make_shared< destination >( );
@@ -379,7 +378,7 @@ q::promise< socket_ptr > dispatcher::connect_to(
 
 	dest->cur_addr = dest->addresses.begin( port );
 	dest->end_addr = dest->addresses.end( port );
-	dest->socket_pimpl = std::make_shared< socket::pimpl >( );
+	dest->socket_pimpl = q::make_shared< tcp_socket::pimpl >( );
 
 	auto self = shared_from_this( );
 
@@ -391,52 +390,36 @@ q::promise< socket_ptr > dispatcher::connect_to(
 		std::shared_ptr< sockaddr > last_address;
 		int last_error;
 		uv_connect_cb connect_callback;
-		q::resolver< socket_ptr > resolve_;
-		q::rejecter< socket_ptr > reject_;
+		q::resolver< tcp_socket_ptr > resolve_;
+		q::rejecter< tcp_socket_ptr > reject_;
 
-		void resolve( socket_ptr&& socket )
+		void resolve( tcp_socket_ptr&& socket )
 		{
 			resolve_( std::move( socket ) );
-
-			delete this;
 		}
 
 		void reject( std::exception_ptr&& e )
 		{
+			auto scope = self;
+
 			reject_( std::move( e ) );
 
-			::uv_close_cb close_cb = [ ]( ::uv_handle_t* handle )
-			{
-				auto ctx =
-					reinterpret_cast< context* >(
-						handle->data );
-				delete ctx;
-			};
-
-			auto handle =
-				reinterpret_cast< ::uv_handle_t* >(
-					&dest->socket_pimpl->socket_ );
-
-			handle->data = this;
-			::uv_close( handle, close_cb );
+			dest->socket_pimpl->close( );
 		}
-
-	private:
-		~context( ) { }
 	};
 
 	uv_connect_cb connect_callback = [ ]( uv_connect_t* req, int status )
 	{
 		auto ctx = reinterpret_cast< context* >( req->data );
 
+		auto& socket_pimpl = ctx->dest->socket_pimpl;
+
 		if ( status == 0 )
 		{
 			// Success
-			auto& socket_event_pimpl =
-				ctx->dest->socket_pimpl;
-			auto sock = ::q::io::socket::construct(
-				std::move( socket_event_pimpl ) );
-			sock->attach( ctx->dispatcher );
+			socket_pimpl->attach_dispatcher( ctx->dispatcher );
+			auto sock = ::q::io::tcp_socket::construct(
+				std::move( socket_pimpl ) );
 
 			ctx->resolve( std::move( sock ) );
 		}
@@ -450,8 +433,9 @@ q::promise< socket_ptr > dispatcher::connect_to(
 
 	auto try_connect = [ ]( context* ctx )
 	{
-		auto& connect = ctx->dest->socket_pimpl->connect_;
-		auto& socket = ctx->dest->socket_pimpl->socket_;
+		auto& socket_pimpl = ctx->dest->socket_pimpl;
+		auto& connect = socket_pimpl->connect_;
+		auto& socket = socket_pimpl->socket_;
 
 		if ( ctx->dest->cur_addr == ctx->dest->end_addr )
 		{
@@ -486,8 +470,8 @@ q::promise< socket_ptr > dispatcher::connect_to(
 
 	return q::make_promise( get_queue( ),
 		[ ctx, try_connect ](
-			q::resolver< socket_ptr > resolve,
-			q::rejecter< socket_ptr > reject
+			q::resolver< tcp_socket_ptr > resolve,
+			q::rejecter< tcp_socket_ptr > reject
 		)
 	{
 		::uv_tcp_init(

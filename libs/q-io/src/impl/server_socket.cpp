@@ -60,7 +60,7 @@ noexcept
 	const int channel_backlog = 32; // TODO: Reconsider backlog
 	const int socket_backlog = 64;  // TODO: Reconsider backlog
 
-	channel_ = std::make_shared< q::channel< socket_ptr > >(
+	channel_ = std::make_shared< q::channel< tcp_socket_ptr > >(
 		dispatcher_pimpl.user_queue, channel_backlog );
 
 	auto iter = bind_to_.begin( port_ );
@@ -105,16 +105,16 @@ noexcept
 			return;
 		}
 
-		auto socket_pimpl = std::make_shared< socket::pimpl >( );
+		auto socket_pimpl = q::make_shared< tcp_socket::pimpl >( );
 
 		::uv_tcp_init( ref->uv_loop_, &socket_pimpl->socket_ );
 
 		if ( ::uv_accept( server, socket_pimpl->uv_stream( ) ) == 0 )
 		{
-			auto client_socket = socket::construct(
-				std::move( socket_pimpl ) );
+			socket_pimpl->attach_dispatcher( ref->dispatcher_ );
 
-			client_socket->attach( ref->dispatcher_ );
+			auto client_socket = tcp_socket::construct(
+				std::move( socket_pimpl ) );
 
 			auto writable = ref->channel_->get_writable( );
 			if ( !writable.send( std::move( client_socket ) ) )
