@@ -72,7 +72,7 @@ resolver::~resolver( )
  	An unknown error occurred.
 */
 
-q::promise< std::tuple< resolver_response > >
+q::promise< resolver_response >
 resolver::lookup(
 	q::queue_ptr queue, const std::string& name, resolve_flags flags )
 {
@@ -82,7 +82,7 @@ resolver::lookup(
 		_flags |= DNS_QUERY_NO_SEARCH;
 
 	auto make_resolver = [ this, &name, _flags, &queue ]( bool ipv4 )
-	-> q::promise< std::tuple< resolver_response > >
+	-> q::promise< resolver_response >
 	{
 		return q::make_promise_sync( queue, [ this, &name, _flags, ipv4 ](
 			q::resolver< resolver_response > resolve,

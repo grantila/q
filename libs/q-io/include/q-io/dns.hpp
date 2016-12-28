@@ -52,7 +52,7 @@ public:
 
 	~resolver( );
 
-	q::promise< std::tuple< resolver_response > >
+	q::promise< resolver_response >
 	lookup(
 		q::queue_ptr queue,
 		const std::string& name,

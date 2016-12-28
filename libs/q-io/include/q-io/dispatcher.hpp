@@ -53,7 +53,7 @@ typedef std::shared_ptr< dispatcher > dispatcher_ptr;
 class dispatcher
 : public ::q::event_dispatcher<
 	q::arguments< dispatcher_termination >,
-	std::tuple< dispatcher_exit >
+	dispatcher_exit
 >
 , ::q::timer_dispatcher
 , public std::enable_shared_from_this< dispatcher >
@@ -61,7 +61,7 @@ class dispatcher
 {
 	typedef ::q::event_dispatcher<
 		q::arguments< dispatcher_termination >,
-		std::tuple< dispatcher_exit >
+		dispatcher_exit
 	> event_dispatcher_base;
 
 public:
@@ -148,16 +148,16 @@ public:
 	 * q::io::resolver instance with this dispatcher's queue and default
 	 * options.
 	 */
-	q::promise< std::tuple< resolver_response > >
+	q::promise< resolver_response >
 	lookup( const std::string& name );
 
 	/**
 	 * Connect to a remote peer given a set of ip addresses and a port.
 	 */
-	q::promise< std::tuple< socket_ptr > >
+	q::promise< socket_ptr >
 	connect_to( ip_addresses&& addresses, std::uint16_t port );
 
-	q::promise< std::tuple< socket_ptr > >
+	q::promise< socket_ptr >
 	connect_to( const ip_addresses& addresses, std::uint16_t port )
 	{
 		return connect_to( ip_addresses( addresses ), port );
@@ -172,7 +172,7 @@ public:
 			typename q::arguments< Ips... >::first_type::type,
 			typename std::decay< ip_addresses >::type
 		>::value,
-		q::promise< std::tuple< socket_ptr > >
+		q::promise< socket_ptr >
 	>::type
 	connect_to( Ips&&... ips, std::uint16_t port )
 	{
@@ -187,10 +187,10 @@ public:
 	 * Create a server_socket which listens to incoming connections on a
 	 * certain interface (given its ip address) and port.
 	 */
-	q::promise< std::tuple< server_socket_ptr > >
+	q::promise< server_socket_ptr >
 	listen( std::uint16_t port, ip_addresses&& bind_to );
 
-	q::promise< std::tuple< server_socket_ptr > >
+	q::promise< server_socket_ptr >
 	listen(
 		std::uint16_t port, std::string bind_to = "0.0.0.0"
 	)

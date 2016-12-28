@@ -22,9 +22,9 @@ public:
 private:
 	void on_setup( ) override
 	{
-		ioc = q::make_execution_context< q::io::dispatcher >( queue );
-		io_dispatcher = ioc->dispatcher( );
-		io_queue = tp->queue( );
+		std::tie( io_dispatcher, io_queue ) =
+			q::make_event_dispatcher_and_queue< q::io::dispatcher >(
+				queue );
 
 		io_dispatcher->start( );
 	}
@@ -35,11 +35,9 @@ private:
 		io_dispatcher->terminate( dispatcher_termination::graceful );
 		io_dispatcher->await_termination( );
 		io_dispatcher.reset( );
-		ioc.reset( );
 	}
 
 protected:
-	q::specific_execution_context_ptr< q::io::dispatcher > ioc;
 	q::io::dispatcher_ptr io_dispatcher;
 	q::queue_ptr io_queue;
 };

@@ -310,7 +310,7 @@ dispatcher::delay( q::timer::duration_type dur )
 	return q::async_task( runner );
 }
 
-q::promise< std::tuple< resolver_response > >
+q::promise< resolver_response >
 dispatcher::lookup( const std::string& name )
 {
 	return q::make_promise( pimpl_->dns_queue_, [ name ]( ) -> ip_addresses
@@ -356,7 +356,7 @@ dispatcher::lookup( const std::string& name )
 
 // Tries to connect to the first IP address, then the next, etc, until all
 // addresses are tried.
-q::promise< std::tuple< socket_ptr > > dispatcher::connect_to(
+q::promise< socket_ptr > dispatcher::connect_to(
 	ip_addresses&& addr, std::uint16_t port )
 {
 	struct destination
@@ -504,7 +504,7 @@ q::promise< std::tuple< socket_ptr > > dispatcher::connect_to(
 	} );
 }
 
-q::promise< std::tuple< server_socket_ptr > >
+q::promise< server_socket_ptr >
 dispatcher::listen( std::uint16_t port, ip_addresses&& bind_to )
 {
 	auto self = shared_from_this( );
