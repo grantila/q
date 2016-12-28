@@ -620,6 +620,20 @@ make_unique( std::size_t size )
 #endif
 }
 
+template< typename To, typename From >
+std::shared_ptr< To >
+reinterpret_pointer_cast( const std::shared_ptr< From >& from )
+{
+#ifdef LIBQ_WITH_CPP17
+	return std::reinterpret_pointer_cast< To >( from );
+#else
+	return std::shared_ptr< To >(
+		from,
+		reinterpret_cast< To* >( from.get( ) )
+	);
+#endif
+}
+
 
 } // namespace q
 
