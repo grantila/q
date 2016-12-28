@@ -82,12 +82,12 @@ protected:
 		} )
 		.finally( [ this ]( )
 		{
-			bd->dispatcher( )->terminate( q::termination::linger );
+			bd->terminate( q::termination::linger );
 		} );
 
 		started_ = true;
 
-		bd->dispatcher( )->start( );
+		bd->start( );
 	}
 
 	// We only allow to run promises by r-value reference (i.e. we take
@@ -119,8 +119,8 @@ protected:
 		_run( std::forward< Promise >( promise ) );
 	}
 
-	q::specific_execution_context_ptr< q::blocking_dispatcher > bd;
-	q::specific_execution_context_ptr< q::threadpool > tp;
+	std::shared_ptr< q::blocking_dispatcher > bd;
+	std::shared_ptr< q::threadpool > tp;
 
 	q::queue_ptr queue;
 	q::queue_ptr tp_queue;
@@ -151,7 +151,6 @@ private:
 	q::mutex mutex_;
 	std::vector< q::promise< > > awaiting_promises_;
 
-	q::scope scope_;
 	std::vector< q::scope > test_scopes_;
 
 	std::atomic< bool > started_;
