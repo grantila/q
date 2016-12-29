@@ -12,7 +12,7 @@ TEST_F( connect, client_server_connrefused )
 	auto dest = q::io::ip_addresses( "127.0.0.1" );
 
 	EVENTUALLY_EXPECT_REJECTION_WITH(
-		io_dispatcher->connect_to( dest, 1 ),
+		io_dispatcher->get_tcp_connection( dest, 1 ),
 		q::errno_connrefused_exception
 	);
 }
@@ -50,7 +50,7 @@ TEST_F( connect, client_server_send_data )
 	.then( [ this, port ]
 	{
 		auto dest_ip = q::io::ip_addresses( "127.0.0.1" );
-		return io_dispatcher->connect_to( dest_ip, port );
+		return io_dispatcher->get_tcp_connection( dest_ip, port );
 	} )
 	.then( [ &test_data ]( q::io::tcp_socket_ptr socket )
 	{
@@ -86,7 +86,7 @@ TEST_F( connect, client_server_close_client_on_destruction )
 	.then( [ this, port ]
 	{
 		auto dest_ip = q::io::ip_addresses( "127.0.0.1" );
-		return io_dispatcher->connect_to( dest_ip, port )
+		return io_dispatcher->get_tcp_connection( dest_ip, port )
 		// Get the socket and then let it destruct
 		.then( [ ]( q::io::tcp_socket_ptr socket ) { } );
 	} );

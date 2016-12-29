@@ -355,7 +355,7 @@ dispatcher::lookup( const std::string& name )
 
 // Tries to connect to the first IP address, then the next, etc, until all
 // addresses are tried.
-q::promise< tcp_socket_ptr > dispatcher::connect_to(
+q::promise< tcp_socket_ptr > dispatcher::get_tcp_connection(
 	ip_addresses&& addr, std::uint16_t port )
 {
 	struct destination
@@ -480,6 +480,40 @@ q::promise< tcp_socket_ptr > dispatcher::connect_to(
 		ctx->dest->socket_pimpl->connect_.data = ctx;
 
 		try_connect( ctx );
+	} );
+}
+
+promise< readable< byte_block >, writable< byte_block > >
+dispatcher::tcp_connect( std::string hostname, std::uint16_t port )
+{
+	auto addr = ip_address::from( hostname );
+	if ( addr )
+	{
+		// The hostname looks like a valid IPv4 or IPv6 address, ignore
+		// DNS resolution.
+		return tcp_connect( addr, port );
+	}
+
+	auto self = shared_from_this( );
+
+	return lookup( hostname )
+	.then( [ self, port ]( resolver_response&& response )
+	{
+		return self->tcp_connect( std::move( response.ips ), port );
+	} );
+}
+
+promise< readable< byte_block >, writable< byte_block > >
+dispatcher::tcp_connect( ip_addresses addr, std::uint16_t port )
+{
+	return get_tcp_connection( addr, port )
+	.then( [ ]( tcp_socket_ptr&& socket )
+	{
+		auto readable = socket->in( );
+		auto writable = socket->out( );
+		socket->detach( );
+		return std::make_tuple(
+			std::move( readable ), std::move( writable ) );
 	} );
 }
 

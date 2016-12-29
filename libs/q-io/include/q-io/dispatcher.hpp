@@ -154,12 +154,12 @@ public:
 	 * Connect to a remote peer given a set of ip addresses and a port.
 	 */
 	q::promise< tcp_socket_ptr >
-	connect_to( ip_addresses&& addresses, std::uint16_t port );
+	get_tcp_connection( ip_addresses&& addresses, std::uint16_t port );
 
 	q::promise< tcp_socket_ptr >
-	connect_to( const ip_addresses& addresses, std::uint16_t port )
+	get_tcp_connection( const ip_addresses& addresses, std::uint16_t port )
 	{
-		return connect_to( ip_addresses( addresses ), port );
+		return get_tcp_connection( ip_addresses( addresses ), port );
 	}
 
 	/**
@@ -173,14 +173,23 @@ public:
 		>::value,
 		q::promise< tcp_socket_ptr >
 	>::type
-	connect_to( Ips&&... ips, std::uint16_t port )
+	get_tcp_connection( Ips&&... ips, std::uint16_t port )
 	{
-		return connect_to(
+		return get_tcp_connection(
 			ip_addresses( std::forward< Ips >( ips )... ), port );
 	}
 
-	// TODO: Implement 'connect' using domain name lookup (or raw IP
-	// addresses if such are provided)
+	promise< readable< byte_block >, writable< byte_block > >
+	tcp_connect( std::string hostname, std::uint16_t port );
+
+	promise< readable< byte_block >, writable< byte_block > >
+	tcp_connect( ip_addresses addr, std::uint16_t port );
+
+	promise< readable< byte_block >, writable< byte_block > >
+	tcp_connect( ip_address addr, std::uint16_t port )
+	{
+		return tcp_connect( ip_addresses( std::move( addr ) ), port );
+	}
 
 	/**
 	 * Create a server_socket which listens to incoming connections on a
