@@ -18,7 +18,7 @@
 
 #include <q/types.hpp>
 
-#include "internals.hpp"
+#include "impl/timer_task.hpp"
 
 namespace q { namespace io {
 
@@ -36,29 +36,32 @@ typename std::decay< Duration >::type::rep to_millis( Duration&& duration )
 
 timer_task::timer_task( )
 : pimpl_( std::make_shared< pimpl >( ) )
-{
-	event::set_pimpl( &pimpl_->event_ );
-
-	pimpl_->timer_.data = nullptr;
-}
+{ }
 
 timer_task::~timer_task( )
 {
 	::uv_close_cb closer = [ ]( ::uv_handle_t* handle )
 	{
 		auto timer = reinterpret_cast< ::uv_timer_t* >( handle );
-		auto ref = reinterpret_cast< pimpl* >( timer->data );
+		auto ref = reinterpret_cast< pimpl::data_ref_type* >(
+			timer->data );
+		timer->data = nullptr;
 
-		if ( !ref )
+		if ( ref )
+			delete ref;
+
+		auto pimpl = *ref;
+
+		if ( !pimpl )
 			// This should happen. It means we have initialized
 			// this timer half-way somehow.
 			// TODO: Assert we don't end up here
 			return;
 
 		// Keeps the pimpl alive until the end of this scope
-		auto keep_alive = ref->cleanup_keepalive_ptr_;
+		auto keep_alive = pimpl->cleanup_keepalive_ptr_;
 
-		ref->cleanup_keepalive_ptr_.reset( );
+		pimpl->cleanup_keepalive_ptr_.reset( );
 	};
 
 	auto handle = reinterpret_cast< ::uv_handle_t* >( &pimpl_->timer_ );
@@ -73,26 +76,19 @@ timer_task::~timer_task( )
 
 void timer_task::set_task( q::task task )
 {
-	ensure_attached( );
-
-	std::atomic_store(
-		&pimpl_->task_,
-		std::make_shared< q::task >( std::move( task ) )
-	);
+	pimpl_->set_task( std::move( task ) );
 }
 
 void timer_task::unset_task( )
 {
-	ensure_attached( );
-
-	std::atomic_store( &pimpl_->task_, std::shared_ptr< q::task >( ) );
+	pimpl_->unset_task( );
 }
 
 void timer_task::start_timeout(
 	clock::duration duration, clock::duration repeat
 )
 {
-	ensure_attached( );
+	pimpl_->ensure_attached( );
 
 	pimpl_->duration_ = duration;
 	pimpl_->repeat_ = repeat;
@@ -106,9 +102,11 @@ void timer_task::start_timeout(
 
 		uv_timer_cb timer_callback = [ ]( ::uv_timer_t* timer )
 		{
-			auto pimpl_ = reinterpret_cast< pimpl* >( timer->data );
+			auto ref = reinterpret_cast< pimpl::data_ref_type* >(
+				timer->data );
+			auto pimpl = *ref;
 
-			auto task = std::atomic_load( &pimpl_->task_ );
+			auto task = std::atomic_load( &pimpl->task_ );
 			if ( task && *task )
 				( *task )( );
 		};
@@ -125,7 +123,7 @@ void timer_task::start_timeout(
 
 void timer_task::stop( )
 {
-	ensure_attached( );
+	pimpl_->ensure_attached( );
 
 	auto _pimpl = pimpl_;
 
@@ -136,32 +134,6 @@ void timer_task::stop( )
 	};
 
 	pimpl_->dispatcher_->get_queue( )->push( stopper );
-}
-
-void timer_task::sub_attach( const dispatcher_ptr& dispatcher ) noexcept
-{
-	if ( is_attached( ) )
-		Q_THROW( event_error( ), "Already attached" ); // Better error
-
-	pimpl_->dispatcher_ = dispatcher;
-	pimpl_->loop_ = &pimpl_->dispatcher_->pimpl_->uv_loop;
-
-	if ( ::uv_timer_init( pimpl_->loop_, &pimpl_->timer_ ) )
-		// TODO: Better error, well described and thought through logic
-		Q_THROW( event_error( ) );
-
-	pimpl_->timer_.data = &*pimpl_;
-}
-
-bool timer_task::is_attached( ) const
-{
-	return pimpl_->loop_;
-}
-
-void timer_task::ensure_attached( ) const
-{
-	if ( !is_attached( ) )
-		Q_THROW( event_error( ) ); // TODO: Better error
 }
 
 } } // namespace io, namespace q

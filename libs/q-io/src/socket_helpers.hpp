@@ -19,6 +19,8 @@
 
 #include <q-io/dispatcher.hpp>
 
+#include "uv.hpp"
+
 namespace q { namespace io {
 
 typedef ::uv_os_sock_t qio_socket_t;

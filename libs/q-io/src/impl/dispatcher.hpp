@@ -22,7 +22,7 @@
 #include <q/thread.hpp>
 #include <q/execution_context.hpp>
 
-#include "uv.hpp"
+#include "../uv.hpp"
 
 namespace q { namespace io {
 

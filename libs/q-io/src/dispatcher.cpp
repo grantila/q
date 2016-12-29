@@ -19,9 +19,12 @@
 #include <q-io/tcp_socket.hpp>
 #include <q-io/server_socket.hpp>
 
-#include "internals.hpp"
 #include "socket_helpers.hpp"
+#include "impl/dispatcher.hpp"
 #include "impl/handle.hpp"
+#include "impl/tcp_socket.hpp"
+#include "impl/server_socket.hpp"
+#include "impl/timer_task.hpp"
 
 #include <q/queue.hpp>
 #include <q/promise.hpp>
@@ -291,9 +294,9 @@ dispatcher::delay( q::timer::duration_type dur )
 
 	auto runner = [ dur_, self ]( q::async_task::task fn )
 	{
-		auto timer = std::make_shared< timer_task >( );
+		auto timer = q::make_shared_using_constructor< timer_task >( );
 
-		self->attach_event( timer );
+		timer->pimpl_->attach_dispatcher( self );
 
 		auto task = [ fn, timer ]( ) mutable
 		{

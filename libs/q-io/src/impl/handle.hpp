@@ -19,7 +19,7 @@
 
 #include <q-io/dispatcher.hpp>
 
-#include "uv.hpp"
+#include "../uv.hpp"
 
 namespace q { namespace io {
 

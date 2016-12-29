@@ -26,11 +26,11 @@
 
 #include <queue>
 
-#include "impl/uv.hpp"
-
 #include "impl/dispatcher.hpp"
 #include "impl/server_socket.hpp"
 #include "impl/tcp_socket.hpp"
+
+#include "uv.hpp"
 
 #include <unistd.h>
 
@@ -48,27 +48,6 @@ namespace q { namespace io {
 struct event::pimpl
 {
 	std::weak_ptr< dispatcher > dispatcher;
-};
-
-struct timer_task::pimpl
-{
-	event::pimpl event_;
-
-	::uv_loop_t* loop_;
-	::uv_timer_t timer_;
-
-	std::shared_ptr< pimpl > cleanup_keepalive_ptr_;
-
-	dispatcher_ptr dispatcher_;
-	std::shared_ptr< q::task > task_;
-	clock::duration duration_;
-	clock::duration repeat_;
-
-	pimpl( )
-	: loop_( nullptr )
-	, duration_( clock::duration( 0 ) )
-	, repeat_( clock::duration( 0 ) )
-	{ }
 };
 
 } } // namespace io, namespace q

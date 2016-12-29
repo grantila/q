@@ -32,11 +32,10 @@ namespace q { namespace io {
  * The task attached to the timer_task *must* guarantee not to throw.
  */
 class timer_task
-: public event
 {
-	struct pimpl;
 public:
-	timer_task( );
+	struct pimpl;
+
 	timer_task( const timer_task& ) = delete;
 	timer_task( timer_task&& ) = default;
 	~timer_task( );
@@ -51,11 +50,11 @@ public:
 
 	void stop( );
 
-private:
-	void sub_attach( const dispatcher_ptr& dispatcher ) noexcept override;
+protected:
+	timer_task( );
 
-	bool is_attached( ) const;
-	void ensure_attached( ) const;
+private:
+	friend dispatcher;
 
 	std::shared_ptr< pimpl > pimpl_;
 };
