@@ -28,6 +28,7 @@ void closer( ::uv_handle_t* handle )
 	auto socket = reinterpret_cast< ::uv_tcp_t* >( handle );
 	auto ref = reinterpret_cast< server_socket::pimpl::data_ref_type* >(
 		socket->data );
+	socket->data = nullptr;
 
 	if ( ref )
 		delete ref;
