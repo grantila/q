@@ -27,6 +27,8 @@
 
 namespace q { namespace io {
 
+struct ip_addresses;
+
 Q_MAKE_SIMPLE_EXCEPTION( invalid_ip_address );
 
 struct ipv4_address
@@ -141,6 +143,7 @@ public:
 
 	void populate( ::sockaddr_in& addr, std::uint16_t port ) const;
 	void populate( ::sockaddr_in6& addr, std::uint16_t port ) const;
+	std::shared_ptr< ::sockaddr > get_sockaddr( std::uint16_t port ) const;
 
 	// These are the same as the constructors, but they won't throw,
 	// instead the ip_address will not be "valid" (operator bool will
@@ -152,6 +155,8 @@ public:
 	}
 
 private:
+	friend struct ip_addresses;
+
 	void _clear( );
 
 	enum class state_type
@@ -197,14 +202,13 @@ struct ip_addresses
 		_add( std::forward< Ips >( ips )... );
 	}
 
-	std::vector< ipv4_address > ipv4;
-	std::vector< ipv6_address > ipv6;
+	std::vector< ip_address > ips;
 	std::size_t invalid;
 
 	class iterator
 	: public virtual std::iterator<
 		std::input_iterator_tag,
-		std::shared_ptr< ::sockaddr >
+		ip_address
 	>
 	{
 	public:
@@ -226,28 +230,20 @@ struct ip_addresses
 	private:
 		friend struct ip_addresses;
 
-		iterator(
-			ip_addresses* root,
-			std::uint16_t port,
-			std::size_t ipv4_pos,
-			std::size_t ipv6_pos
-		);
+		iterator( ip_addresses* root, std::size_t pos );
 
 		void increase( );
 		void prepare( );
 
 		ip_addresses* root_;
-		std::uint16_t port_;
-		std::size_t ipv4_pos_;
-		std::size_t ipv6_pos_;
+		std::size_t pos_;
 
-		std::size_t tmp_ipv4_pos_;
-		std::size_t tmp_ipv6_pos_;
-		std::shared_ptr< sockaddr > tmp_;
+		std::size_t tmp_pos_;
+		ip_address tmp_;
 	};
 
-	iterator begin( std::uint16_t port );
-	iterator end( std::uint16_t port );
+	iterator begin( );
+	iterator end( );
 
 private:
 	template< typename First, typename... Ips >
@@ -257,14 +253,14 @@ private:
 			std::string
 		>::value
 	>::type
-	_add( First&& ip, Ips&&... ips )
+	_add( First&& ip, Ips&&... rest )
 	{
 		if ( detail::might_be_ipv6_address( ip ) )
 		{
 			ipv6_address addr = ipv6_address::from(
 				std::forward< First >( ip ) );
 			if ( addr.valid )
-				ipv6.push_back( std::move( addr ) );
+				ips.emplace_back( std::move( addr ) );
 			else
 				++invalid;
 		}
@@ -273,12 +269,29 @@ private:
 			ipv4_address addr = ipv4_address::from(
 				std::forward< First >( ip ) );
 			if ( addr.valid )
-				ipv4.push_back( std::move( addr ) );
+				ips.emplace_back( std::move( addr ) );
 			else
 				++invalid;
 		}
 
-		add( std::forward< Ips >( ips )... );
+		add( std::forward< Ips >( rest )... );
+	}
+
+	template< typename First, typename... Ips >
+	typename std::enable_if<
+		q::is_same_type<
+			typename std::decay< First >::type,
+			ip_address
+		>::value
+	>::type
+	_add( First&& ip, Ips&&... rest )
+	{
+		if ( ip )
+			ips.push_back( std::forward< First >( ip ) );
+		else
+			++invalid;
+
+		add( std::forward< Ips >( rest )... );
 	}
 
 	template< typename First, typename... Ips >
@@ -288,11 +301,11 @@ private:
 			ipv4_address
 		>::value
 	>::type
-	_add( First&& ip, Ips&&... ips )
+	_add( First&& ip, Ips&&... rest )
 	{
-		ipv4.push_back( std::forward< First >( ip ) );
+		ips.emplace_back( std::forward< First >( ip ) );
 
-		add( std::forward< Ips >( ips )... );
+		add( std::forward< Ips >( rest )... );
 	}
 
 	template< typename First, typename... Ips >
@@ -302,11 +315,11 @@ private:
 			ipv6_address
 		>::value
 	>::type
-	_add( First&& ip, Ips&&... ips )
+	_add( First&& ip, Ips&&... rest )
 	{
-		ipv6.push_back( std::forward< First >( ip ) );
+		ips.emplace_back( std::forward< First >( ip ) );
 
-		add( std::forward< Ips >( ips )... );
+		add( std::forward< Ips >( rest )... );
 	}
 
 	void _add( )

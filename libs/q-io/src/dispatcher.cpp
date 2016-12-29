@@ -361,8 +361,6 @@ q::promise< tcp_socket_ptr > dispatcher::connect_to(
 	struct destination
 	{
 		ip_addresses addresses;
-		std::size_t pos_ipv4;
-		std::size_t pos_ipv6;
 		std::uint16_t port;
 
 		ip_addresses::iterator cur_addr;
@@ -372,12 +370,10 @@ q::promise< tcp_socket_ptr > dispatcher::connect_to(
 
 	auto dest = std::make_shared< destination >( );
 	dest->addresses = std::move( addr );
-	dest->pos_ipv4 = 0;
-	dest->pos_ipv6 = 0;
 	dest->port = port;
 
-	dest->cur_addr = dest->addresses.begin( port );
-	dest->end_addr = dest->addresses.end( port );
+	dest->cur_addr = dest->addresses.begin( );
+	dest->end_addr = dest->addresses.end( );
 	dest->socket_pimpl = q::make_shared< tcp_socket::pimpl >( );
 
 	auto self = shared_from_this( );
@@ -387,9 +383,9 @@ q::promise< tcp_socket_ptr > dispatcher::connect_to(
 		dispatcher_ptr dispatcher;
 		std::function< void( context* ) > try_connect;
 		std::shared_ptr< destination > dest;
-		std::shared_ptr< sockaddr > last_address;
 		int last_error;
 		uv_connect_cb connect_callback;
+		ip_address last_address;
 		q::resolver< tcp_socket_ptr > resolve_;
 		q::rejecter< tcp_socket_ptr > reject_;
 
@@ -439,9 +435,7 @@ q::promise< tcp_socket_ptr > dispatcher::connect_to(
 
 		if ( ctx->dest->cur_addr == ctx->dest->end_addr )
 		{
-			auto& ipv4 = ctx->dest->addresses.ipv4;
-			auto& ipv6 = ctx->dest->addresses.ipv6;
-			int _errno = ipv4.empty( ) && ipv6.empty( )
+			int _errno = ctx->dest->addresses.ips.empty( )
 				? EINVAL
 				: ctx->last_error;
 
@@ -451,10 +445,12 @@ q::promise< tcp_socket_ptr > dispatcher::connect_to(
 
 		ctx->last_address = *ctx->dest->cur_addr++;
 
+		auto addr = ctx->last_address.get_sockaddr( ctx->dest->port );
+
 		::uv_tcp_connect(
 			&connect,
 			&socket,
-			ctx->last_address.get( ),
+			&*addr,
 			ctx->connect_callback
 		);
 	};
@@ -463,7 +459,6 @@ q::promise< tcp_socket_ptr > dispatcher::connect_to(
 		self,
 		try_connect,
 		dest,
-		nullptr,
 		ECONNREFUSED,
 		connect_callback
 	};

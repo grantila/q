@@ -151,6 +151,14 @@ TEST( ip, ip_from_v6 )
 	EXPECT_NE( ip, q::io::ip_address( ipv6_other ) );
 }
 
+TEST( ip, ip_addresses_from_ip_address )
+{
+	q::io::ipv6_address ipv6( "2001:4860:4860::8888" );
+	q::io::ip_address ip( ipv6 );
+	q::io::ip_addresses ips( ip );
+
+	EXPECT_EQ( *ips.begin( ), ip );
+}
 
 TEST( ip, ip_operators )
 {

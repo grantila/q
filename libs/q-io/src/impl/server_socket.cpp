@@ -63,12 +63,12 @@ noexcept
 	channel_ = std::make_shared< q::channel< tcp_socket_ptr > >(
 		dispatcher_pimpl.user_queue, channel_backlog );
 
-	auto iter = bind_to_.begin( port_ );
+	auto iter = bind_to_.begin( );
 
-	if ( iter == bind_to_.end( port_ ) )
+	if ( iter == bind_to_.end( ) )
 		Q_THROW( invalid_ip_address( ) );
 
-	auto addr = *iter;
+	auto addr = iter->get_sockaddr( port_ );
 
 	uv_loop_ = &dispatcher_pimpl.uv_loop;
 

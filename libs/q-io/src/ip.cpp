@@ -517,6 +517,24 @@ void ip_address::populate( ::sockaddr_in6& addr, std::uint16_t port ) const
 	ipv6( ).populate( addr, port );
 }
 
+std::shared_ptr< ::sockaddr >
+ip_address::get_sockaddr( std::uint16_t port ) const
+{
+	if ( is_v4( ) )
+	{
+		auto addr = std::make_shared< ::sockaddr_in >( );
+		populate( *addr, port );
+		return q::reinterpret_pointer_cast< ::sockaddr >( addr );
+	}
+	else if ( is_v6( ) )
+	{
+		auto addr = std::make_shared< ::sockaddr_in6 >( );
+		populate( *addr, port );
+		return q::reinterpret_pointer_cast< ::sockaddr >( addr );
+	}
+	return nullptr;
+}
+
 ip_address ip_address::from( const char* addr )
 {
 	ip_address ip;
@@ -547,18 +565,10 @@ ip_addresses::iterator::iterator( )
 {
 }
 
-ip_addresses::iterator::iterator(
-	ip_addresses* root,
-	std::uint16_t port,
-	std::size_t ipv4_pos,
-	std::size_t ipv6_pos
-)
+ip_addresses::iterator::iterator( ip_addresses* root, std::size_t pos )
 : root_( root )
-, port_( port )
-, ipv4_pos_( ipv4_pos )
-, ipv6_pos_( ipv6_pos )
-, tmp_ipv4_pos_( ipv4_pos )
-, tmp_ipv6_pos_( ipv6_pos )
+, pos_( pos )
+, tmp_pos_( pos )
 {
 }
 
@@ -598,10 +608,7 @@ ip_addresses::iterator::pointer ip_addresses::iterator::operator->( )
 
 bool ip_addresses::iterator::operator==( const ip_addresses::iterator& other )
 {
-	return root_ == other.root_ &&
-		port_ == other.port_ &&
-		ipv4_pos_ == other.ipv4_pos_ &&
-		ipv6_pos_ == other.ipv6_pos_;
+	return root_ == other.root_ && pos_ == other.pos_;
 }
 
 bool ip_addresses::iterator::operator!=( const ip_addresses::iterator& other )
@@ -611,72 +618,34 @@ bool ip_addresses::iterator::operator!=( const ip_addresses::iterator& other )
 
 void ip_addresses::iterator::increase( )
 {
-	std::size_t ipv4_size = root_->ipv4.size( );
+	std::size_t size = root_->ips.size( );
 
-	if ( ipv4_pos_ < ipv4_size )
-		++ipv4_pos_;
-
-	if ( ipv4_pos_ < ipv4_size )
-		return;
-
-	std::size_t ipv6_size = root_->ipv6.size( );
-
-	if ( ipv6_pos_ < ipv6_size )
-		++ipv6_pos_;
+	if ( pos_ < size )
+		++pos_;
 }
 
 void ip_addresses::iterator::prepare( )
 {
-	if (
-		tmp_ipv4_pos_ == ipv4_pos_ &&
-		tmp_ipv6_pos_ == ipv6_pos_ &&
-		!!tmp_
-	)
+	if ( tmp_pos_ == pos_ && !!tmp_ )
 		// Re-use the existing object, it's not dirty
 		return;
 
-	tmp_ipv4_pos_ = ipv4_pos_;
-	tmp_ipv6_pos_ = ipv6_pos_;
+	tmp_pos_ = pos_;
 
-	if ( ipv4_pos_ < root_->ipv4.size( ) )
-	{
-		const ipv4_address& ipv4_address = root_->ipv4[ ipv4_pos_ ];
-
-		// reinterpret_pointer_cast is C++17, so we need to do this...
-		auto addr_in = new sockaddr_in;
-
-		tmp_.reset( reinterpret_cast< sockaddr* >( addr_in ) );
-
-		ipv4_address.populate( *addr_in, port_ );
-
-		return;
-	}
-
-	if ( ipv6_pos_ < root_->ipv6.size( ) )
-	{
-		const ipv6_address& ipv6_address = root_->ipv6[ ipv6_pos_ ];
-
-		// reinterpret_pointer_cast is C++17, so we need to do this...
-		auto addr_in6 = new sockaddr_in6;
-
-		tmp_.reset( reinterpret_cast< sockaddr* >( addr_in6 ) );
-
-		ipv6_address.populate( *addr_in6, port_ );
-
-		return;
-	}
-
-	tmp_.reset( );
+	if ( pos_ < root_->ips.size( ) )
+		tmp_ = root_->ips[ pos_ ];
+	else
+		tmp_._clear( );
 }
 
-ip_addresses::iterator ip_addresses::begin( std::uint16_t port )
+ip_addresses::iterator ip_addresses::begin( )
 {
-	return iterator( this, port, 0, 0 );
+	return iterator( this, 0 );
 }
 
-ip_addresses::iterator ip_addresses::end( std::uint16_t port )
+ip_addresses::iterator ip_addresses::end( )
 {
-	return iterator( this, port, ipv4.size( ), ipv6.size( ) );
+	return iterator( this, ips.size( ) );
 }
 
 } } // namespace io, namespace q
