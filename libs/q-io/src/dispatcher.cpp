@@ -404,6 +404,7 @@ q::promise< tcp_socket_ptr > dispatcher::get_tcp_connection(
 
 	struct context
 	{
+		std::shared_ptr< context > self;
 		dispatcher_ptr dispatcher;
 		std::function< void( context* ) > try_connect;
 		std::shared_ptr< destination > dest;
@@ -477,17 +478,18 @@ q::promise< tcp_socket_ptr > dispatcher::get_tcp_connection(
 			&*addr,
 			ctx->connect_callback
 		);
+
+		::uv_async_send( &ctx->dispatcher->pimpl_->uv_async );
 	};
 
-	context* ctx = new context {
-		self,
-		try_connect,
-		dest,
-		ECONNREFUSED,
-		connect_callback
-	};
+	auto ctx = std::make_shared< context >( );
+	ctx->dispatcher = self;
+	ctx->try_connect = try_connect;
+	ctx->dest = dest;
+	ctx->last_error = ECONNREFUSED;
+	ctx->connect_callback = connect_callback;
 
-	return q::make_promise( get_queue( ),
+	return q::make_promise_sync( get_queue( ),
 		[ ctx, try_connect ](
 			q::resolver< tcp_socket_ptr > resolve,
 			q::rejecter< tcp_socket_ptr > reject
@@ -498,12 +500,18 @@ q::promise< tcp_socket_ptr > dispatcher::get_tcp_connection(
 			&ctx->dest->socket_pimpl->socket_
 		);
 
+		ctx->self = ctx;
+
 		ctx->resolve_ = resolve;
 		ctx->reject_ = reject;
 
-		ctx->dest->socket_pimpl->connect_.data = ctx;
+		ctx->dest->socket_pimpl->connect_.data = ctx.get( );
 
-		try_connect( ctx );
+		try_connect( ctx.get( ) );
+	} )
+	.finally( [ ctx ]( )
+	{
+		ctx->self.reset( );
 	} );
 }
 
