@@ -16,7 +16,7 @@
 
 #include <q-io/server_socket.hpp>
 
-#include "internals.hpp"
+#include "impl/server_socket.hpp"
 #include "socket_helpers.hpp"
 
 namespace q { namespace io {

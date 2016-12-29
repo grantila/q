@@ -564,11 +564,6 @@ dispatcher::listen( std::uint16_t port, ip_addresses&& bind_to )
 	} );
 }
 
-void dispatcher::attach_event( event* event )
-{
-	event->attach( shared_from_this( ) );
-}
-
 void dispatcher::do_terminate( dispatcher_termination termination_method )
 {
 	termination dns_termination =

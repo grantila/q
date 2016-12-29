@@ -17,9 +17,13 @@
 #ifndef LIBQIO_TYPES_HPP
 #define LIBQIO_TYPES_HPP
 
+#include <q/exception.hpp>
+
 #include <memory>
 
 namespace q { namespace io {
+
+Q_MAKE_SIMPLE_EXCEPTION( event_error );
 
 class dispatcher;
 typedef std::shared_ptr< dispatcher > dispatcher_ptr;
@@ -47,8 +51,6 @@ class timer_event;
 	typedef int socket_t;
 #endif
 typedef std::integral_constant< socket_t, -1 > invalid_socket;
-
-class resolver;
 
 } } // namespace io, namespace q
 

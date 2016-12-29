@@ -19,7 +19,6 @@
 
 #include <q-io/ip.hpp>
 #include <q-io/types.hpp>
-#include <q-io/event.hpp>
 
 #include <q/channel.hpp>
 #include <q/block.hpp>

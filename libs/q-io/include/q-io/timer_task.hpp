@@ -18,8 +18,9 @@
 #define LIBQIO_TIMER_TASK_HPP
 
 #include <q-io/clock.hpp>
-#include <q-io/event.hpp>
 #include <q-io/types.hpp>
+
+#include <q/types.hpp>
 
 namespace q { namespace io {
 

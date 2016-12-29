@@ -18,7 +18,6 @@
 #define LIBQIO_DISPATCHER_HPP
 
 #include <q-io/ip.hpp>
-#include <q-io/dns.hpp>
 #include <q-io/types.hpp>
 
 #include <q/event_dispatcher.hpp>
@@ -43,6 +42,14 @@ enum class dispatcher_exit
 	exited,
 	forced,
 	failed
+};
+
+struct resolver_response
+{
+	ip_addresses ips;
+	// TTL is not always available, and should not be relied on.
+	// If it's not available, it will be zero.
+	std::chrono::seconds ttl;
 };
 
 /**
@@ -121,20 +128,6 @@ public:
 	 * background.
 	 */
 	void start( ) override;
-
-	/**
-	 * Attach an event to this dispatcher. The event should not have been
-	 * created by this dispatcher, as they are automatically attached.
-	 */
-	void attach_event( event* event );
-	void attach_event( const event_ptr& event )
-	{
-		attach_event( &*event );
-	}
-	void attach_event( event& event )
-	{
-		attach_event( &event );
-	}
 
 	/**
 	 * Creates a timeout-based forwarding_async_task which can be used to
