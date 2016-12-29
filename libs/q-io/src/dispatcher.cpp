@@ -257,7 +257,28 @@ void dispatcher::start_blocking( )
 
 	_cleanup_dummy_event( );
 
-	std::cout << dump_events_json( ) << std::endl;
+	if ( pimpl_->termination_ == dispatcher_termination::immediate )
+	{
+		// Stop all events from the inside
+		for ( auto& event : dump_events( ) )
+		{
+			auto handle_ptr = reinterpret_cast< ::uv_handle_t* >(
+				event.handle );
+
+			if ( handle_ptr->type == ::UV_ASYNC )
+				return;
+
+			auto _handle =
+				reinterpret_cast< std::shared_ptr< handle >* >(
+					handle_ptr->data );
+
+			if ( _handle )
+				( *_handle )->close( );
+		}
+	}
+
+	while ( !dump_events( ).empty( ) )
+		::uv_run( &pimpl_->uv_loop, UV_RUN_ONCE );
 
 	::uv_loop_close( &pimpl_->uv_loop );
 
@@ -547,6 +568,8 @@ void dispatcher::do_terminate( dispatcher_termination termination_method )
 		? termination::linger
 		: termination::annihilate;
 
+	pimpl_->termination_ = termination_method;
+
 	pimpl_->dns_context_->dispatcher( )->terminate( dns_termination );
 
 	::uv_stop( &pimpl_->uv_loop );
@@ -556,7 +579,9 @@ void dispatcher::do_terminate( dispatcher_termination termination_method )
 q::expect< > dispatcher::await_termination( )
 {
 	pimpl_->dns_context_->dispatcher( )->await_termination( );
-	return pimpl_->thread->await_termination( );
+	if ( pimpl_->thread )
+		return pimpl_->thread->await_termination( );
+	return q::fulfill< void >( );
 }
 
 } } // namespace io, namespace q

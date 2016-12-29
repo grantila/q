@@ -48,6 +48,8 @@ struct dispatcher::pimpl
 	std::queue< q::task > tasks_;
 
 	::q::task_fetcher_task task_fetcher_;
+
+	dispatcher_termination termination_;
 };
 
 } } // namespace io, namespace q
