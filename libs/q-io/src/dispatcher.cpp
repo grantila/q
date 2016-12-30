@@ -59,82 +59,15 @@ std::string dispatcher::backend_method( ) const
 	return method;
 }
 
-std::string handle_type_name( ::uv_handle_type type )
+promise< std::vector< dispatcher::event_descriptor > >
+dispatcher::dump_events( ) const
 {
-	switch ( type )
+	auto self = shared_from_this( );
+
+	return q::make_promise( get_queue( ), [ self ]( )
 	{
-		case ::uv_handle_type::UV_ASYNC: return "async";
-		case ::uv_handle_type::UV_CHECK: return "check";
-		case ::uv_handle_type::UV_FS_EVENT: return "fs_event";
-		case ::uv_handle_type::UV_FS_POLL: return "fs_poll";
-		case ::uv_handle_type::UV_HANDLE: return "handle";
-		case ::uv_handle_type::UV_IDLE: return "idle";
-		case ::uv_handle_type::UV_NAMED_PIPE: return "pipe";
-		case ::uv_handle_type::UV_POLL: return "poll";
-		case ::uv_handle_type::UV_PREPARE: return "prepare";
-		case ::uv_handle_type::UV_PROCESS: return "process";
-		case ::uv_handle_type::UV_STREAM: return "stream";
-		case ::uv_handle_type::UV_TCP: return "tcp";
-		case ::uv_handle_type::UV_TIMER: return "timer";
-		case ::uv_handle_type::UV_TTY: return "tty";
-		case ::uv_handle_type::UV_UDP: return "udp";
-		case ::uv_handle_type::UV_SIGNAL: return "signal";
-		case ::uv_handle_type::UV_FILE: return "file";
-		case ::uv_handle_type::UV_UNKNOWN_HANDLE: return "{unknown}";
-		default: return "{invalid type!}";
-	}
-};
-
-uv_walk_cb event_walker = [ ]( ::uv_handle_t* handle, void* arg )
-{
-	typedef std::vector< dispatcher::event_descriptor > arg_type;
-	auto events = reinterpret_cast< arg_type* >( arg );
-
-	bool is_fd_backed =
-		handle->type == ::uv_handle_type::UV_TCP ||
-		handle->type == ::uv_handle_type::UV_NAMED_PIPE ||
-		handle->type == ::uv_handle_type::UV_TTY ||
-		handle->type == ::uv_handle_type::UV_UDP ||
-		handle->type == ::uv_handle_type::UV_POLL;
-
-	uv_os_fd_t fd = -1;
-	std::string fd_err;
-	if ( is_fd_backed )
-	{
-		auto ret = ::uv_fileno( handle, &fd );
-		if ( ret )
-		{
-			if ( ret == UV_EINVAL )
-				fd_err = "UV_EINVAL";
-			else if ( ret == UV_EBADF )
-				fd_err = "UV_EBADF";
-			else
-			{
-				std::stringstream ss;
-				ss << ret;
-				fd_err = ss.str( );
-			}
-			fd = -1;
-		}
-	}
-
-	events->push_back( dispatcher::event_descriptor{
-		handle,
-		handle_type_name( handle->type ),
-		static_cast< bool >( ::uv_is_active( handle ) ),
-		static_cast< bool >( ::uv_is_closing( handle ) ),
-		fd,
-		std::move( fd_err )
+		return self->pimpl_->i_dump_events( );
 	} );
-};
-
-std::vector< dispatcher::event_descriptor > dispatcher::dump_events( ) const
-{
-	std::vector< event_descriptor > events;
-
-	::uv_walk( &pimpl_->uv_loop, event_walker, &events );
-
-	return events;
 }
 
 static inline const char* json_bool( bool b, bool with_comma = true )
@@ -144,43 +77,50 @@ static inline const char* json_bool( bool b, bool with_comma = true )
 		: ( with_comma ? "false," : "false" );
 }
 
-std::string dispatcher::dump_events_json( ) const
+promise< std::string > dispatcher::dump_events_json( ) const
 {
-	auto events = dump_events( );
-
-	std::stringstream ss;
-
-	ss << "[";
-
-	for ( auto& desc : events )
+	return dump_events( )
+	.then( [ ]( std::vector< event_descriptor >&& events )
 	{
-		ss << std::endl << "\t{" << std::endl;
-		ss << "\t\t\"type\": \"" << desc.type << "\"," << std::endl;
-		if ( desc.fd != -1 )
-			ss << "\t\t\"fd\": " << desc.fd << "," << std::endl;
-		if ( !desc.fd_err.empty( ) )
-			ss
-				<< "\t\t\"error\": \"" << desc.fd_err << "\","
+		std::stringstream ss;
+
+		ss << "[";
+
+		for ( auto& desc : events )
+		{
+			ss << std::endl << "\t{" << std::endl;
+			ss << "\t\t\"type\": \"" << desc.type << "\","
 				<< std::endl;
-		ss
-			<< "\t\t\"active\": " << json_bool( desc.active )
-			<< std::endl;
-		ss
-			<< "\t\t\"closing\": "
-			<< json_bool( desc.closing, false )
-			<< std::endl;
-		ss << "\t},";
-	}
 
-	if ( !events.empty( ) )
-	{
-		ss.seekp( -1, ss.cur );
-		ss << std::endl;
-	}
+			if ( desc.fd != -1 )
+				ss << "\t\t\"fd\": " << desc.fd << ","
+					<< std::endl;
+			if ( !desc.fd_err.empty( ) )
+				ss
+					<< "\t\t\"error\": \"" << desc.fd_err
+					<< "\","
+					<< std::endl;
+			ss
+				<< "\t\t\"active\": "
+				<< json_bool( desc.active )
+				<< std::endl;
+			ss
+				<< "\t\t\"closing\": "
+				<< json_bool( desc.closing, false )
+				<< std::endl;
+			ss << "\t},";
+		}
 
-	ss << "]";
+		if ( !events.empty( ) )
+		{
+			ss.seekp( -1, ss.cur );
+			ss << std::endl;
+		}
 
-	return ss.str( );
+		ss << "]";
+
+		return ss.str( );
+	} );
 }
 
 void dispatcher::start_blocking( )
@@ -204,7 +144,7 @@ void dispatcher::start_blocking( )
 	if ( pimpl_->termination_ == dispatcher_termination::immediate )
 	{
 		// Stop all events from the inside
-		for ( auto& event : dump_events( ) )
+		for ( auto& event : pimpl_->i_dump_events( ) )
 		{
 			auto handle_ptr = reinterpret_cast< ::uv_handle_t* >(
 				event.handle );
@@ -221,7 +161,7 @@ void dispatcher::start_blocking( )
 		}
 	}
 
-	while ( !dump_events( ).empty( ) )
+	while ( !pimpl_->i_dump_events( ).empty( ) )
 		::uv_run( &pimpl_->uv_loop, UV_RUN_ONCE );
 
 	::uv_loop_close( &pimpl_->uv_loop );

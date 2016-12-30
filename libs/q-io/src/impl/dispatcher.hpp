@@ -60,6 +60,8 @@ struct dispatcher::pimpl
 	void make_dummy_event( );
 	void cleanup_dummy_event( );
 
+	std::vector< dispatcher::event_descriptor > i_dump_events( ) const;
+
 protected:
 	pimpl( )
 	: started_( false )

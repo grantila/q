@@ -76,7 +76,7 @@ public:
 	struct event_descriptor
 	{
 		void*       handle;
-		std::string type;
+		const char* type;
 		bool        active;
 		bool        closing;
 		int         fd;
@@ -107,12 +107,12 @@ public:
 	 * @returns The events existing in the dispatcher pool, in a vector of
 	 *          `event_descriptor`s.
 	 */
-	std::vector< event_descriptor > dump_events( ) const;
+	promise< std::vector< event_descriptor > > dump_events( ) const;
 
 	/**
 	 * @returns The events existing in the dispatcher pool, as json string.
 	 */
-	std::string dump_events_json( ) const;
+	promise< std::string > dump_events_json( ) const;
 
 	/**
 	 * Starts the I/O event dispatcher. This will not return until the
