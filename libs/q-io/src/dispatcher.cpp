@@ -128,6 +128,9 @@ void dispatcher::start_blocking( )
 // TODO: Implement error translation
 //uv_strerror(int) and uv_err_name(int)
 
+	pimpl_->i_create_loop( );
+	pimpl_->i_make_dummy_event( );
+
 	pimpl_->started_ = true;
 
 	if ( pimpl_->deferred_start_ )
@@ -138,8 +141,9 @@ void dispatcher::start_blocking( )
 
 	::uv_run( &pimpl_->uv_loop, UV_RUN_DEFAULT );
 
-	pimpl_->cleanup_dummy_event( );
 	pimpl_->stopped_ = true;
+
+	pimpl_->i_cleanup_dummy_event( );
 
 	if ( pimpl_->termination_ == dispatcher_termination::immediate )
 	{

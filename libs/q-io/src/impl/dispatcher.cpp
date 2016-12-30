@@ -35,15 +35,16 @@ dispatcher::pimpl::construct( q::queue_ptr user_queue, std::string name )
 		"q-io dns worker", user_queue, 6 );
 	pimpl->dns_queue_ = pimpl->dns_context_->queue( );
 
-	// libuv
-	::uv_loop_init( &pimpl->uv_loop );
-
-	pimpl->make_dummy_event( );
-
 	return pimpl;
 }
 
-void dispatcher::pimpl::make_dummy_event( )
+void dispatcher::pimpl::i_create_loop( )
+{
+	// libuv
+	::uv_loop_init( &uv_loop );
+}
+
+void dispatcher::pimpl::i_make_dummy_event( )
 {
 	::pipe( dummy_event.pipes );
 
@@ -74,7 +75,7 @@ void dispatcher::pimpl::make_dummy_event( )
 	::uv_async_init( &uv_loop, &uv_async, async_callback );
 }
 
-void dispatcher::pimpl::cleanup_dummy_event( )
+void dispatcher::pimpl::i_cleanup_dummy_event( )
 {
 	if ( true ) // TODO: If ever started
 	{

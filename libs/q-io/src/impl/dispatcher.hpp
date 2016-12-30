@@ -57,8 +57,9 @@ struct dispatcher::pimpl
 	static std::shared_ptr< pimpl >
 	construct( q::queue_ptr user_queue, std::string name );
 
-	void make_dummy_event( );
-	void cleanup_dummy_event( );
+	void i_create_loop( );
+	void i_make_dummy_event( );
+	void i_cleanup_dummy_event( );
 
 	std::vector< dispatcher::event_descriptor > i_dump_events( ) const;
 
