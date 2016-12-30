@@ -39,11 +39,13 @@ struct event_dispatcher_no_tag;
 class enable_queue_from_this
 {
 public:
-	queue_ptr get_queue( )
+	queue_ptr get_queue( ) const
 	{
 		return queue_;
 	}
 
+	// This must not be called after the queue has been distributed for use
+	// since the get_queue() must be thread safe.
 	void set_queue( queue_ptr queue )
 	{
 		queue_ = queue;
