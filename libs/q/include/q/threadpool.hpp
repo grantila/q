@@ -49,7 +49,7 @@ public:
 	 * queue(s)), since the threads will start consuming from the scheduler
 	 * immediately.
 	 */
-	void start( ) override;
+	promise< > start( ) override;
 
 protected:
 	threadpool( const std::string& name,

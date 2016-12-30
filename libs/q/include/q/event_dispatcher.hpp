@@ -137,7 +137,12 @@ public:
 	~event_dispatcher( )
 	{ }
 
-	virtual void start( ) = 0;
+	/**
+	 * Start this event_dispatcher. This may require asynchronous work
+	 * until the event_dispatcher is ready, which is when the returned
+	 * promise is resolved.
+	 */
+	virtual promise< > start( ) = 0;
 
 	/**
 	 * Awaits the event_dispatcher to have actually terminated. This may be
