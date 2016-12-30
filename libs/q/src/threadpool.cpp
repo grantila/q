@@ -121,7 +121,7 @@ std::size_t threadpool::parallelism( ) const
 	return pimpl_->num_threads_;
 }
 
-void threadpool::start( )
+promise< > threadpool::start( )
 {
 	auto _this = shared_from_this( );
 
@@ -245,6 +245,10 @@ void threadpool::start( )
 
 		pimpl_->threads_.push_back( std::move( t ) );
 	}
+
+	// The threadpool is ready directly, although it may take a little
+	// while before the worker threads actually start consuming tasks.
+	return q::with( pimpl_->queue_ );
 }
 
 void threadpool::mark_completion( )
