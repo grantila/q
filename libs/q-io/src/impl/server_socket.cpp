@@ -45,7 +45,7 @@ void server_socket_close( server_socket::pimpl& ref )
 
 } // anonymous namespace
 
-void server_socket::pimpl::close( )
+void server_socket::pimpl::close( q::expect< void > exp )
 {
 	server_socket_close( *this );
 }

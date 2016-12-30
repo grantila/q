@@ -19,7 +19,7 @@
 
 namespace q { namespace io {
 
-typedef std::shared_ptr< tcp_socket::pimpl > inner_ref_type;
+typedef tcp_socket::pimpl::data_ref_type inner_ref_type;
 
 namespace {
 
@@ -74,16 +74,6 @@ noexcept
 
 	start_read( );
 	begin_write( );
-}
-
-void tcp_socket::pimpl::close( )
-{
-	close( fulfill< void >( ) );
-}
-
-void tcp_socket::pimpl::close( std::exception_ptr err )
-{
-	close( refuse< void >( std::move( err ) ) );
 }
 
 void tcp_socket::pimpl::close( expect< void > status )

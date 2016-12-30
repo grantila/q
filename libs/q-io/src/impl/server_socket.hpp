@@ -27,6 +27,8 @@ struct server_socket::pimpl
 : stream
 , std::enable_shared_from_this< server_socket::pimpl >
 {
+	using handle::close;
+
 	typedef std::shared_ptr< server_socket::pimpl > data_ref_type;
 
 	std::shared_ptr< q::channel< tcp_socket_ptr > > channel_;
@@ -40,7 +42,7 @@ struct server_socket::pimpl
 
 	::uv_tcp_t socket_;
 
-	void close( ) override;
+	void close( q::expect< void > ) override;
 
 	pimpl( )
 	: stream( reinterpret_cast< ::uv_stream_t* >( &socket_ ) )

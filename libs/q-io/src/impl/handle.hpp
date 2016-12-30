@@ -44,7 +44,17 @@ struct handle
 	virtual void
 	attach_dispatcher( const dispatcher_ptr& dispatcher ) noexcept { }
 
-	virtual void close( ) { }
+	void close( )
+	{
+		close( fulfill< void >( ) );
+	}
+
+	void close( std::exception_ptr err )
+	{
+		close( refuse< void >( std::move( err ) ) );
+	}
+
+	virtual void close( q::expect< void > ) = 0;
 };
 
 } } // namespace io, namespace q

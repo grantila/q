@@ -27,6 +27,8 @@ struct tcp_socket::pimpl
 : stream
 , std::enable_shared_from_this< tcp_socket::pimpl >
 {
+	using handle::close;
+
 	typedef std::shared_ptr< tcp_socket::pimpl > data_ref_type;
 
 	static std::shared_ptr< tcp_socket::pimpl > construct( );
@@ -64,9 +66,7 @@ struct tcp_socket::pimpl
 	void
 	attach_dispatcher( const dispatcher_ptr& dispatcher ) noexcept override;
 
-	void close( ) override;
-	void close( std::exception_ptr err );
-	void close( expect< void > status );
+	void close( expect< void > status ) override;
 
 	void start_read( );
 	void stop_read( bool reschedule = false );

@@ -37,7 +37,7 @@ noexcept
 	timer_.data = u_ref.release( );
 }
 
-void timer_task::pimpl::close( )
+void timer_task::pimpl::close( q::expect< void > exp )
 {
 	;
 }

@@ -51,7 +51,7 @@ struct timer_task::pimpl
 	void
 	attach_dispatcher( const dispatcher_ptr& dispatcher ) noexcept override;
 
-	void close( ) override;
+	void close( q::expect< void > ) override;
 
 	void set_task( q::task task );
 	void unset_task( );
