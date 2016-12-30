@@ -26,7 +26,17 @@ private:
 			q::make_event_dispatcher_and_queue< q::io::dispatcher >(
 				queue );
 
-		io_dispatcher->start( );
+		// When we start the io_dispatcher, we need to await its
+		// completion before we actually run the tests.
+		// We do this using the q-test fixture's blocking_dispatcher.
+		io_dispatcher->start( )
+		.then( [ this ]( )
+		{
+			bd->terminate( q::termination::linger );
+		} );
+
+		bd->start( );
+		bd->await_termination( );
 	}
 
 	void on_teardown( ) override
