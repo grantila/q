@@ -127,7 +127,7 @@ public:
 	 * will return immediately, and execution will continue on the
 	 * background.
 	 */
-	void start( ) override;
+	promise< > start( ) override;
 
 	/**
 	 * Creates a timeout-based forwarding_async_task which can be used to

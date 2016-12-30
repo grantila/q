@@ -188,9 +188,18 @@ void dispatcher::start_blocking( )
 // TODO: Implement error translation
 //uv_strerror(int) and uv_err_name(int)
 
+	pimpl_->started_ = true;
+
+	if ( pimpl_->deferred_start_ )
+	{
+		pimpl_->deferred_start_->set_value( );
+		pimpl_->deferred_start_.reset( );
+	}
+
 	::uv_run( &pimpl_->uv_loop, UV_RUN_DEFAULT );
 
 	pimpl_->cleanup_dummy_event( );
+	pimpl_->stopped_ = true;
 
 	if ( pimpl_->termination_ == dispatcher_termination::immediate )
 	{
@@ -220,9 +229,14 @@ void dispatcher::start_blocking( )
 	termination_done( dispatcher_exit::normal );
 }
 
-void dispatcher::start( )
+promise< > dispatcher::start( )
 {
 	auto self = shared_from_this( );
+
+	auto deferred_start = q::make_shared< q::detail::defer< > >(
+		pimpl_->user_queue );
+
+	pimpl_->deferred_start_ = deferred_start;
 
 	auto runner = [ self ]( )
 	{
@@ -230,10 +244,16 @@ void dispatcher::start( )
 	};
 
 	pimpl_->thread = q::run( pimpl_->name, pimpl_->user_queue, runner );
+
+	return deferred_start->get_promise( );
 }
 
 void dispatcher::notify( )
 {
+	if ( !pimpl_->started_ )
+		return;
+	if ( pimpl_->stopped_ )
+		return;
 	::uv_async_send( &pimpl_->uv_async );
 }
 

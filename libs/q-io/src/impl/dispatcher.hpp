@@ -41,9 +41,12 @@ struct dispatcher::pimpl
 
 	q::queue_ptr user_queue;
 	std::string name;
+	std::shared_ptr< q::detail::defer< > > deferred_start_;
 
 	::uv_loop_t uv_loop;
 	::uv_async_t uv_async; // TODO: Consider refactoring to async object
+	std::atomic< bool > started_;
+	std::atomic< bool > stopped_;
 
 	std::queue< q::task > tasks_;
 
@@ -59,6 +62,8 @@ struct dispatcher::pimpl
 
 protected:
 	pimpl( )
+	: started_( false )
+	, stopped_( false )
 	{ }
 };
 
