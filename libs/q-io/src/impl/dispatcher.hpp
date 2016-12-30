@@ -52,7 +52,7 @@ struct dispatcher::pimpl
 
 	::q::task_fetcher_task task_fetcher_;
 
-	dispatcher_termination termination_;
+	std::atomic< dispatcher_termination > termination_;
 
 	static std::shared_ptr< pimpl >
 	construct( q::queue_ptr user_queue, std::string name );
