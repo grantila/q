@@ -227,9 +227,6 @@ private:
 	friend class server_socket;
 	friend class timer_task;
 
-	void _make_dummy_event( );
-	void _cleanup_dummy_event( );
-
 	std::shared_ptr< pimpl > pimpl_;
 };
 

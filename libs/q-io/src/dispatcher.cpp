@@ -31,8 +31,6 @@
 #include <q/scope.hpp>
 #include <q/threadpool.hpp>
 
-#include "unistd.h"
-
 namespace q { namespace io {
 
 
@@ -47,25 +45,11 @@ dispatcher::construct( q::queue_ptr user_queue, std::string name )
 
 dispatcher::dispatcher( q::queue_ptr user_queue, std::string name )
 : event_dispatcher_base( user_queue )
-, pimpl_( std::make_shared< pimpl >( ) )
-{
-	pimpl_->user_queue = user_queue;
-	pimpl_->name = name;
-	pimpl_->dummy_event.pipes[ 0 ] = pimpl_->dummy_event.pipes[ 1 ] = -1;
-
-	pimpl_->dns_context_ = q::make_execution_context< q::threadpool >(
-		"q-io dns worker", user_queue, 6 );
-	pimpl_->dns_queue_ = pimpl_->dns_context_->queue( );
-
-	// libuv
-	::uv_loop_init( &pimpl_->uv_loop );
-
-	_make_dummy_event( );
-}
+, pimpl_( pimpl::construct( std::move( user_queue ), std::move( name ) ) )
+{ }
 
 dispatcher::~dispatcher( )
-{
-}
+{ }
 
 // TODO: Remove this, or make libuv-compatible
 std::string dispatcher::backend_method( ) const
@@ -199,55 +183,6 @@ std::string dispatcher::dump_events_json( ) const
 	return ss.str( );
 }
 
-void dispatcher::_make_dummy_event( )
-{
-	::pipe( pimpl_->dummy_event.pipes );
-
-	// Pipe
-	::uv_pipe_init( &pimpl_->uv_loop, &pimpl_->dummy_event.uv_pipe, 0 );
-	::uv_pipe_open(
-		&pimpl_->dummy_event.uv_pipe,
-		pimpl_->dummy_event.pipes[ 0 ] );
-
-	::uv_async_cb async_callback = [ ]( ::uv_async_t* async )
-	{
-		auto self = reinterpret_cast< dispatcher* >( async->data );
-
-		auto task = self->pimpl_->task_fetcher_( );
-		if ( !task )
-			return;
-
-		task.task( );
-
-		// Retry with another task if its available. We could do it
-		// in-place here, but instead we'll asynchronously do it,
-		// meaning we'll schedule this function to be called asap, but
-		// giving libuv the possibility to perform other I/O inbetween.
-		::uv_async_send( async );
-	};
-
-	// Async event for triggering tasks to be performed on the I/O thread
-	::uv_async_init( &pimpl_->uv_loop, &pimpl_->uv_async, async_callback );
-	pimpl_->uv_async.data = this;
-}
-
-void dispatcher::_cleanup_dummy_event( )
-{
-	if ( true ) // TODO: If ever started
-	{
-		::uv_close(
-			reinterpret_cast< uv_handle_t* >(
-				&pimpl_->dummy_event.uv_pipe ),
-			nullptr );
-		::uv_close(
-			reinterpret_cast< uv_handle_t* >( &pimpl_->uv_async ),
-			nullptr );
-
-		::close( pimpl_->dummy_event.pipes[ 0 ] );
-		::close( pimpl_->dummy_event.pipes[ 1 ] );
-	}
-}
-
 void dispatcher::start_blocking( )
 {
 // TODO: Implement error translation
@@ -255,7 +190,7 @@ void dispatcher::start_blocking( )
 
 	::uv_run( &pimpl_->uv_loop, UV_RUN_DEFAULT );
 
-	_cleanup_dummy_event( );
+	pimpl_->cleanup_dummy_event( );
 
 	if ( pimpl_->termination_ == dispatcher_termination::immediate )
 	{
@@ -374,7 +309,8 @@ dispatcher::lookup( const std::string& name )
 			std::move( addresses ),
 			std::chrono::seconds( 0 )
 		};
-	}, pimpl_->user_queue );
+	} )
+	.use_queue( pimpl_->user_queue );
 }
 
 // Tries to connect to the first IP address, then the next, etc, until all
@@ -489,7 +425,7 @@ q::promise< tcp_socket_ptr > dispatcher::get_tcp_connection(
 	ctx->last_error = ECONNREFUSED;
 	ctx->connect_callback = connect_callback;
 
-	return q::make_promise_sync( get_queue( ),
+	return q::make_promise( get_queue( ),
 		[ ctx, try_connect ](
 			q::resolver< tcp_socket_ptr > resolve,
 			q::rejecter< tcp_socket_ptr > reject
@@ -512,7 +448,8 @@ q::promise< tcp_socket_ptr > dispatcher::get_tcp_connection(
 	.finally( [ ctx ]( )
 	{
 		ctx->self.reset( );
-	} );
+	} )
+	.use_queue( pimpl_->user_queue );
 }
 
 promise< readable< byte_block >, writable< byte_block > >
@@ -532,7 +469,8 @@ dispatcher::tcp_connect( std::string hostname, std::uint16_t port )
 	.then( [ self, port ]( resolver_response&& response )
 	{
 		return self->tcp_connect( std::move( response.ips ), port );
-	} );
+	}, get_queue( ) )
+	.use_queue( pimpl_->user_queue );
 }
 
 promise< readable< byte_block >, writable< byte_block > >
@@ -561,7 +499,8 @@ dispatcher::listen( std::uint16_t port, ip_addresses&& bind_to )
 		server->pimpl_->attach_dispatcher( self );
 
 		return server;
-	} );
+	} )
+	.use_queue( pimpl_->user_queue );
 }
 
 void dispatcher::do_terminate( dispatcher_termination termination_method )

@@ -66,10 +66,10 @@ public:
 	socket_t get_native_socket( );
 
 protected:
-	static tcp_socket_ptr construct( std::shared_ptr< tcp_socket::pimpl >&& );
+	static tcp_socket_ptr construct( std::shared_ptr< pimpl >&& );
 
 private:
-	tcp_socket( std::shared_ptr< tcp_socket::pimpl >&& );
+	tcp_socket( std::shared_ptr< pimpl >&& );
 
 	friend class dispatcher;
 	friend class server_socket;
