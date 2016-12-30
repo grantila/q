@@ -47,10 +47,10 @@ timer_task::~timer_task( )
 			timer->data );
 		timer->data = nullptr;
 
+		auto pimpl = *ref;
+
 		if ( ref )
 			delete ref;
-
-		auto pimpl = *ref;
 
 		if ( !pimpl )
 			// This should happen. It means we have initialized
