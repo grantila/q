@@ -43,6 +43,11 @@ public:
 	: value_( 0 )
 	{ }
 
+	bool is_infinity( ) const
+	{
+		return value_ == std::numeric_limits< std::size_t >::max( );
+	}
+
 	operator std::size_t( ) const
 	{
 		if ( !value_ )
