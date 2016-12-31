@@ -57,6 +57,10 @@ struct timer_task
 		return !!this->task;
 	}
 
+	bool operator<( const timer_task& other ) const
+	{
+		return wait_until < other.wait_until;
+	}
 
 	bool is_timed( ) const
 	{
