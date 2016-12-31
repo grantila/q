@@ -29,6 +29,7 @@
 namespace q { namespace io {
 
 Q_MAKE_SIMPLE_EXCEPTION( dns_lookup_error );
+Q_MAKE_SIMPLE_EXCEPTION( dispatcher_not_running );
 
 enum class dispatcher_termination
 {

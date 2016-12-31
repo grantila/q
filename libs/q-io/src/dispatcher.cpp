@@ -66,6 +66,9 @@ dispatcher::dump_events( ) const
 
 	return q::make_promise( get_queue( ), [ self ]( )
 	{
+		if ( !self->pimpl_->started_ || self->pimpl_->stopped_ )
+			Q_THROW( dispatcher_not_running( ) );
+
 		return self->pimpl_->i_dump_events( );
 	} );
 }
@@ -394,11 +397,14 @@ q::promise< tcp_socket_ptr > dispatcher::get_tcp_connection(
 	ctx->connect_callback = connect_callback;
 
 	return q::make_promise( get_queue( ),
-		[ ctx, try_connect ](
+		[ self, ctx, try_connect ](
 			q::resolver< tcp_socket_ptr > resolve,
 			q::rejecter< tcp_socket_ptr > reject
 		)
 	{
+		if ( !self->pimpl_->started_ || self->pimpl_->stopped_ )
+			Q_THROW( dispatcher_not_running( ) );
+
 		::uv_tcp_init(
 			&ctx->dispatcher->pimpl_->uv_loop,
 			&ctx->dest->socket_pimpl->socket_
@@ -452,7 +458,7 @@ dispatcher::tcp_connect( ip_addresses addr, std::uint16_t port )
 		socket->detach( );
 		return std::make_tuple(
 			std::move( readable ), std::move( writable ) );
-	} );
+	}, get_queue( ) );
 }
 
 q::promise< server_socket_ptr >
@@ -464,6 +470,9 @@ dispatcher::listen( std::uint16_t port, ip_addresses&& bind_to )
 
 	return q::make_promise( get_queue( ), [ self, server ]( )
 	{
+		if ( !self->pimpl_->started_ || self->pimpl_->stopped_ )
+			Q_THROW( dispatcher_not_running( ) );
+
 		server->pimpl_->attach_dispatcher( self );
 
 		return server;
