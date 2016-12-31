@@ -22,6 +22,8 @@
 #include <q/thread.hpp>
 #include <q/execution_context.hpp>
 
+#include <set>
+
 #include "../uv.hpp"
 
 namespace q { namespace io {
@@ -45,10 +47,10 @@ struct dispatcher::pimpl
 
 	::uv_loop_t uv_loop;
 	::uv_async_t uv_async; // TODO: Consider refactoring to async object
+	::uv_timer_t uv_timer_;
+	std::set< q::timer_task > timer_tasks_;
 	std::atomic< bool > started_;
 	std::atomic< bool > stopped_;
-
-	std::queue< q::task > tasks_;
 
 	::q::task_fetcher_task task_fetcher_;
 
@@ -60,6 +62,9 @@ struct dispatcher::pimpl
 	void i_create_loop( );
 	void i_make_dummy_event( );
 	void i_cleanup_dummy_event( );
+
+	void i_add_timer_task( q::timer_task task );
+	void i_reschedule_timer( );
 
 	std::vector< dispatcher::event_descriptor > i_dump_events( ) const;
 

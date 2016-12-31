@@ -52,22 +52,51 @@ void dispatcher::pimpl::i_make_dummy_event( )
 	::uv_pipe_init( &uv_loop, &dummy_event.uv_pipe, 0 );
 	::uv_pipe_open( &dummy_event.uv_pipe, dummy_event.pipes[ 0 ] );
 
+	// Generic timer (for all timer events)
+	uv_timer_.data = this;
+	::uv_timer_init( &uv_loop, &uv_timer_ );
+
 	::uv_async_cb async_callback = [ ]( ::uv_async_t* async )
 	{
 		auto pimpl = reinterpret_cast< dispatcher::pimpl* >(
 			async->data );
 
-		auto task = pimpl->task_fetcher_( );
-		if ( !task )
-			return;
+		// We'll try to run at most one task this round. We'll schedule
+		// this function to be called asap, but giving libuv the
+		// possibility to perform other I/O inbetween so that we don't
+		// exhaust it with synchronous tasks.
+		// The exception is timed tasks, which we'll try to fetch as
+		// many as possible, since they don't end up being run here,
+		// but from their own timers. Forcing a new loop iteration for
+		// just _scheduling_ each timer isn't valuable.
 
-		task.task( );
+		bool ran_any_task = false;
 
-		// Retry with another task if its available. We could do it
-		// in-place here, but instead we'll asynchronously do it,
-		// meaning we'll schedule this function to be called asap, but
-		// giving libuv the possibility to perform other I/O inbetween.
-		::uv_async_send( async );
+		while ( true )
+		{
+			auto task = pimpl->task_fetcher_( );
+
+			if ( !task )
+				break;
+			else if ( task.is_timed( ) )
+				pimpl->i_add_timer_task( std::move( task ) );
+			else
+			{
+				task.task( );
+				ran_any_task = true;
+				break;
+			}
+		}
+
+		if ( ran_any_task )
+			// Again, we did run a task, there might be more to
+			// run, so schedule this again.
+			// TODO: Change this so that we try to fetch the next
+			//       task and save it in the pimpl, and *only if it
+			//       did exist* do we uv_async_send again.
+			//       We currently schedule 2 iterations for a
+			//       single async task now...
+			::uv_async_send( async );
 	};
 
 	// Async event for triggering tasks to be performed on the I/O thread
@@ -87,8 +116,73 @@ void dispatcher::pimpl::i_cleanup_dummy_event( )
 			reinterpret_cast< uv_handle_t* >( &uv_async ),
 			nullptr );
 
+		::uv_timer_stop( &uv_timer_ );
+		::uv_close(
+			reinterpret_cast< uv_handle_t* >( &uv_timer_ ),
+			nullptr );
+
 		::close( dummy_event.pipes[ 0 ] );
 		::close( dummy_event.pipes[ 1 ] );
+	}
+}
+
+void dispatcher::pimpl::i_add_timer_task( q::timer_task task )
+{
+	timer_tasks_.insert( std::move( task ) );
+	i_reschedule_timer( );
+}
+
+template< typename Duration >
+std::uint64_t in_milliseconds( Duration&& dur )
+{
+	return std::chrono::duration_cast< std::chrono::milliseconds >( dur )
+		.count( );
+}
+
+void dispatcher::pimpl::i_reschedule_timer( )
+{
+	::uv_timer_stop( &uv_timer_ );
+
+	auto iter = timer_tasks_.begin( );
+	if ( iter == timer_tasks_.end( ) )
+		return;
+
+	uv_timer_cb timer_cb = [ ]( ::uv_timer_t* handle )
+	{
+		::uv_async_t* async = reinterpret_cast< ::uv_async_t* >(
+			handle );
+
+		auto pimpl = reinterpret_cast< dispatcher::pimpl* >(
+			async->data );
+
+		auto iter = pimpl->timer_tasks_.begin( );
+		if ( iter == pimpl->timer_tasks_.end( ) )
+			return; // TODO: Log this - it shouldn't ever happen
+
+		auto now = decltype( iter->wait_until )::clock::now( );
+		if ( iter->wait_until <= now )
+		{
+			q::task task = std::move( iter->task );
+			pimpl->timer_tasks_.erase( iter );
+
+			task( );
+		}
+
+		pimpl->i_reschedule_timer( );
+	};
+
+	auto& task = *iter;
+
+	auto now = decltype( task.wait_until )::clock::now( );
+
+	if ( now >= task.wait_until )
+	{
+		::uv_timer_start( &uv_timer_, timer_cb, 0, 0 );
+	}
+	else
+	{
+		std::uint64_t dur = in_milliseconds( task.wait_until - now );
+		::uv_timer_start( &uv_timer_, timer_cb, dur, 0 );
 	}
 }
 

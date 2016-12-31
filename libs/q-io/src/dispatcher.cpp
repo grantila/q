@@ -143,8 +143,6 @@ void dispatcher::start_blocking( )
 
 	pimpl_->stopped_ = true;
 
-	pimpl_->i_cleanup_dummy_event( );
-
 	if ( pimpl_->termination_ == dispatcher_termination::immediate )
 	{
 		// Stop all events from the inside
@@ -164,6 +162,12 @@ void dispatcher::start_blocking( )
 				( *_handle )->close( );
 		}
 	}
+
+	// We have 3 built-in handles (async, timer, pipe)
+	while ( pimpl_->i_dump_events( ).size( ) > 3 )
+		::uv_run( &pimpl_->uv_loop, UV_RUN_ONCE );
+
+	pimpl_->i_cleanup_dummy_event( );
 
 	while ( !pimpl_->i_dump_events( ).empty( ) )
 		::uv_run( &pimpl_->uv_loop, UV_RUN_ONCE );
