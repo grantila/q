@@ -3,6 +3,7 @@
 #include <q/function.hpp>
 
 #include <q-test/q-test.hpp>
+#include <q-test/expect.hpp>
 
 Q_TEST_MAKE_SCOPE( channel );
 
@@ -1227,4 +1228,35 @@ TEST_F( channel, consume_one_type_concurrent )
 			EXPECT_GT( active_acc, 0 );
 		} )
 	);
+}
+
+TEST_F( channel, readable_destruction_should_close )
+{
+	q::writable< int > writable;
+
+	{
+		q::channel< int > ch( queue, 5 );
+
+		auto readable = ch.get_readable( );
+		writable = ch.get_writable( );
+	}
+
+	EXPECT_FALSE( writable.should_write( ) );
+	EXPECT_TRUE( writable.is_closed( ) );
+}
+
+TEST_F( channel, writable_destruction_should_close )
+{
+	q::readable< int > readable;
+
+	{
+		q::channel< int > ch( queue, 5 );
+
+		readable = ch.get_readable( );
+		auto writable = ch.get_writable( );
+	}
+
+	EVENTUALLY_EXPECT_REJECTION_WITH(
+		readable.read( ), q::channel_closed_exception );
+	EXPECT_TRUE( readable.is_closed( ) );
 }
