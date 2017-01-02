@@ -36,7 +36,14 @@ typedef q::function< timer_task( void ) noexcept > task_fetcher_task;
 struct event_dispatcher_yes_tag;
 struct event_dispatcher_no_tag;
 
+class custom_queue_from_this
+{
+public:
+	virtual void set_queue( queue_ptr queue ) = 0;
+};
+
 class enable_queue_from_this
+: public custom_queue_from_this
 {
 public:
 	queue_ptr get_queue( ) const
