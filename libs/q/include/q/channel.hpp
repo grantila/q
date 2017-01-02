@@ -119,45 +119,45 @@ struct pipe_helper< arguments< From... >, arguments< To... > >
 	{
 		typedef typename traits::inner_tuple_type tuple_type;
 
-		typedef q::custom_function< void( ), true, 22 > send_type;
+		typedef q::custom_function< void( ), true, 22 > write_type;
 
-		auto try_send = std::make_shared< send_type >( );
+		auto try_write = std::make_shared< write_type >( );
 
-		auto close = [ try_send, w ]( ) mutable
+		auto close = [ try_write, w ]( ) mutable
 		{
 			w.unset_resume_notification( );
 			w.close( );
-			try_send.reset( );
+			try_write.reset( );
 		};
 
-		auto abort = [ try_send, w ]( std::exception_ptr err )
+		auto abort = [ try_write, w ]( std::exception_ptr err )
 		mutable
 		{
 			w.unset_resume_notification( );
 			w.close( err );
-			try_send.reset( );
+			try_write.reset( );
 		};
 
 		// This must not run on multiple threads in parallel
-		*try_send = [ try_send, r, w, close, abort ]( )
+		*try_write = [ try_write, r, w, close, abort ]( )
 		mutable
 		{
-			if ( w.should_send( ) )
+			if ( w.should_write( ) )
 			{
 				auto on_data =
-				[ try_send, w ]( tuple_type&& data )
+				[ try_write, w ]( tuple_type&& data )
 				mutable
 				{
-					// Send through
+					// Write through
 					ignore_result(
-						w.send(
+						w.write(
 							std::move( data ) ) );
 
 					// Recurse
-					( *try_send )( );
+					( *try_write )( );
 				};
 
-				r.receive( std::move( on_data ), close )
+				r.read( std::move( on_data ), close )
 				.strip( )
 				.fail( [ abort ]( std::exception_ptr err )
 				mutable
@@ -178,10 +178,10 @@ struct pipe_helper< arguments< From... >, arguments< To... > >
 			}
 			else
 			{
-				auto resume = [ try_send, w ]( ) mutable
+				auto resume = [ try_write, w ]( ) mutable
 				{
 					w.unset_resume_notification( );
-					( *try_send )( );
+					( *try_write )( );
 				};
 
 				w.set_resume_notification( resume, true );
@@ -189,7 +189,7 @@ struct pipe_helper< arguments< From... >, arguments< To... > >
 		};
 
 		w.unset_resume_notification( );
-		( *try_send )( );
+		( *try_write )( );
 	};
 };
 
@@ -498,7 +498,7 @@ public:
 	}
 
 	Q_NODISCARD
-	bool send( tuple_type&& t )
+	bool write( tuple_type&& t )
 	{
 		Q_AUTO_UNIQUE_LOCK( mutex_ );
 
@@ -524,13 +524,13 @@ public:
 	}
 
 	Q_NODISCARD
-	bool send( const tuple_type& t )
+	bool write( const tuple_type& t )
 	{
-		return send( tuple_type( t ) );
+		return write( tuple_type( t ) );
 	}
 
 	Q_NODISCARD
-	promise< T... > receive( )
+	promise< T... > read( )
 	{
 		Q_AUTO_UNIQUE_LOCK( mutex_ );
 
@@ -578,7 +578,7 @@ public:
 	}
 
 	/**
-	 * Fast receive version, which doesn't use exceptions for close events.
+	 * Fast read version, which doesn't use exceptions for close events.
 	 *
 	 * fn_value  will be called when the next value is available, but not
 	 *           if there is no more values and the channel is closed.
@@ -607,7 +607,7 @@ public:
 		>::callbacks_are_valid::value,
 		promise< bool >
 	>::type
-	receive( FnValue&& fn_value, FnClosed&& fn_closed )
+	read( FnValue&& fn_value, FnClosed&& fn_closed )
 	{
 		Q_AUTO_UNIQUE_LOCK( mutex_ );
 
@@ -685,7 +685,7 @@ public:
 	}
 
 	Q_NODISCARD
-	inline bool should_send( ) const
+	inline bool should_write( ) const
 	{
 		return !paused_ && !closed_;
 	}
@@ -699,7 +699,7 @@ public:
 
 			resume_notification_ = fn;
 
-			if ( trigger_now && !should_send( ) )
+			if ( trigger_now && !should_write( ) )
 				notification = resume_notification_;
 		}
 
@@ -723,7 +723,7 @@ public:
 		{
 			Q_AUTO_UNIQUE_LOCK( mutex_ );
 
-			if ( !should_send( ) )
+			if ( !should_write( ) )
 				return;
 
 			notification = resume_notification_;
@@ -888,9 +888,9 @@ public:
 		!IsPromise,
 		unique_promise_type
 	>::type
-	receive( )
+	read( )
 	{
-		return shared_channel_->receive( );
+		return shared_channel_->read( );
 	}
 
 	template< bool IsPromise = is_promise::value >
@@ -899,11 +899,11 @@ public:
 		IsPromise,
 		unique_promise_type
 	>::type
-	receive( )
+	read( )
 	{
 		auto shared_channel = shared_channel_;
 
-		return maybe_unshare( shared_channel_->receive( )
+		return maybe_unshare( shared_channel_->read( )
 		.then( [ shared_channel ](
 			promise_type&& promise
 		)
@@ -935,9 +935,9 @@ public:
 		!IsPromise,
 		promise< bool >
 	>::type
-	receive( FnValue&& fn_value, FnClosed&& fn_closed )
+	read( FnValue&& fn_value, FnClosed&& fn_closed )
 	{
-		return shared_channel_->receive(
+		return shared_channel_->read(
 			std::forward< FnValue >( fn_value ),
 			std::forward< FnClosed >( fn_closed )
 		);
@@ -957,7 +957,7 @@ public:
 		IsPromise,
 		promise< bool >
 	>::type
-	receive( FnValue&& fn_value, FnClosed&& fn_closed )
+	read( FnValue&& fn_value, FnClosed&& fn_closed )
 	{
 		auto shared_channel = shared_channel_;
 
@@ -983,7 +983,7 @@ public:
 			} );
 		};
 
-		return shared_channel_->receive(
+		return shared_channel_->read(
 			std::move( on_value ),
 			std::forward< FnClosed >( fn_closed )
 		);
@@ -1037,7 +1037,7 @@ public:
 				( )
 				mutable
 			{
-				return self.receive( _fn, completer )
+				return self.read( _fn, completer )
 				.then( [ self, recurser ]( bool got_data )
 				mutable
 				{
@@ -1206,7 +1206,7 @@ public:
 					return counter->get_promise( );
 				};
 
-				return self.receive( on_value, completer )
+				return self.read( on_value, completer )
 				.then( [ queue, recurser ]( bool got_data )
 				mutable
 				{
@@ -1369,9 +1369,9 @@ public:
 		>::value,
 		bool
 	>::type
-	send( Tuple&& t )
+	write( Tuple&& t )
 	{
-		return shared_channel_->send( std::forward< Tuple >( t ) );
+		return shared_channel_->write( std::forward< Tuple >( t ) );
 	}
 
 	/**
@@ -1393,9 +1393,9 @@ public:
 		>::value,
 		bool
 	>::type
-	send( Tuple&& t )
+	write( Tuple&& t )
 	{
-		return send( std::make_tuple( ) );
+		return write( std::make_tuple( ) );
 	}
 
 	/**
@@ -1431,9 +1431,9 @@ public:
 		),
 		bool
 	>::type
-	send( Args&&... args )
+	write( Args&&... args )
 	{
-		return send(
+		return write(
 			std::make_tuple( std::forward< Args >( args )... ) );
 	}
 
@@ -1458,9 +1458,9 @@ public:
 		>::value,
 		bool
 	>::type
-	send( Tuple&& t )
+	write( Tuple&& t )
 	{
-		return send( std::make_tuple( ) );
+		return write( std::make_tuple( ) );
 	}
 
 	/**
@@ -1477,29 +1477,29 @@ public:
 			::value,
 		bool
 	>::type
-	send( Tuple&& t )
+	write( Tuple&& t )
 	{
-		return send( std::make_tuple( suitable_with(
+		return write( std::make_tuple( suitable_with(
 			shared_channel_->get_queue( ),
 			std::forward< Tuple >( t )
 		) ) );
 	}
 
 	/**
-	 * Like send() but throws q::channel_closed_exception if the channel
+	 * Like write() but throws q::channel_closed_exception if the channel
 	 * was closed.
 	 */
 	template< typename... Any >
-	void ensure_send( Any&&... t )
+	void ensure_write( Any&&... t )
 	{
-		if ( !send( std::forward< Any >( t )... ) )
+		if ( !write( std::forward< Any >( t )... ) )
 			Q_THROW( channel_closed_exception( ) );
 	}
 
 	Q_NODISCARD
-	bool should_send( ) const
+	bool should_write( ) const
 	{
-		return shared_channel_->should_send( );
+		return shared_channel_->should_write( );
 	}
 
 	void set_resume_notification( shared_task fn, bool trigger_now = false )
@@ -1675,7 +1675,7 @@ public:
 	{
 		++counter_;
 
-		auto promise = get_readable( ).receive( );
+		auto promise = get_readable( ).read( );
 
 		handle_one( );
 
@@ -1707,7 +1707,7 @@ private:
 		{
 			// All pending/incoming channels are listened to.
 			// Forward one.
-			ignore_result( writable_.send( ) );
+			ignore_result( writable_.write( ) );
 		}
 	}
 
