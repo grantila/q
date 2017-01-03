@@ -32,13 +32,13 @@ ipv4_address::ipv4_address( const char* addr )
 		Q_THROW( invalid_ip_address( ) );
 }
 
-ipv4_address::ipv4_address( struct sockaddr* addr )
+ipv4_address::ipv4_address( const struct sockaddr* addr )
 : valid( true )
 {
 	if ( addr->sa_family != AF_INET )
 		Q_THROW( invalid_ip_address( ) );
 
-	auto addr_in = reinterpret_cast< struct sockaddr_in* >( addr );
+	auto addr_in = reinterpret_cast< const struct sockaddr_in* >( addr );
 
 	std::memcpy(
 		data,
@@ -132,7 +132,7 @@ ipv6_address::ipv6_address( const char* addr )
 		Q_THROW( invalid_ip_address( ) );
 }
 
-ipv6_address::ipv6_address( struct sockaddr* addr )
+ipv6_address::ipv6_address( const struct sockaddr* addr )
 : valid( true )
 {
 	if ( addr->sa_family != AF_INET && addr->sa_family != AF_INET6 )
@@ -142,7 +142,7 @@ ipv6_address::ipv6_address( struct sockaddr* addr )
 		// This might mean ipv4
 		Q_THROW( invalid_ip_address( ) );
 
-	auto addr_in = reinterpret_cast< struct sockaddr_in6* >( addr );
+	auto addr_in = reinterpret_cast< const struct sockaddr_in6* >( addr );
 
 	std::memcpy(
 		data,
@@ -310,7 +310,7 @@ ip_address::ip_address( ip_address&& ref )
 		::new ( &ipv6_ ) ipv6_address( std::move( ref.ipv6_ ) );
 }
 
-ip_address::ip_address( struct sockaddr* addr )
+ip_address::ip_address( const struct sockaddr* addr )
 {
 	if ( addr->sa_family != AF_INET && addr->sa_family != AF_INET6 )
 		Q_THROW( invalid_ip_address( ) );

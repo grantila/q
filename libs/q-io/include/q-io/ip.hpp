@@ -36,9 +36,9 @@ struct ipv4_address
 	ipv4_address( ) : valid( false ) { }
 	ipv4_address( ipv4_address&& ) = default;
 	ipv4_address( const ipv4_address& ) = default;
-	ipv4_address( struct sockaddr* addr );
-	ipv4_address( struct sockaddr_in* addr )
-	: ipv4_address( reinterpret_cast< struct sockaddr* >( addr ) ) { }
+	ipv4_address( const struct sockaddr* addr );
+	ipv4_address( const struct sockaddr_in* addr )
+	: ipv4_address( reinterpret_cast< const struct sockaddr* >( addr ) ) { }
 	ipv4_address( const char* addr );
 	explicit ipv4_address( const std::string& addr )
 	: ipv4_address( addr.c_str( ) )
@@ -72,9 +72,9 @@ struct ipv6_address
 	ipv6_address( ) : valid( false ) { }
 	ipv6_address( ipv6_address&& ) = default;
 	ipv6_address( const ipv6_address& ) = default;
-	ipv6_address( struct sockaddr* addr );
-	ipv6_address( struct sockaddr_in6* addr )
-	: ipv6_address( reinterpret_cast< struct sockaddr* >( addr ) ) { }
+	ipv6_address( const struct sockaddr* addr );
+	ipv6_address( const struct sockaddr_in6* addr )
+	: ipv6_address( reinterpret_cast< const struct sockaddr* >( addr ) ) { }
 	ipv6_address( const char* addr );
 	explicit ipv6_address( const std::string& addr )
 	: ipv6_address( addr.c_str( ) )
@@ -111,11 +111,11 @@ public:
 	ip_address( ipv6_address addr );
 	ip_address( const ip_address& );
 	ip_address( ip_address&& );
-	ip_address( struct sockaddr* addr );
-	ip_address( struct sockaddr_in* addr )
-	: ip_address( reinterpret_cast< struct sockaddr* >( addr ) ) { }
-	ip_address( struct sockaddr_in6* addr )
-	: ip_address( reinterpret_cast< struct sockaddr* >( addr ) ) { }
+	ip_address( const struct sockaddr* addr );
+	ip_address( const struct sockaddr_in* addr )
+	: ip_address( reinterpret_cast< const struct sockaddr* >( addr ) ) { }
+	ip_address( const struct sockaddr_in6* addr )
+	: ip_address( reinterpret_cast< const struct sockaddr* >( addr ) ) { }
 	ip_address( const char* addr );
 	explicit ip_address( const std::string& addr )
 	: ip_address( addr.c_str( ) )
