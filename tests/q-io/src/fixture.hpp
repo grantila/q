@@ -19,6 +19,20 @@ public:
 	fixture( )
 	{ }
 
+	static std::uint16_t get_next_port( )
+	{
+		static struct qio_unit_tests_init
+		{
+			qio_unit_tests_init( )
+			: ports( 1030 )
+			{ }
+
+			std::atomic< std::uint16_t > ports;
+		} __qio_unit_tests_init;
+
+		return __qio_unit_tests_init.ports++;
+	}
+
 private:
 	void on_setup( ) override
 	{

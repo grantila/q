@@ -5,8 +5,6 @@
 
 QIO_TEST_MAKE_SCOPE( connect );
 
-std::atomic< std::uint16_t > ports( 1030 );
-
 TEST_F( connect, client_server_connrefused )
 {
 	auto dest = q::io::ip_addresses( "127.0.0.1" );
@@ -21,7 +19,7 @@ TEST_F( connect, client_server_send_data )
 {
 	const std::string test_data = "hello world";
 
-	auto port = ports++;
+	auto port = get_next_port( );
 
 	auto promise_server = io_dispatcher->listen( port ).share( );
 
@@ -64,7 +62,7 @@ TEST_F( connect, client_server_send_data )
 
 TEST_F( connect, client_server_close_client_on_destruction )
 {
-	auto port = ports++;
+	auto port = get_next_port( );
 
 	auto promise_server = io_dispatcher->listen( port )
 	.then( [ this ]( q::io::server_socket_ptr socket_server )
