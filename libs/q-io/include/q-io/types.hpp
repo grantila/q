@@ -43,6 +43,12 @@ typedef std::weak_ptr< tcp_socket > weak_tcp_socket_ptr;
 class server_socket;
 typedef std::shared_ptr< server_socket > server_socket_ptr;
 
+class udp_receiver;
+using udp_receiver_ptr = std::shared_ptr< udp_receiver >;
+
+class udp_sender;
+using udp_sender_ptr = std::shared_ptr< udp_sender >;
+
 class timer_event;
 
 #ifdef _WIN32

@@ -19,12 +19,15 @@
 
 #include <q-io/ip.hpp>
 #include <q-io/types.hpp>
+#include <q-io/udp_types.hpp>
 
 #include <q/event_dispatcher.hpp>
 #include <q/promise.hpp>
 #include <q/timer.hpp>
 #include <q/channel.hpp>
 #include <q/block.hpp>
+#include <q/options.hpp>
+#include <q/backlog.hpp>
 
 namespace q { namespace io {
 
@@ -52,6 +55,12 @@ struct resolver_response
 	// If it's not available, it will be zero.
 	std::chrono::seconds ttl;
 };
+
+typedef q::options<
+	ip_address,
+	q::backlog,
+	udp_bind
+> udp_receive_options;
 
 /**
  * The @c dispatcher class is the core execution loop for qio, and forwards
@@ -201,6 +210,63 @@ public:
 	}
 
 	/**
+	 * Open a udp packet for sending data.
+	 */
+	promise< udp_sender_ptr >
+	get_udp_sender( ip_address addr, std::uint16_t port );
+
+	/**
+	 * Open a udp socket for sending data.
+	 *
+	 * Returns a promise to a `q::writable` of a `q::byte_block` of data
+	 * that will be sent to the specified address and port.
+	 *
+	 * The returned writable manages the socket, meaning that when it is
+	 * deleted, the socket is closed properly and removed from the I/O
+	 * dispatcher.
+	 */
+	promise< writable< byte_block > >
+	udp_send( ip_address addr, std::uint16_t port );
+
+	/**
+	 * Opens a UDP receiver port, encapsulated in a `udp_receiver`, and
+	 * returns it in a promise.
+	 *
+	 * The options can contain a bind_to `ip_address` and/or a backlog for
+	 * how many incoming packets to allow in the readable buffer, before
+	 * starting to drop packets.
+	 *
+	 * NOTE; The default is is infinite backlog, meaning the internal
+	 *       readable buffer might consume all memory, so the packets must
+	 *       be read quickly, or manually dropped!
+	 *
+	 * NOTE; `udp_receive` returns a simpler interface.
+	 */
+	promise< udp_receiver_ptr >
+	get_udp_receiver(
+		std::uint16_t port,
+		udp_receive_options options = udp_receive_options( )
+	);
+
+	/**
+	 * Opens a UDP receiver port, bound to a certain interface address.
+	 *
+	 * Returns a promise to a `q::readable` of a `udp_packet` which
+	 * contains udp packet data together with the remote address and port.
+	 *
+	 * The returned readable manages the socket, meaning that when it is
+	 * deleted, the socket is closed properly and removed from the I/O
+	 * dispatcher.
+	 *
+	 * The options are the same as in `get_udp_receiver`.
+	 */
+	promise< readable< udp_packet > >
+	udp_receive(
+		std::uint16_t port,
+		udp_receive_options options = udp_receive_options( )
+	);
+
+	/**
 	 *
 	 */
 	q::expect< > await_termination( ) override;
@@ -225,6 +291,8 @@ private:
 	friend class event;
 	friend class resolver;
 	friend class tcp_socket;
+	friend class udp_receiver;
+	friend class udp_sender;
 	friend class server_socket;
 	friend class timer_task;
 

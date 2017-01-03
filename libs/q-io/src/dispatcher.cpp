@@ -18,6 +18,8 @@
 #include <q-io/config.hpp>
 #include <q-io/tcp_socket.hpp>
 #include <q-io/server_socket.hpp>
+#include <q-io/udp_receiver.hpp>
+#include <q-io/udp_sender.hpp>
 
 #include "socket_helpers.hpp"
 #include "impl/dispatcher.hpp"
@@ -25,6 +27,8 @@
 #include "impl/tcp_socket.hpp"
 #include "impl/server_socket.hpp"
 #include "impl/timer_task.hpp"
+#include "impl/udp_receiver.hpp"
+#include "impl/udp_sender.hpp"
 
 #include <q/queue.hpp>
 #include <q/promise.hpp>
@@ -476,6 +480,71 @@ dispatcher::listen( std::uint16_t port, ip_addresses&& bind_to )
 		server->pimpl_->attach_dispatcher( self );
 
 		return server;
+	} )
+	.use_queue( pimpl_->user_queue );
+}
+
+promise< udp_sender_ptr >
+dispatcher::get_udp_sender( ip_address addr, std::uint16_t port )
+{
+	//auto pimpl = udp_sender::pimpl::construct( );
+/*
+	create sender pimpl
+	try create socket
+	create promise
+		create sender from pimpl
+*/
+}
+
+promise< writable< byte_block > >
+dispatcher::udp_send( ip_address addr, std::uint16_t port )
+{
+	auto self = shared_from_this( );
+
+	return get_udp_sender( std::move( addr ), port )
+	.then( [ self ]( udp_sender_ptr&& sender )
+	-> writable< byte_block >
+	{
+		auto writable = sender->get_writable( );
+		sender->detach( );
+		return writable;
+	} )
+	.use_queue( pimpl_->user_queue );
+}
+
+promise< udp_receiver_ptr >
+dispatcher::get_udp_receiver( std::uint16_t port, udp_receive_options options )
+{
+	auto self = shared_from_this( );
+	auto udp_receiver_pimpl = udp_receiver::pimpl::construct(
+		get_queue( ), port, std::move( options ) );
+
+	return q::make_promise( get_queue( ),
+	[ self, udp_receiver_pimpl ]( ) mutable
+	{
+		if ( !self->pimpl_->started_ || self->pimpl_->stopped_ )
+			Q_THROW( dispatcher_not_running( ) );
+
+		udp_receiver_pimpl->attach_dispatcher( self );
+
+		return udp_receiver::construct(
+			std::move( udp_receiver_pimpl ) );
+	} )
+	.use_queue( pimpl_->user_queue );
+}
+
+promise< readable< udp_packet > >
+dispatcher::udp_receive( std::uint16_t port, udp_receive_options options )
+{
+	auto self = shared_from_this( );
+
+	return get_udp_receiver( port, std::move( options ) )
+	.then( [ self ]( udp_receiver_ptr&& listener )
+	-> readable< udp_packet >
+	{
+		auto readable = listener->get_readable( );
+		listener->detach( );
+		return readable;
 	} )
 	.use_queue( pimpl_->user_queue );
 }
