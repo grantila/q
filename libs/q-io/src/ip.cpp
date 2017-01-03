@@ -581,6 +581,59 @@ void ip_address::_clear( )
 }
 
 
+bool ip_address_and_port::operator==( const ip_address_and_port& other ) const
+{
+	return addr_ == other.addr_ && port_ == other.port_;
+}
+
+bool ip_address_and_port::operator!=( const ip_address_and_port& other ) const
+{
+	return addr_ != other.addr_ || port_ != other.port_;
+}
+
+bool ip_address_and_port::operator<( const ip_address_and_port& other ) const
+{
+	return addr_ < other.addr_ ||
+		( addr_ == other.addr_ && port_ < other.port_ );
+}
+
+ip_address_and_port::operator bool( ) const
+{
+	return addr_;
+}
+
+ip_address ip_address_and_port::address( ) const
+{
+	return addr_;
+}
+
+std::uint16_t ip_address_and_port::port( ) const
+{
+	return port_;
+}
+
+std::string ip_address_and_port::string( ) const
+{
+	return addr_.string( ) + ":" + std::to_string( port_ );
+}
+
+
+void ip_address_and_port::populate( ::sockaddr_in& addr ) const
+{
+	return addr_.populate( addr, port_ );
+}
+
+void ip_address_and_port::populate( ::sockaddr_in6& addr ) const
+{
+	return addr_.populate( addr, port_ );
+}
+
+std::shared_ptr< ::sockaddr > ip_address_and_port::get_sockaddr( ) const
+{
+	return addr_.get_sockaddr( port_ );
+}
+
+
 ip_addresses::iterator::iterator( )
 : root_( nullptr )
 {

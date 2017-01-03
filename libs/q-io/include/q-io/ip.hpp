@@ -175,6 +175,40 @@ private:
 	};
 };
 
+class ip_address_and_port
+{
+public:
+	ip_address_and_port( ) = default;
+	ip_address_and_port( ip_address_and_port&& ) = default;
+	ip_address_and_port( const ip_address_and_port& ) = default;
+
+	ip_address_and_port( ip_address addr, std::uint16_t port )
+	: addr_( addr )
+	, port_( port )
+	{ }
+
+	ip_address_and_port& operator=( ip_address_and_port&& ) = default;
+	ip_address_and_port& operator=( const ip_address_and_port& ) = default;
+
+	bool operator==( const ip_address_and_port& other ) const;
+	bool operator!=( const ip_address_and_port& other ) const;
+	bool operator<( const ip_address_and_port& other ) const;
+
+	operator bool( ) const;
+
+	ip_address address( ) const;
+	std::uint16_t port( ) const;
+	std::string string( ) const;
+
+	void populate( ::sockaddr_in& addr ) const;
+	void populate( ::sockaddr_in6& addr ) const;
+	std::shared_ptr< ::sockaddr > get_sockaddr( ) const;
+
+private:
+	ip_address addr_;
+	std::uint16_t port_;
+};
+
 namespace detail {
 
 static inline bool might_be_ipv6_address( const char* s )
