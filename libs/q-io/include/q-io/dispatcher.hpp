@@ -62,6 +62,12 @@ typedef q::options<
 	udp_bind
 > udp_receive_options;
 
+typedef q::options<
+	ip_address_and_port,
+	q::backlog,
+	udp_bind
+> udp_send_options;
+
 /**
  * The @c dispatcher class is the core execution loop for qio, and forwards
  * control and execution to the underlying event library (libevent).
@@ -213,7 +219,11 @@ public:
 	 * Open a udp packet for sending data.
 	 */
 	promise< udp_sender_ptr >
-	get_udp_sender( ip_address addr, std::uint16_t port );
+	get_udp_sender(
+		ip_address addr,
+		std::uint16_t port,
+		udp_send_options options = udp_send_options( )
+	);
 
 	/**
 	 * Open a udp socket for sending data.
@@ -226,7 +236,11 @@ public:
 	 * dispatcher.
 	 */
 	promise< writable< byte_block > >
-	udp_send( ip_address addr, std::uint16_t port );
+	udp_send(
+		ip_address addr,
+		std::uint16_t port,
+		udp_send_options options = udp_send_options( )
+	);
 
 	/**
 	 * Opens a UDP receiver port, encapsulated in a `udp_receiver`, and

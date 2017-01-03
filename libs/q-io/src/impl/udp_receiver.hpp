@@ -53,21 +53,7 @@ struct udp_receiver::pimpl
 
 	std::uint16_t port_;
 	bool is_infinite_; // Whether we should care about back pressure
-/*
-	// Caches necessary for libuv
-	static const std::size_t cache_size = 64 * 1024;
-	q::mutex mut_;
-	typedef std::shared_ptr< pimpl > write_req_self_ptr;
-	// Decremented from libuv-thread, incremented form receive()-thread
-	std::size_t cached_bytes_;
-	struct write_info
-	{
-		std::unique_ptr< ::uv_write_t > req_;
-		byte_block block_; // Ensures we keep the memory while sending
-		std::size_t buf_len_;
-	};
-	std::deque< write_info > write_reqs_;
-*/
+
 	void
 	attach_dispatcher( const dispatcher_ptr& dispatcher ) noexcept override;
 
@@ -84,9 +70,8 @@ protected:
 	, can_read_( false )
 	, closed_( false )
 	, detached_( false )
-	, port_( false )
+	, port_( 0 )
 	, is_infinite_( false )
-//	, cached_bytes_( 0 )
 	{
 		udp_.data = nullptr;
 		udp_.loop = nullptr;

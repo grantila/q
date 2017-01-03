@@ -16,28 +16,37 @@
 
 #include <q-io/udp_sender.hpp>
 
+#include "impl/udp_sender.hpp"
+
 namespace q { namespace io {
+
+udp_sender_ptr
+udp_sender::construct( std::shared_ptr< udp_sender::pimpl >&& pimpl )
+{
+	return q::make_shared_using_constructor< udp_sender >(
+		std::move( pimpl ) );
+}
+
+udp_sender::udp_sender( std::shared_ptr< udp_sender::pimpl >&& pimpl )
+: pimpl_( std::move( pimpl ) )
+{
+}
 
 udp_sender::~udp_sender( )
 {
+	// continue if detached, otherwise close
+	if ( !pimpl_->detached_ )
+		pimpl_->close( );
 }
 
 q::writable< q::byte_block > udp_sender::get_writable( )
 {
+	return *pimpl_->writable_out_;
 }
 
 void udp_sender::detach( )
 {
+	return pimpl_->detach( );
 }
-
-udp_sender_ptr
-udp_sender::construct( std::shared_ptr< udp_sender::pimpl >&& )
-{
-}
-
-udp_sender::udp_sender( std::shared_ptr< udp_sender::pimpl >&& )
-{
-}
-
 
 } } // namespace io, namespace q

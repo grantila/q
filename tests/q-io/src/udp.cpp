@@ -9,7 +9,7 @@ QIO_TEST_MAKE_SCOPE( udp );
 TEST_F( udp, receive_test_to_be_removed )
 {
 	auto port = get_next_port( );
-
+return;
 	run(
 		io_dispatcher->get_udp_receiver( port )
 		.then( [ & ]( q::io::udp_receiver_ptr&& receiver )
@@ -38,11 +38,15 @@ TEST_F( udp, send_receive )
 	auto receiver = io_dispatcher->udp_receive( port )
 	.then( [ & ]( q::readable< q::io::udp_packet >&& r )
 	{
-		return r.consume( [ r ]( q::io::udp_packet&& packet ) mutable
-		{
-			EXPECT_EQ( packet.data.get( ).to_string( ), "foobar" );
-			r.close( );
-		} );
+		EVENTUALLY_EXPECT_RESOLUTION((
+			r.consume( [ r ]( q::io::udp_packet&& packet ) mutable
+			{
+				EXPECT_EQ(
+					packet.data.get( ).to_string( ),
+					"foobar" );
+				r.close( );
+			} )
+		));
 	} );
 
 	auto sender = receiver
@@ -52,6 +56,10 @@ TEST_F( udp, send_receive )
 		.then( [ ]( q::writable< q::byte_block >&& w )
 		{
 			EXPECT_TRUE( w.send( q::byte_block( "foobar" ) ) );
+			EXPECT_TRUE( w.send( q::byte_block( "test2" ) ) );
+			EXPECT_TRUE( w.send( q::byte_block( "test3" ) ) );
+			EXPECT_TRUE( w.send( q::byte_block( "test4" ) ) );
+			EXPECT_TRUE( w.send( q::byte_block( "test5" ) ) );
 		} );
 	} );
 

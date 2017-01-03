@@ -266,6 +266,7 @@ void tcp_socket::pimpl::begin_write( )
 		// Already closed
 		return;
 
+	// TODO: Ensure this is done by the internal thread
 	readable_out_->receive(
 		[ pimpl, stream, read_again ]( byte_block&& block ) mutable
 		{

@@ -58,13 +58,12 @@ udp_receiver::pimpl::construct(
 	pimpl->construction_options_ = q::make_unique< udp_receive_options >(
 		std::move( options ) );
 
-	auto ch = q::make_shared< q::channel< udp_packet > >(
-		user_queue, bl, bl - 1 );
+	q::channel< udp_packet > ch( user_queue, bl, bl - 1 );
 
 	pimpl->readable_in_ = std::make_shared< q::readable< udp_packet > >(
-		ch->get_readable( ) );
+		ch.get_readable( ) );
 	pimpl->writable_in_ = std::make_shared< q::writable< udp_packet > >(
-		ch->get_writable( ) );
+		ch.get_writable( ) );
 
 	return pimpl;
 }

@@ -485,19 +485,31 @@ dispatcher::listen( std::uint16_t port, ip_addresses&& bind_to )
 }
 
 promise< udp_sender_ptr >
-dispatcher::get_udp_sender( ip_address addr, std::uint16_t port )
+dispatcher::get_udp_sender(
+	ip_address addr, std::uint16_t port, udp_send_options options
+)
 {
-	//auto pimpl = udp_sender::pimpl::construct( );
-/*
-	create sender pimpl
-	try create socket
-	create promise
-		create sender from pimpl
-*/
+	auto self = shared_from_this( );
+	auto udp_sender_pimpl = udp_sender::pimpl::construct(
+		get_queue( ), addr, port, std::move( options ) );
+
+	return q::make_promise( get_queue( ),
+	[ self, udp_sender_pimpl ]( ) mutable
+	{
+		if ( !self->pimpl_->started_ || self->pimpl_->stopped_ )
+			Q_THROW( dispatcher_not_running( ) );
+
+		udp_sender_pimpl->attach_dispatcher( self );
+
+		return udp_sender::construct( std::move( udp_sender_pimpl ) );
+	} )
+	.use_queue( pimpl_->user_queue );
 }
 
 promise< writable< byte_block > >
-dispatcher::udp_send( ip_address addr, std::uint16_t port )
+dispatcher::udp_send(
+	ip_address addr, std::uint16_t port, udp_send_options options
+)
 {
 	auto self = shared_from_this( );
 
