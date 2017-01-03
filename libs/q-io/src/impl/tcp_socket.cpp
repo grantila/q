@@ -19,14 +19,13 @@
 
 namespace q { namespace io {
 
-typedef tcp_socket::pimpl::data_ref_type inner_ref_type;
-
 namespace {
 
 void closer( ::uv_handle_t* handle )
 {
 	auto socket = reinterpret_cast< ::uv_tcp_t* >( handle );
-	auto ref = reinterpret_cast< inner_ref_type* >( socket->data );
+	auto ref = reinterpret_cast< tcp_socket::pimpl::data_ref_type* >(
+		socket->data );
 	socket->data = nullptr;
 
 	if ( ref )
@@ -87,7 +86,7 @@ void tcp_socket::pimpl::close( expect< void > status )
 	if ( !socket_.data )
 	{
 		auto unique_ref =
-			q::make_unique< inner_ref_type >( shared_from_this( ) );
+			q::make_unique< data_ref_type >( shared_from_this( ) );
 		socket_.data = unique_ref.release( );
 	}
 
@@ -138,7 +137,7 @@ void tcp_socket::pimpl::start_read( )
 	)
 	{
 		auto pimpl =
-			*reinterpret_cast< inner_ref_type* >( stream->data );
+			*reinterpret_cast< data_ref_type* >( stream->data );
 
 		if ( nread > 0 )
 		{
