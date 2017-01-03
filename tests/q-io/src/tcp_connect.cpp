@@ -26,11 +26,11 @@ TEST_F( connect, client_server_send_data )
 	auto server_complete = promise_server
 	.then( [ test_data ]( q::io::server_socket_ptr socket_server )
 	{
-		return socket_server->clients( ).receive( )
+		return socket_server->clients( ).read( )
 		.then(
 		[ socket_server, &test_data ]( q::io::tcp_socket_ptr client )
 		{
-			return client->in( ).receive( )
+			return client->in( ).read( )
 			.then( [ client, &test_data ]( q::byte_block&& block )
 			{
 				return block.to_string( );
@@ -53,7 +53,8 @@ TEST_F( connect, client_server_send_data )
 	.then( [ &test_data ]( q::io::tcp_socket_ptr socket )
 	{
 		auto writable = socket->out( );
-		q::ignore_result( writable.send( q::byte_block( test_data ) ) );
+		q::ignore_result(
+			writable.write( q::byte_block( test_data ) ) );
 		socket->detach( );
 	} );
 
@@ -67,11 +68,11 @@ TEST_F( connect, client_server_close_client_on_destruction )
 	auto promise_server = io_dispatcher->listen( port )
 	.then( [ this ]( q::io::server_socket_ptr socket_server )
 	{
-		return socket_server->clients( ).receive( )
+		return socket_server->clients( ).read( )
 		.then( [ this, socket_server ]( q::io::tcp_socket_ptr client )
 		{
 			EVENTUALLY_EXPECT_REJECTION_WITH(
-				client->in( ).receive( ),
+				client->in( ).read( ),
 				q::channel_closed_exception
 			);
 

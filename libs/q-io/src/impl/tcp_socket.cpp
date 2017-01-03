@@ -148,9 +148,9 @@ void tcp_socket::pimpl::start_read( )
 				reinterpret_cast< std::uint8_t* >( buf->base )
 			);
 
-			if ( !pimpl->writable_in_->send( std::move( block ) ) )
+			if ( !pimpl->writable_in_->write( std::move( block ) ) )
 				pimpl->stop_read( false );
-			else if ( !pimpl->writable_in_->should_send( ) )
+			else if ( !pimpl->writable_in_->should_write( ) )
 				pimpl->stop_read( true );
 
 			return;
@@ -267,7 +267,7 @@ void tcp_socket::pimpl::begin_write( )
 		return;
 
 	// TODO: Ensure this is done by the internal thread
-	readable_out_->receive(
+	readable_out_->read(
 		[ pimpl, stream, read_again ]( byte_block&& block ) mutable
 		{
 			if ( pimpl->closed_ )

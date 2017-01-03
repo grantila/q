@@ -118,10 +118,10 @@ noexcept
 				std::move( socket_pimpl ) );
 
 			auto writable = ref->channel_->get_writable( );
-			if ( !writable.send( std::move( client_socket ) ) )
+			if ( !writable.write( std::move( client_socket ) ) )
 				ref->close( );
 
-			// TODO: Check writable.should_send( ), and stop
+			// TODO: Check writable.should_write( ), and stop
 			//       listening for new connections until it
 			//       notifies to continue.
 		}

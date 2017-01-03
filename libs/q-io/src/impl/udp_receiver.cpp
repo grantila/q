@@ -166,11 +166,11 @@ void udp_receiver::pimpl::start_read( )
 				0
 			};
 
-			if ( !pimpl->writable_in_->send( std::move( packet ) ) )
+			if ( !pimpl->writable_in_->write( std::move( packet ) ) )
 				pimpl->stop_read( false );
 			else if ( !pimpl->is_infinite_ )
 			{
-				if ( !pimpl->writable_in_->should_send( ) )
+				if ( !pimpl->writable_in_->should_write( ) )
 					pimpl->stop_read( true );
 			}
 

@@ -55,11 +55,11 @@ TEST_F( udp, send_receive )
 		io_dispatcher->udp_send( "127.0.0.1", port )
 		.then( [ ]( q::writable< q::byte_block >&& w )
 		{
-			EXPECT_TRUE( w.send( q::byte_block( "foobar" ) ) );
-			EXPECT_TRUE( w.send( q::byte_block( "test2" ) ) );
-			EXPECT_TRUE( w.send( q::byte_block( "test3" ) ) );
-			EXPECT_TRUE( w.send( q::byte_block( "test4" ) ) );
-			EXPECT_TRUE( w.send( q::byte_block( "test5" ) ) );
+			EXPECT_TRUE( w.write( q::byte_block( "foobar" ) ) );
+			EXPECT_TRUE( w.write( q::byte_block( "test2" ) ) );
+			EXPECT_TRUE( w.write( q::byte_block( "test3" ) ) );
+			EXPECT_TRUE( w.write( q::byte_block( "test4" ) ) );
+			EXPECT_TRUE( w.write( q::byte_block( "test5" ) ) );
 		} );
 	} );
 

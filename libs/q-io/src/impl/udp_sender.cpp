@@ -184,7 +184,7 @@ void udp_sender::pimpl::read_write_one( )
 	auto pimpl = shared_from_this( );
 	auto readable_out = std::atomic_load( &readable_out_ );
 
-	readable_out->receive( [ pimpl ]( ::q::byte_block&& block ) mutable
+	readable_out->read( [ pimpl ]( ::q::byte_block&& block ) mutable
 	{
 		pimpl->send_block( std::move( block ) );
 	}, [ pimpl ]( ) mutable
