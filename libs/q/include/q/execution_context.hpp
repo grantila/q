@@ -90,7 +90,7 @@ struct event_dispatcher_type_traits
 template< typename EventDispatcher >
 typename std::enable_if<
 	std::is_base_of<
-		q::enable_queue_from_this,
+		q::custom_queue_from_this,
 		typename std::decay< EventDispatcher >::type
 	>::value
 >::type
@@ -98,13 +98,14 @@ set_event_dispatcher_queue(
 	EventDispatcher&& event_dispatcher, const queue_ptr& queue
 )
 {
-	event_dispatcher.set_queue( queue );
+	static_cast< custom_queue_from_this& >( event_dispatcher )
+		.set_queue( queue );
 }
 
 template< typename EventDispatcher >
 typename std::enable_if<
 	!std::is_base_of<
-		q::enable_queue_from_this,
+		q::custom_queue_from_this,
 		typename std::decay< EventDispatcher >::type
 	>::value
 >::type
