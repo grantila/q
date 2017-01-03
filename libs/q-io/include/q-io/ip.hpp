@@ -148,6 +148,7 @@ public:
 	// These are the same as the constructors, but they won't throw,
 	// instead the ip_address will not be "valid" (operator bool will
 	// return false), as if it was default constructed.
+	static ip_address from( const struct sockaddr* addr );
 	static ip_address from( const char* addr );
 	static ip_address from( const std::string& addr )
 	{

@@ -535,6 +535,27 @@ ip_address::get_sockaddr( std::uint16_t port ) const
 	return nullptr;
 }
 
+ip_address ip_address::from( const struct sockaddr* addr )
+{
+	ip_address ip;
+
+	if ( addr->sa_family != AF_INET && addr->sa_family != AF_INET6 )
+		return ip;
+
+	if ( addr->sa_family == AF_INET )
+	{
+		::new ( &ip.ipv4_ ) ipv4_address( addr );
+		ip.state_ = state_type::ipv4;
+	}
+	else
+	{
+		::new ( &ip.ipv6_ ) ipv6_address( addr );
+		ip.state_ = state_type::ipv6;
+	}
+
+	return ip;
+}
+
 ip_address ip_address::from( const char* addr )
 {
 	ip_address ip;
