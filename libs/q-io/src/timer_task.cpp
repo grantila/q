@@ -19,6 +19,7 @@
 #include <q/types.hpp>
 
 #include "impl/timer_task.hpp"
+#include "impl/dispatcher.hpp"
 
 namespace q { namespace io {
 
@@ -58,10 +59,7 @@ timer_task::~timer_task( )
 			// TODO: Assert we don't end up here
 			return;
 
-		// Keeps the pimpl alive until the end of this scope
-		auto keep_alive = pimpl->cleanup_keepalive_ptr_;
-
-		pimpl->cleanup_keepalive_ptr_.reset( );
+		pimpl->keep_alive_.reset( );
 	};
 
 	auto handle = reinterpret_cast< ::uv_handle_t* >( &pimpl_->timer_ );
@@ -69,7 +67,7 @@ timer_task::~timer_task( )
 	if ( pimpl_->loop_ )
 	{
 		// This timer has been initialized, and needs to be closed
-		pimpl_->cleanup_keepalive_ptr_ = pimpl_;
+		pimpl_->keep_alive_ = pimpl_;
 		::uv_close( handle, closer );
 	}
 }
@@ -93,11 +91,15 @@ void timer_task::start_timeout(
 	pimpl_->duration_ = duration;
 	pimpl_->repeat_ = repeat;
 
-	auto _pimpl = pimpl_;
+	std::weak_ptr< pimpl > weak_pimpl = pimpl_;
 
-	auto starter = [ _pimpl ]( )
+	auto starter = [ weak_pimpl ]( )
 	{
-		::uv_timer_t* timer = &_pimpl->timer_;
+		auto pimpl = weak_pimpl.lock( );
+		if ( !pimpl )
+			return;
+
+		::uv_timer_t* timer = &pimpl->timer_;
 		/* ret */::uv_timer_stop( timer );
 
 		uv_timer_cb timer_callback = [ ]( ::uv_timer_t* timer )
@@ -111,29 +113,33 @@ void timer_task::start_timeout(
 				( *task )( );
 		};
 
-		auto dur_millis = to_millis( _pimpl->duration_ );
-		auto rep_millis = to_millis( _pimpl->repeat_ );
+		auto dur_millis = to_millis( pimpl->duration_ );
+		auto rep_millis = to_millis( pimpl->repeat_ );
 
 		/* ret */::uv_timer_start(
 			timer, timer_callback, dur_millis, rep_millis );
 	};
 
-	pimpl_->dispatcher_->get_queue( )->push( starter );
+	pimpl_->dispatcher_->internal_queue_->push( starter );
 }
 
 void timer_task::stop( )
 {
 	pimpl_->ensure_attached( );
 
-	auto _pimpl = pimpl_;
+	std::weak_ptr< pimpl > weak_pimpl = pimpl_;
 
-	auto stopper = [ _pimpl ]( )
+	auto stopper = [ weak_pimpl ]( )
 	{
-		::uv_timer_t* timer = &_pimpl->timer_;
+		auto pimpl = weak_pimpl.lock( );
+		if ( !pimpl )
+			return;
+
+		::uv_timer_t* timer = &pimpl->timer_;
 		/* ret */::uv_timer_stop( timer );
 	};
 
-	pimpl_->dispatcher_->get_queue( )->push( stopper );
+	pimpl_->dispatcher_->internal_queue_->push( stopper );
 }
 
 } } // namespace io, namespace q

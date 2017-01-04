@@ -41,6 +41,7 @@ struct dispatcher::pimpl
 		::uv_pipe_t uv_pipe;
 	} dummy_event;
 
+	q::queue_ptr internal_queue_;
 	q::queue_ptr user_queue;
 	std::string name;
 	std::shared_ptr< q::detail::defer< > > deferred_start_;

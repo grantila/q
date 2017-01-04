@@ -27,18 +27,15 @@ struct udp_receiver::pimpl
 : handle
 , std::enable_shared_from_this< udp_receiver::pimpl >
 {
-	using handle::close;
+	using handle::i_close;
 
-	typedef std::shared_ptr< udp_receiver::pimpl > data_ref_type;
+	typedef udp_receiver::pimpl* data_ref_type;
 
 	static std::shared_ptr< udp_receiver::pimpl >
-	construct(
-		queue_ptr user_queue,
-		std::uint16_t port,
-		udp_receive_options options
-	);
+	construct( std::uint16_t port, udp_receive_options options );
 
-	std::weak_ptr< pimpl > self_;
+	std::shared_ptr< dispatcher::pimpl > dispatcher_;
+	std::shared_ptr< pimpl > keep_alive_;
 
 	std::shared_ptr< q::readable< udp_packet > > readable_in_; // Ext
 	std::shared_ptr< q::writable< udp_packet > > writable_in_; // Int
@@ -55,9 +52,10 @@ struct udp_receiver::pimpl
 	bool is_infinite_; // Whether we should care about back pressure
 
 	void
-	attach_dispatcher( const dispatcher_ptr& dispatcher ) noexcept override;
+	i_attach_dispatcher( const dispatcher_pimpl_ptr& dispatcher )
+	noexcept override;
 
-	void close( expect< void > status ) override;
+	void i_close( expect< void > status ) override;
 
 	void start_read( );
 	void stop_read( bool reschedule = false );

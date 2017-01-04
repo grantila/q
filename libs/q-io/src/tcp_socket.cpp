@@ -32,7 +32,7 @@ tcp_socket::~tcp_socket( )
 {
 	if ( !!pimpl_->readable_in_ )
 		// Not detached - force close the socket right now.
-		pimpl_->close( );
+		close( );
 }
 
 tcp_socket_ptr
@@ -51,6 +51,18 @@ q::readable< q::byte_block > tcp_socket::in( )
 q::writable< q::byte_block > tcp_socket::out( )
 {
 	return *pimpl_->writable_out_;
+}
+
+void tcp_socket::close( )
+{
+	std::weak_ptr< pimpl > weak_pimpl = pimpl_;
+
+	pimpl_->dispatcher_->internal_queue_->push( [ weak_pimpl ]( )
+	{
+		auto pimpl = weak_pimpl.lock( );
+		if ( pimpl )
+			pimpl->i_close( );
+	} );
 }
 
 void tcp_socket::detach( )

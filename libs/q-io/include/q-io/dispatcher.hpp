@@ -78,7 +78,7 @@ class dispatcher
 	dispatcher_exit
 >
 , public std::enable_shared_from_this< dispatcher >
-, public q::enable_queue_from_this
+, public q::custom_queue_from_this
 {
 	typedef ::q::event_dispatcher<
 		q::arguments< dispatcher_termination >,
@@ -97,6 +97,12 @@ public:
 		int         fd;
 		std::string fd_err;
 	};
+
+	/**
+	 * Convert a list of event_descriptors to a JSON string
+	 */
+	static std::string
+	events_to_json( const std::vector< event_descriptor >& events );
 
 	/**
 	 * Constructs a dispatcher object which handles IO. This function will
@@ -284,6 +290,8 @@ protected:
 	void do_terminate( dispatcher_termination termination ) override;
 
 private:
+	void set_queue( q::queue_ptr internal_queue ) override;
+
 	/**
 	 * Trigger the event dispatcher to fetch another task
 	 */

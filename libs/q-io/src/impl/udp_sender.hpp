@@ -27,18 +27,18 @@ struct udp_sender::pimpl
 : handle
 , std::enable_shared_from_this< udp_sender::pimpl >
 {
-	using handle::close;
+	using handle::i_close;
 
 	typedef udp_sender::pimpl* data_ref_type;
 
 	static std::shared_ptr< udp_sender::pimpl >
 	construct(
-		queue_ptr internal_queue,
 		ip_address addr,
 		std::uint16_t port,
 		udp_send_options options
 	);
 
+	std::shared_ptr< dispatcher::pimpl > dispatcher_;
 	std::shared_ptr< pimpl > keep_alive_;
 
 	std::shared_ptr< q::readable< ::q::byte_block > > readable_out_; // Int
@@ -65,9 +65,10 @@ struct udp_sender::pimpl
 	std::deque< std::unique_ptr< write_info > > write_reqs_;
 
 	void
-	attach_dispatcher( const dispatcher_ptr& dispatcher ) noexcept override;
+	i_attach_dispatcher( const dispatcher_pimpl_ptr& dispatcher )
+	noexcept override;
 
-	void close( expect< void > status ) override;
+	void i_close( expect< void > status ) override;
 
 	void send_block( ::q::byte_block block );
 	void read_write_one( );

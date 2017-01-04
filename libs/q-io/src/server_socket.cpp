@@ -33,7 +33,11 @@ server_socket::server_socket( std::uint16_t port, ip_addresses&& bind_to )
 
 server_socket::~server_socket( )
 {
-	close( );
+	// TODO: Implement detach, and if detached, don't close
+/*
+	if ( !pimpl_->detached_ )
+*/
+		close( );
 }
 
 server_socket_ptr
@@ -49,8 +53,14 @@ q::readable< tcp_socket_ptr > server_socket::clients( )
 
 void server_socket::close( )
 {
-	// TODO: If detached, just let go
-	pimpl_->close( );
+	std::weak_ptr< pimpl > weak_pimpl = pimpl_;
+
+	pimpl_->dispatcher_->internal_queue_->push( [ weak_pimpl ]( )
+	{
+		auto pimpl = weak_pimpl.lock( );
+		if ( pimpl )
+			pimpl->i_close( );
+	} );
 }
 
 } } // namespace io, namespace q

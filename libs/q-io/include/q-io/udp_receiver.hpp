@@ -43,6 +43,16 @@ public:
 	q::readable< udp_packet > get_readable( );
 
 	/**
+	 * Close the socket ASAP.
+	 *
+	 * This will happen when the udp_receiver is destructed unless it is
+	 * detached. If it is detached, this will happen when the readables are
+	 * closed or destructed.
+	 * So usually this need not be done manually.
+	 */
+	void close( );
+
+	/**
 	 * ?
 	 */
 	void detach( );

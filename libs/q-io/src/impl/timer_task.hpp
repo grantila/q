@@ -27,14 +27,14 @@ struct timer_task::pimpl
 : handle
 , std::enable_shared_from_this< timer_task::pimpl >
 {
-	typedef std::shared_ptr< timer_task::pimpl > data_ref_type;
+	typedef timer_task::pimpl* data_ref_type;
 
 	::uv_loop_t* loop_;
 	::uv_timer_t timer_;
 
-	std::shared_ptr< pimpl > cleanup_keepalive_ptr_;
+	std::shared_ptr< pimpl > keep_alive_;
+	dispatcher_pimpl_ptr dispatcher_;
 
-	dispatcher_ptr dispatcher_;
 	std::shared_ptr< q::task > task_;
 	clock::duration duration_;
 	clock::duration repeat_;
@@ -49,9 +49,10 @@ struct timer_task::pimpl
 	}
 
 	void
-	attach_dispatcher( const dispatcher_ptr& dispatcher ) noexcept override;
+	i_attach_dispatcher( const dispatcher_pimpl_ptr& dispatcher )
+	noexcept override;
 
-	void close( q::expect< void > ) override;
+	void i_close( q::expect< void > ) override;
 
 	void set_task( q::task task );
 	void unset_task( );

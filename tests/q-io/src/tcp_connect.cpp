@@ -81,7 +81,7 @@ TEST_F( connect, client_server_close_client_on_destruction )
 	} );
 
 	auto promise_client = q::with( io_queue )
-	.then( io_dispatcher->delay( std::chrono::milliseconds( 10 ) ) )
+	.delay( std::chrono::milliseconds( 10 ) )
 	.then( [ this, port ]
 	{
 		auto dest_ip = q::io::ip_addresses( "127.0.0.1" );

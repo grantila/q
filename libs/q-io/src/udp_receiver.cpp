@@ -33,14 +33,23 @@ udp_receiver::udp_receiver( std::shared_ptr< udp_receiver::pimpl >&& pimpl )
 
 udp_receiver::~udp_receiver( )
 {
+	// Remove our internal readable (the user should have taken it)
+	std::shared_ptr< readable< udp_packet > > r;
+	std::atomic_store( &pimpl_->readable_in_, r );
+
 	// continue if detached, otherwise close
 	if ( !pimpl_->detached_ )
-		pimpl_->close( );
+		close( );
 }
 
 q::readable< udp_packet > udp_receiver::get_readable( )
 {
 	return *pimpl_->readable_in_;
+}
+
+void udp_receiver::close( )
+{
+	pimpl_->o_close( pimpl_->dispatcher_, pimpl_ );
 }
 
 void udp_receiver::detach( )

@@ -27,29 +27,31 @@ struct server_socket::pimpl
 : stream
 , std::enable_shared_from_this< server_socket::pimpl >
 {
-	using handle::close;
+	using handle::i_close;
 
-	typedef std::shared_ptr< server_socket::pimpl > data_ref_type;
+	typedef server_socket::pimpl* data_ref_type;
 
-	std::shared_ptr< q::channel< tcp_socket_ptr > > channel_;
+	std::shared_ptr< dispatcher::pimpl > dispatcher_;
+	std::shared_ptr< server_socket::pimpl > keep_alive_;
+
+	std::unique_ptr< q::channel< tcp_socket_ptr > > channel_;
 
 	std::uint16_t port_;
 	ip_addresses bind_to_;
-
-	dispatcher_ptr dispatcher_;
 
 	::uv_loop_t* uv_loop_;
 
 	::uv_tcp_t socket_;
 
-	void close( q::expect< void > ) override;
+	void i_close( q::expect< void > ) override;
 
 	pimpl( )
 	: stream( reinterpret_cast< ::uv_stream_t* >( &socket_ ) )
 	{ }
 
 	void
-	attach_dispatcher( const dispatcher_ptr& dispatcher ) noexcept override;
+	i_attach_dispatcher( const dispatcher_pimpl_ptr& dispatcher )
+	noexcept override;
 };
 
 } } // namespace io, namespace q

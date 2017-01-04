@@ -27,12 +27,13 @@ struct tcp_socket::pimpl
 : stream
 , std::enable_shared_from_this< tcp_socket::pimpl >
 {
-	using handle::close;
+	using handle::i_close;
 
 	typedef std::shared_ptr< tcp_socket::pimpl > data_ref_type;
 
 	static std::shared_ptr< tcp_socket::pimpl > construct( );
 
+	std::shared_ptr< dispatcher::pimpl > dispatcher_;
 	std::weak_ptr< pimpl > self_;
 
 	std::shared_ptr< q::readable< q::byte_block > > readable_in_; // Ext
@@ -51,7 +52,6 @@ struct tcp_socket::pimpl
 
 	// Caches necessary for libuv
 	static const std::size_t cache_size = 64 * 1024;
-	q::mutex mut_;
 	typedef std::shared_ptr< pimpl > write_req_self_ptr;
 	// Decremented from libuv-thread, incremented form receive()-thread
 	std::size_t cached_bytes_;
@@ -64,9 +64,10 @@ struct tcp_socket::pimpl
 	std::deque< write_info > write_reqs_;
 
 	void
-	attach_dispatcher( const dispatcher_ptr& dispatcher ) noexcept override;
+	i_attach_dispatcher( const dispatcher_pimpl_ptr& dispatcher )
+	noexcept override;
 
-	void close( expect< void > status ) override;
+	void i_close( expect< void > status ) override;
 
 	void start_read( );
 	void stop_read( bool reschedule = false );

@@ -68,7 +68,7 @@ dispatcher::dump_events( ) const
 {
 	auto self = shared_from_this( );
 
-	return q::make_promise( get_queue( ), [ self ]( )
+	return q::make_promise( pimpl_->internal_queue_, [ self ]( )
 	{
 		if ( !self->pimpl_->started_ || self->pimpl_->stopped_ )
 			Q_THROW( dispatcher_not_running( ) );
@@ -84,49 +84,53 @@ static inline const char* json_bool( bool b, bool with_comma = true )
 		: ( with_comma ? "false," : "false" );
 }
 
+std::string
+dispatcher::events_to_json( const std::vector< event_descriptor >& events )
+{
+	std::stringstream ss;
+
+	ss << "[";
+
+	for ( auto& desc : events )
+	{
+		ss << std::endl << "\t{" << std::endl;
+		ss << "\t\t\"type\": \"" << desc.type << "\"," << std::endl;
+
+		if ( desc.fd != -1 )
+			ss << "\t\t\"fd\": " << desc.fd << "," << std::endl;
+		if ( !desc.fd_err.empty( ) )
+			ss
+				<< "\t\t\"error\": \"" << desc.fd_err
+				<< "\","
+				<< std::endl;
+		ss
+			<< "\t\t\"active\": "
+			<< json_bool( desc.active )
+			<< std::endl;
+		ss
+			<< "\t\t\"closing\": "
+			<< json_bool( desc.closing, false )
+			<< std::endl;
+		ss << "\t},";
+	}
+
+	if ( !events.empty( ) )
+	{
+		ss.seekp( -1, ss.cur );
+		ss << std::endl;
+	}
+
+	ss << "]";
+
+	return ss.str( );
+}
+
 promise< std::string > dispatcher::dump_events_json( ) const
 {
 	return dump_events( )
 	.then( [ ]( std::vector< event_descriptor >&& events )
 	{
-		std::stringstream ss;
-
-		ss << "[";
-
-		for ( auto& desc : events )
-		{
-			ss << std::endl << "\t{" << std::endl;
-			ss << "\t\t\"type\": \"" << desc.type << "\","
-				<< std::endl;
-
-			if ( desc.fd != -1 )
-				ss << "\t\t\"fd\": " << desc.fd << ","
-					<< std::endl;
-			if ( !desc.fd_err.empty( ) )
-				ss
-					<< "\t\t\"error\": \"" << desc.fd_err
-					<< "\","
-					<< std::endl;
-			ss
-				<< "\t\t\"active\": "
-				<< json_bool( desc.active )
-				<< std::endl;
-			ss
-				<< "\t\t\"closing\": "
-				<< json_bool( desc.closing, false )
-				<< std::endl;
-			ss << "\t},";
-		}
-
-		if ( !events.empty( ) )
-		{
-			ss.seekp( -1, ss.cur );
-			ss << std::endl;
-		}
-
-		ss << "]";
-
-		return ss.str( );
+		return dispatcher::events_to_json( events );
 	} );
 }
 
@@ -166,7 +170,7 @@ void dispatcher::start_blocking( )
 					handle_ptr->data );
 
 			if ( _handle )
-				( *_handle )->close( );
+				( *_handle )->i_close( );
 		}
 	}
 
@@ -201,6 +205,11 @@ promise< > dispatcher::start( )
 	pimpl_->thread = q::run( pimpl_->name, pimpl_->user_queue, runner );
 
 	return deferred_start->get_promise( );
+}
+
+void dispatcher::set_queue( q::queue_ptr internal_queue )
+{
+	pimpl_->internal_queue_ = std::move( internal_queue );
 }
 
 void dispatcher::notify( )
@@ -310,7 +319,7 @@ q::promise< tcp_socket_ptr > dispatcher::get_tcp_connection(
 
 			reject_( std::move( e ) );
 
-			dest->socket_pimpl->close( );
+			dest->socket_pimpl->i_close( );
 		}
 	};
 
@@ -323,7 +332,8 @@ q::promise< tcp_socket_ptr > dispatcher::get_tcp_connection(
 		if ( status == 0 )
 		{
 			// Success
-			socket_pimpl->attach_dispatcher( ctx->dispatcher );
+			socket_pimpl->i_attach_dispatcher(
+				ctx->dispatcher->pimpl_ );
 			auto sock = ::q::io::tcp_socket::construct(
 				std::move( socket_pimpl ) );
 
@@ -374,7 +384,7 @@ q::promise< tcp_socket_ptr > dispatcher::get_tcp_connection(
 	ctx->last_error = ECONNREFUSED;
 	ctx->connect_callback = connect_callback;
 
-	return q::make_promise( get_queue( ),
+	return q::make_promise( pimpl_->internal_queue_,
 		[ self, ctx, try_connect ](
 			q::resolver< tcp_socket_ptr > resolve,
 			q::rejecter< tcp_socket_ptr > reject
@@ -421,7 +431,7 @@ dispatcher::tcp_connect( std::string hostname, std::uint16_t port )
 	.then( [ self, port ]( resolver_response&& response )
 	{
 		return self->tcp_connect( std::move( response.ips ), port );
-	}, get_queue( ) )
+	}, pimpl_->internal_queue_ )
 	.use_queue( pimpl_->user_queue );
 }
 
@@ -436,22 +446,22 @@ dispatcher::tcp_connect( ip_addresses addr, std::uint16_t port )
 		socket->detach( );
 		return std::make_tuple(
 			std::move( readable ), std::move( writable ) );
-	}, get_queue( ) );
+	}, pimpl_->internal_queue_ );
 }
 
 q::promise< server_socket_ptr >
 dispatcher::listen( std::uint16_t port, ip_addresses&& bind_to )
 {
-	auto self = shared_from_this( );
+	auto pimpl = pimpl_;
 	auto server = q::make_shared< server_socket >(
 		port, std::move( bind_to ) );
 
-	return q::make_promise( get_queue( ), [ self, server ]( )
+	return q::make_promise( pimpl_->internal_queue_, [ pimpl, server ]( )
 	{
-		if ( !self->pimpl_->started_ || self->pimpl_->stopped_ )
+		if ( !pimpl->started_ || pimpl->stopped_ )
 			Q_THROW( dispatcher_not_running( ) );
 
-		server->pimpl_->attach_dispatcher( self );
+		server->pimpl_->i_attach_dispatcher( pimpl );
 
 		return server;
 	} )
@@ -463,17 +473,17 @@ dispatcher::get_udp_sender(
 	ip_address addr, std::uint16_t port, udp_send_options options
 )
 {
-	auto self = shared_from_this( );
+	auto pimpl = pimpl_;
 	auto udp_sender_pimpl = udp_sender::pimpl::construct(
-		get_queue( ), addr, port, std::move( options ) );
+		addr, port, std::move( options ) );
 
-	return q::make_promise( get_queue( ),
-	[ self, udp_sender_pimpl ]( ) mutable
+	return q::make_promise( pimpl_->internal_queue_,
+	[ pimpl, udp_sender_pimpl ]( ) mutable
 	{
-		if ( !self->pimpl_->started_ || self->pimpl_->stopped_ )
+		if ( !pimpl->started_ || pimpl->stopped_ )
 			Q_THROW( dispatcher_not_running( ) );
 
-		udp_sender_pimpl->attach_dispatcher( self );
+		udp_sender_pimpl->i_attach_dispatcher( pimpl );
 
 		return udp_sender::construct( std::move( udp_sender_pimpl ) );
 	} )
@@ -501,17 +511,17 @@ dispatcher::udp_send(
 promise< udp_receiver_ptr >
 dispatcher::get_udp_receiver( std::uint16_t port, udp_receive_options options )
 {
-	auto self = shared_from_this( );
+	auto pimpl = pimpl_;
 	auto udp_receiver_pimpl = udp_receiver::pimpl::construct(
-		get_queue( ), port, std::move( options ) );
+		port, std::move( options ) );
 
-	return q::make_promise( get_queue( ),
-	[ self, udp_receiver_pimpl ]( ) mutable
+	return q::make_promise( pimpl_->internal_queue_,
+	[ pimpl, udp_receiver_pimpl ]( ) mutable
 	{
-		if ( !self->pimpl_->started_ || self->pimpl_->stopped_ )
+		if ( !pimpl->started_ || pimpl->stopped_ )
 			Q_THROW( dispatcher_not_running( ) );
 
-		udp_receiver_pimpl->attach_dispatcher( self );
+		udp_receiver_pimpl->i_attach_dispatcher( pimpl );
 
 		return udp_receiver::construct(
 			std::move( udp_receiver_pimpl ) );

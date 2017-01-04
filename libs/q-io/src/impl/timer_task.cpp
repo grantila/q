@@ -19,27 +19,39 @@
 
 namespace q { namespace io {
 
+static void closer( ::uv_handle_t* handle )
+{
+	auto ref = reinterpret_cast< timer_task::pimpl::data_ref_type >(
+		handle->data );
+	handle->data = nullptr;
+
+	ref->keep_alive_.reset( );
+};
+
 void
-timer_task::pimpl::attach_dispatcher( const dispatcher_ptr& dispatcher )
+timer_task::pimpl::i_attach_dispatcher( const dispatcher_pimpl_ptr& dispatcher )
 noexcept
 {
 	if ( is_attached( ) )
 		Q_THROW( event_error( ), "Already attached" ); // Better error
 
 	dispatcher_ = dispatcher;
-	loop_ = &dispatcher_->pimpl_->uv_loop;
+	loop_ = &dispatcher_->uv_loop;
 
 	if ( ::uv_timer_init( loop_, &timer_ ) )
 		// TODO: Better error, well described and thought through logic
 		Q_THROW( event_error( ) );
 
-	auto u_ref = q::make_unique< data_ref_type >( shared_from_this( ) );
-	timer_.data = u_ref.release( );
+	timer_.data = this;
+
+	keep_alive_ = shared_from_this( );
 }
 
-void timer_task::pimpl::close( q::expect< void > exp )
+void timer_task::pimpl::i_close( q::expect< void > exp )
 {
-	;
+	::uv_timer_stop( &timer_ );
+
+	::uv_close( uv_handle( ), closer );
 }
 
 void timer_task::pimpl::set_task( q::task task )

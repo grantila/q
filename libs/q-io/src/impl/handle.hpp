@@ -19,9 +19,13 @@
 
 #include <q-io/dispatcher.hpp>
 
+#include "dispatcher.hpp"
+
 #include "../uv.hpp"
 
 namespace q { namespace io {
+
+typedef std::shared_ptr< dispatcher::pimpl > dispatcher_pimpl_ptr;
 
 // TODO: Move, and properly implement this for Win32
 static inline int uv_error_to_errno( int errnum )
@@ -31,7 +35,27 @@ static inline int uv_error_to_errno( int errnum )
 
 struct handle
 {
+	// Members
+
 	::uv_handle_t* handle_;
+
+	// Accessors and helpers to be called from any thread
+
+	template< typename Self >
+	void o_close( dispatcher_pimpl_ptr dispatcher_pimpl, Self&& self )
+	{
+		std::weak_ptr< handle > weak_self = self;
+
+		dispatcher_pimpl->internal_queue_->push( [ weak_self ]( )
+		{
+			auto self = weak_self.lock( );
+
+			if ( self )
+				self->i_close( );
+		} );
+	}
+
+	// Accessors and helpers to be called from the internal thread only
 
 	::uv_handle_t* uv_handle( )
 	{
@@ -42,19 +66,20 @@ struct handle
 	handle( ::uv_handle_t* h ) : handle_( h ) { }
 
 	virtual void
-	attach_dispatcher( const dispatcher_ptr& dispatcher ) noexcept { }
+	i_attach_dispatcher( const dispatcher_pimpl_ptr& dispatcher ) noexcept
+	{ }
 
-	void close( )
+	void i_close( )
 	{
-		close( fulfill< void >( ) );
+		i_close( fulfill< void >( ) );
 	}
 
-	void close( std::exception_ptr err )
+	void i_close( std::exception_ptr err )
 	{
-		close( refuse< void >( std::move( err ) ) );
+		i_close( refuse< void >( std::move( err ) ) );
 	}
 
-	virtual void close( q::expect< void > ) = 0;
+	virtual void i_close( q::expect< void > ) = 0;
 };
 
 } } // namespace io, namespace q

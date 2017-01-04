@@ -24,63 +24,67 @@ namespace {
 static void closer( ::uv_handle_t* handle )
 {
 	auto socket = reinterpret_cast< ::uv_udp_t* >( handle );
-	auto ref = reinterpret_cast< udp_receiver::pimpl::data_ref_type* >(
+	auto ref = reinterpret_cast< udp_receiver::pimpl::data_ref_type >(
 		socket->data );
 	socket->data = nullptr;
 
-	if ( ref )
-		delete ref;
+	ref->keep_alive_.reset( );
 };
 
 } // anonymous namespace
 
 std::shared_ptr< udp_receiver::pimpl >
 udp_receiver::pimpl::construct(
-	queue_ptr user_queue, std::uint16_t port, udp_receive_options options
+	std::uint16_t port, udp_receive_options options
 )
 {
 	auto pimpl = q::make_shared_using_constructor< udp_receiver::pimpl >( );
-	pimpl->self_ = pimpl;
-
-	std::size_t bl = std::numeric_limits< std::size_t >::max( );
-	if ( options.has< q::backlog >( ) )
-	{
-		auto backlog = options.get< q::backlog >( );
-		bl = std::max< std::size_t >( backlog.get( ), 1 );
-
-		pimpl->is_infinite_ = backlog.is_infinity( );
-	}
-	else
-		pimpl->is_infinite_ = true;
 
 	pimpl->port_ = port;
 
 	pimpl->construction_options_ = q::make_unique< udp_receive_options >(
 		std::move( options ) );
 
-	q::channel< udp_packet > ch( user_queue, bl, bl - 1 );
-
-	pimpl->readable_in_ = std::make_shared< q::readable< udp_packet > >(
-		ch.get_readable( ) );
-	pimpl->writable_in_ = std::make_shared< q::writable< udp_packet > >(
-		ch.get_writable( ) );
-
 	return pimpl;
 }
 
-void
-udp_receiver::pimpl::attach_dispatcher( const dispatcher_ptr& dispatcher )
-noexcept
+void udp_receiver::pimpl::i_attach_dispatcher(
+	const dispatcher_pimpl_ptr& dispatcher
+) noexcept
 {
-	auto u_ref = q::make_unique< data_ref_type >( shared_from_this( ) );
+	dispatcher_ = dispatcher;
 
-	udp_.data = reinterpret_cast< void* >( u_ref.release( ) );
+	// User settings
 
-	::uv_udp_init( &dispatcher->pimpl_->uv_loop, &udp_ );
+	auto& options = *construction_options_;
 
-	auto bind_to = construction_options_->template get< ip_address >(
+	std::size_t bl = std::numeric_limits< std::size_t >::max( );
+	if ( options.template has< q::backlog >( ) )
+	{
+		auto backlog = options.get< q::backlog >( );
+		bl = std::max< std::size_t >( backlog.get( ), 1 );
+
+		is_infinite_ = backlog.is_infinity( );
+	}
+	else
+		is_infinite_ = true;
+
+	auto bind_to = options.template get< ip_address >(
 		ip_address( "0.0.0.0" ) );
-	auto bind_flags = construction_options_->template get< udp_bind >( );
+	auto bind_flags = options.template get< udp_bind >( );
+
+	// Construction
+
+	q::channel< udp_packet > ch( dispatcher_->user_queue, bl, bl - 1 );
+
+	readable_in_ = std::make_shared< q::readable< udp_packet > >(
+		ch.get_readable( ) );
+	writable_in_ = std::make_shared< q::writable< udp_packet > >(
+		ch.get_writable( ) );
+
+	udp_.data = reinterpret_cast< void* >( this );
+
+	::uv_udp_init( &dispatcher_->uv_loop, &udp_ );
 
 	auto sockaddr = bind_to.get_sockaddr( port_ );
 
@@ -94,12 +98,14 @@ noexcept
 
 	construction_options_.reset( );
 
+	keep_alive_ = shared_from_this( );
+
 	start_read( );
 }
 
 // TODO: make this function "i_close" and ensure outside calls (in public class
 //       destructors e.g.) schedule this on the internal thread.
-void udp_receiver::pimpl::close( expect< void > status )
+void udp_receiver::pimpl::i_close( expect< void > status )
 {
 	if ( closed_.exchange( true ) )
 		return;
@@ -143,7 +149,7 @@ void udp_receiver::pimpl::start_read( )
 		unsigned flags
 	)
 	{
-		auto pimpl = *reinterpret_cast< data_ref_type* >( udp->data );
+		auto pimpl = reinterpret_cast< data_ref_type >( udp->data );
 
 		if ( addr )
 		{
@@ -166,11 +172,16 @@ void udp_receiver::pimpl::start_read( )
 				0
 			};
 
-			if ( !pimpl->writable_in_->write( std::move( packet ) ) )
+			auto writable_in = std::atomic_load(
+				&pimpl->writable_in_ );
+
+			if ( !writable_in )
+				pimpl->stop_read( false );
+			else if ( !writable_in->write( std::move( packet ) ) )
 				pimpl->stop_read( false );
 			else if ( !pimpl->is_infinite_ )
 			{
-				if ( !pimpl->writable_in_->should_write( ) )
+				if ( !writable_in->should_write( ) )
 					pimpl->stop_read( true );
 			}
 
@@ -193,7 +204,7 @@ void udp_receiver::pimpl::stop_read( bool reschedule )
 	if ( !reschedule )
 		return;
 
-	auto weak_pimpl = self_;
+	std::weak_ptr< pimpl > weak_pimpl = keep_alive_;
 
 	writable_in_->set_resume_notification(
 		[ weak_pimpl ]( )
@@ -212,20 +223,23 @@ void udp_receiver::pimpl::detach( )
 
 	auto scope = [ self ]( ) mutable
 	{
-		auto w = std::make_shared< writable< udp_packet > >( );
-		auto r = std::make_shared< readable< udp_packet > >( );
-
-		std::atomic_store( &self->writable_in_, w );
-		std::atomic_store( &self->readable_in_, r );
-
-		self->close( );
+		std::weak_ptr< pimpl > weak_self = self;
+		self->dispatcher_->internal_queue_->push( [ weak_self ]( )
+		{
+			auto self = weak_self.lock( );
+			if ( self )
+				self->i_close( );
+		} );
 	};
 
 	if ( detached_.exchange( true ) )
 		// Already detached
 		return;
 
-	readable_in_->add_scope_until_closed(
+	std::shared_ptr< readable< udp_packet > > r;
+	std::atomic_store( &readable_in_, r );
+
+	writable_in_->add_scope_until_closed(
 		q::make_scoped_function( std::move( scope ) ) );
 }
 

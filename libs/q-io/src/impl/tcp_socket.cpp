@@ -43,10 +43,10 @@ std::shared_ptr< tcp_socket::pimpl > tcp_socket::pimpl::construct( )
 }
 
 void
-tcp_socket::pimpl::attach_dispatcher( const dispatcher_ptr& dispatcher )
+tcp_socket::pimpl::i_attach_dispatcher( const dispatcher_pimpl_ptr& dispatcher )
 noexcept
 {
-	auto& dispatcher_pimpl = *dispatcher->pimpl_;
+	dispatcher_ = dispatcher;
 
 	auto u_ref = q::make_unique< data_ref_type >( shared_from_this( ) );
 	auto ref = u_ref.release( );
@@ -57,10 +57,11 @@ noexcept
 	std::size_t backlog_in = 6;
 	std::size_t backlog_out = 10;
 
-	auto queue = dispatcher_pimpl.user_queue;
+	auto internal_queue = dispatcher_->internal_queue_;
+	auto user_queue = dispatcher_->user_queue;
 
-	channel< q::byte_block > channel_in( queue, backlog_in );
-	channel< q::byte_block > channel_out( queue, backlog_out );
+	channel< q::byte_block > channel_in( user_queue, backlog_in );
+	channel< q::byte_block > channel_out( internal_queue, backlog_out );
 
 	readable_in_ = std::make_shared< q::readable< q::byte_block > >(
 		channel_in.get_readable( ) );
@@ -75,7 +76,7 @@ noexcept
 	begin_write( );
 }
 
-void tcp_socket::pimpl::close( expect< void > status )
+void tcp_socket::pimpl::i_close( expect< void > status )
 {
 	if ( closed_.exchange( true ) )
 		return;
@@ -165,7 +166,7 @@ void tcp_socket::pimpl::start_read( )
 		{
 			// Close without error
 
-			pimpl->close( );
+			pimpl->i_close( );
 		}
 		else if ( nread < 0 )
 		{
@@ -173,7 +174,7 @@ void tcp_socket::pimpl::start_read( )
 
 			auto errno_ = uv_error_to_errno( nread );
 			auto err = get_exception_by_errno( errno_ );
-			pimpl->close( err );
+			pimpl->i_close( err );
 		}
 	};
 
@@ -215,8 +216,6 @@ void tcp_socket::pimpl::begin_write( )
 		bool should_write_more = false;
 
 		{
-			Q_AUTO_UNIQUE_LOCK( pimpl->mut_ );
-
 			auto iter = std::find_if(
 				pimpl->write_reqs_.begin( ),
 				pimpl->write_reqs_.end( ),
@@ -232,7 +231,7 @@ void tcp_socket::pimpl::begin_write( )
 				std::cerr
 					<< "TODO: Remove this check"
 					<< std::endl;
-				pimpl->close( );
+				pimpl->i_close( );
 			}
 
 			auto buf_size = iter->buf_len_;
@@ -258,7 +257,7 @@ void tcp_socket::pimpl::begin_write( )
 			// Failure, propagate upstream and close
 			// TODO: Potentially check for proper error and
 			//       propagate it. Right now we just close "nicely".
-			pimpl->close( );
+			pimpl->i_close( );
 		}
 	};
 
@@ -266,7 +265,6 @@ void tcp_socket::pimpl::begin_write( )
 		// Already closed
 		return;
 
-	// TODO: Ensure this is done by the internal thread
 	readable_out_->read(
 		[ pimpl, stream, read_again ]( byte_block&& block ) mutable
 		{
@@ -290,8 +288,6 @@ void tcp_socket::pimpl::begin_write( )
 			bool should_read_more = true;
 
 			{
-				Q_AUTO_UNIQUE_LOCK( pimpl->mut_ );
-
 				pimpl->cached_bytes_ += buf.len;
 				if ( pimpl->cached_bytes_ >= pimpl->cache_size )
 					should_read_more = false;
@@ -317,7 +313,7 @@ void tcp_socket::pimpl::begin_write( )
 		},
 		[ pimpl ]( ) mutable
 		{
-			pimpl->close( );
+			pimpl->i_close( );
 		}
 	)
 	.fail( [ pimpl ]( std::exception_ptr err ) mutable
@@ -327,7 +323,7 @@ void tcp_socket::pimpl::begin_write( )
 		// connection.
 		// TODO: Consider allowing a callback or custom handler for
 		// these channel errors (e.g. for logging).
-		pimpl->close( );
+		pimpl->i_close( );
 		return false;
 	} );
 }

@@ -47,6 +47,15 @@ public:
 	q::writable< q::byte_block > out( );
 
 	/**
+	 * Close the socket ASAP
+	 *
+	 * This is not usually necessary, as it will close if the tcp_socket is
+	 * destructed, or if detached - the readables and writables are
+	 * destructed.
+	 */
+	void close( );
+
+	/**
 	 * Makes this socket become owned by its channels. The user can thereby
 	 * delete its last reference to this socket, and rely on the channels
 	 * to ensure the socket isn't deleted prematurely.

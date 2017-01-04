@@ -34,14 +34,23 @@ udp_sender::udp_sender( std::shared_ptr< udp_sender::pimpl >&& pimpl )
 
 udp_sender::~udp_sender( )
 {
+	// Remove our internal writable (the user should have taken it)
+	std::shared_ptr< writable< ::q::byte_block > > w;
+	std::atomic_store( &pimpl_->writable_out_, w );
+
 	// continue if detached, otherwise close
 	if ( !pimpl_->detached_ )
-		pimpl_->close( );
+		close( );
 }
 
 q::writable< q::byte_block > udp_sender::get_writable( )
 {
 	return *pimpl_->writable_out_;
+}
+
+void udp_sender::close( )
+{
+	pimpl_->o_close( pimpl_->dispatcher_, pimpl_ );
 }
 
 void udp_sender::detach( )

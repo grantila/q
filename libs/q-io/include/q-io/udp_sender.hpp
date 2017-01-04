@@ -42,6 +42,16 @@ public:
 	q::writable< q::byte_block > get_writable( );
 
 	/**
+	 * Close the socket ASAP.
+	 *
+	 * This will happen when the udp_receiver is destructed unless it is
+	 * detached. If it is detached, this will happen when the writables are
+	 * closed or destructed.
+	 * So usually this need not be done manually.
+	 */
+	void close( );
+
+	/**
 	 * TODO: Describe
 	 */
 	void detach( );
