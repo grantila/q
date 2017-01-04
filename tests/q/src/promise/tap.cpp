@@ -21,6 +21,14 @@ TEST_F( tap, values_to_value )
 	);
 }
 
+TEST_F( tap, empty )
+{
+	run(
+		q::with( queue )
+		.tap( EXPECT_CALL_WRAPPER( [ ]( ) { } ) )
+	);
+}
+
 TEST_F( tap, void_as_void_t )
 {
 	run(

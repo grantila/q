@@ -149,8 +149,8 @@ then( Fn&& fn, Queue&& queue )
 		auto value = state->consume( );
 		if ( value.has_exception( ) )
 			// Redirect exception
-	 		deferred->set_exception( value.exception( ) );
-	 	else
+			deferred->set_exception( value.exception( ) );
+		else
 			deferred->set_by_fun(
 				Q_MOVABLE_CONSUME( fn ), value.consume( ) );
 	};
@@ -197,8 +197,8 @@ then( Fn&& fn, Queue&& queue )
 		auto value = state->consume( );
 		if ( value.has_exception( ) )
 			// Redirect exception
-	 		deferred->set_exception( value.exception( ) );
-	 	else
+			deferred->set_exception( value.exception( ) );
+		else
 			deferred->set_by_fun(
 				Q_MOVABLE_CONSUME( fn ), value.consume( ) );
 	};
