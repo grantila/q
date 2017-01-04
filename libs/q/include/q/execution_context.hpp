@@ -136,7 +136,7 @@ make_execution_context( Args&&... args )
 
 	if (
 		detail::event_dispatcher_type_traits< EventDispatcher >
-		::autostart::value
+			::autostart::value
 	)
 		ed->start( );
 

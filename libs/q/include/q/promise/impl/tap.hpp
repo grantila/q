@@ -60,7 +60,7 @@ tap( Fn&& fn, Queue&& queue )
 
 		try
 		{
-			call_with_args_by_tuple(
+			::q::call_with_args_by_tuple(
 				Q_MOVABLE_CONSUME( fn ),
 				value.get( )
 			);
