@@ -77,7 +77,6 @@ class dispatcher
 	q::arguments< dispatcher_termination >,
 	dispatcher_exit
 >
-, ::q::timer_dispatcher
 , public std::enable_shared_from_this< dispatcher >
 , public q::enable_queue_from_this
 {
@@ -144,12 +143,6 @@ public:
 	 * background.
 	 */
 	promise< > start( ) override;
-
-	/**
-	 * Creates a timeout-based forwarding_async_task which can be used to
-	 * delay execution in q promise chains.
-	 */
-	::q::async_task delay( ::q::timer::duration_type dur ) override;
 
 	/**
 	 * Makes a DNS lookup. This is a helper around creating a

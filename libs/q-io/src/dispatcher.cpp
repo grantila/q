@@ -217,32 +217,6 @@ void dispatcher::set_task_fetcher( ::q::task_fetcher_task&& fetcher )
 	pimpl_->task_fetcher_ = std::move( fetcher );
 }
 
-q::async_task
-dispatcher::delay( q::timer::duration_type dur )
-{
-	auto self = shared_from_this( );
-	auto dur_( std::chrono::duration_cast< clock::duration >( dur ) );
-
-	auto runner = [ dur_, self ]( q::async_task::task fn )
-	{
-		auto timer = q::make_shared_using_constructor< timer_task >( );
-
-		timer->pimpl_->attach_dispatcher( self );
-
-		auto task = [ fn, timer ]( ) mutable
-		{
-			timer->unset_task( );
-
-			fn( q::fulfill< void >( ) );
-		};
-
-		timer->set_task( std::move( task ) );
-		timer->start_timeout( dur_ );
-	};
-
-	return q::async_task( runner );
-}
-
 q::promise< resolver_response >
 dispatcher::lookup( const std::string& name )
 {
