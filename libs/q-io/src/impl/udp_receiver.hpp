@@ -29,21 +29,15 @@ struct udp_receiver::pimpl
 {
 	using handle::i_close;
 
-	typedef udp_receiver::pimpl* data_ref_type;
-
 	static std::shared_ptr< udp_receiver::pimpl >
 	construct( std::uint16_t port, udp_receive_options options );
-
-	std::shared_ptr< dispatcher::pimpl > dispatcher_;
-	std::shared_ptr< pimpl > keep_alive_;
 
 	std::shared_ptr< q::readable< udp_packet > > readable_in_; // Ext
 	std::shared_ptr< q::writable< udp_packet > > writable_in_; // Int
 
 	std::unique_ptr< udp_receive_options > construction_options_;
 
-	std::atomic< bool > can_read_;
-	std::atomic< bool > closed_;
+	bool closed_;
 	std::atomic< bool > detached_;
 
 	::uv_udp_t udp_;
@@ -65,13 +59,11 @@ struct udp_receiver::pimpl
 protected:
 	pimpl( )
 	: handle( reinterpret_cast< ::uv_handle_t* >( &udp_ ) )
-	, can_read_( false )
 	, closed_( false )
 	, detached_( false )
 	, port_( 0 )
 	, is_infinite_( false )
 	{
-		udp_.data = nullptr;
 		udp_.loop = nullptr;
 	}
 };

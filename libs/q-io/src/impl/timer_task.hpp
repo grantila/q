@@ -27,13 +27,8 @@ struct timer_task::pimpl
 : handle
 , std::enable_shared_from_this< timer_task::pimpl >
 {
-	typedef timer_task::pimpl* data_ref_type;
-
 	::uv_loop_t* loop_;
 	::uv_timer_t timer_;
-
-	std::shared_ptr< pimpl > keep_alive_;
-	dispatcher_pimpl_ptr dispatcher_;
 
 	std::shared_ptr< q::task > task_;
 	clock::duration duration_;
@@ -44,9 +39,7 @@ struct timer_task::pimpl
 	, loop_( nullptr )
 	, duration_( clock::duration( 0 ) )
 	, repeat_( clock::duration( 0 ) )
-	{
-		timer_.data = nullptr;
-	}
+	{ }
 
 	void
 	i_attach_dispatcher( const dispatcher_pimpl_ptr& dispatcher )

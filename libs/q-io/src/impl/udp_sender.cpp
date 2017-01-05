@@ -19,20 +19,6 @@
 
 namespace q { namespace io {
 
-namespace {
-
-static void closer( ::uv_handle_t* handle )
-{
-	auto socket = reinterpret_cast< ::uv_udp_t* >( handle );
-	auto pimpl = reinterpret_cast< udp_sender::pimpl::data_ref_type >(
-		socket->data );
-	socket->data = nullptr;
-
-	pimpl->keep_alive_.reset( );
-};
-
-} // anonymous namespace
-
 std::shared_ptr< udp_sender::pimpl >
 udp_sender::pimpl::construct(
 	ip_address addr,
@@ -57,8 +43,6 @@ udp_sender::pimpl::i_attach_dispatcher( const dispatcher_pimpl_ptr& dispatcher )
 noexcept
 {
 	dispatcher_ = dispatcher;
-
-	udp_.data = reinterpret_cast< void* >( this );
 
 	// User settings
 
@@ -108,12 +92,11 @@ noexcept
 	read_write_one( );
 }
 
-// TODO: make this function "i_close" and ensure outside calls (in public class
-//       destructors e.g.) schedule this on the internal thread.
 void udp_sender::pimpl::i_close( expect< void > status )
 {
-	if ( closed_.exchange( true ) )
+	if ( closed_ )
 		return;
+	closed_ = true;
 
 	write_reqs_.clear( );
 
@@ -129,8 +112,7 @@ void udp_sender::pimpl::i_close( expect< void > status )
 
 	readable_out.reset( );
 
-	auto handle = reinterpret_cast< ::uv_handle_t* >( &udp_ );
-	::uv_close( handle, closer );
+	i_close_handle( );
 }
 
 void udp_sender::pimpl::send_block( ::q::byte_block block )

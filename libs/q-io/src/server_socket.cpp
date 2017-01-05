@@ -26,9 +26,6 @@ server_socket::server_socket( std::uint16_t port, ip_addresses&& bind_to )
 {
 	pimpl_->port_ = port;
 	pimpl_->bind_to_ = std::move( bind_to );
-
-	pimpl_->socket_.data = nullptr;
-	pimpl_->uv_loop_ = nullptr;
 }
 
 server_socket::~server_socket( )

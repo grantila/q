@@ -24,9 +24,7 @@ namespace q { namespace io {
 
 tcp_socket::tcp_socket( std::shared_ptr< tcp_socket::pimpl >&& _pimpl )
 : pimpl_( std::move( _pimpl ) )
-{
-	pimpl_->self_ = pimpl_;
-}
+{ }
 
 tcp_socket::~tcp_socket( )
 {

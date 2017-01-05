@@ -19,20 +19,6 @@
 
 namespace q { namespace io {
 
-namespace {
-
-static void closer( ::uv_handle_t* handle )
-{
-	auto socket = reinterpret_cast< ::uv_udp_t* >( handle );
-	auto ref = reinterpret_cast< udp_receiver::pimpl::data_ref_type >(
-		socket->data );
-	socket->data = nullptr;
-
-	ref->keep_alive_.reset( );
-};
-
-} // anonymous namespace
-
 std::shared_ptr< udp_receiver::pimpl >
 udp_receiver::pimpl::construct(
 	std::uint16_t port, udp_receive_options options
@@ -82,8 +68,6 @@ void udp_receiver::pimpl::i_attach_dispatcher(
 	writable_in_ = std::make_shared< q::writable< udp_packet > >(
 		ch.get_writable( ) );
 
-	udp_.data = reinterpret_cast< void* >( this );
-
 	::uv_udp_init( &dispatcher_->uv_loop, &udp_ );
 
 	auto sockaddr = bind_to.get_sockaddr( port_ );
@@ -107,8 +91,9 @@ void udp_receiver::pimpl::i_attach_dispatcher(
 //       destructors e.g.) schedule this on the internal thread.
 void udp_receiver::pimpl::i_close( expect< void > status )
 {
-	if ( closed_.exchange( true ) )
+	if ( closed_ )
 		return;
+	closed_ = true;
 
 	auto writable_in = std::atomic_load( &writable_in_ );
 
@@ -125,8 +110,7 @@ void udp_receiver::pimpl::i_close( expect< void > status )
 
 	writable_in_.reset( );
 
-	auto handle = reinterpret_cast< ::uv_handle_t* >( &udp_ );
-	::uv_close( handle, closer );
+	i_close_handle( );
 }
 
 void udp_receiver::pimpl::start_read( )
@@ -149,7 +133,7 @@ void udp_receiver::pimpl::start_read( )
 		unsigned flags
 	)
 	{
-		auto pimpl = reinterpret_cast< data_ref_type >( udp->data );
+		auto pimpl = get_pimpl< udp_receiver::pimpl >( udp );
 
 		if ( addr )
 		{
@@ -204,7 +188,7 @@ void udp_receiver::pimpl::stop_read( bool reschedule )
 	if ( !reschedule )
 		return;
 
-	std::weak_ptr< pimpl > weak_pimpl = keep_alive_;
+	std::weak_ptr< pimpl > weak_pimpl = shared_from_this( );
 
 	writable_in_->set_resume_notification(
 		[ weak_pimpl ]( )

@@ -29,30 +29,18 @@ struct tcp_socket::pimpl
 {
 	using handle::i_close;
 
-	typedef std::shared_ptr< tcp_socket::pimpl > data_ref_type;
-
-	static std::shared_ptr< tcp_socket::pimpl > construct( );
-
-	std::shared_ptr< dispatcher::pimpl > dispatcher_;
-	std::weak_ptr< pimpl > self_;
-
 	std::shared_ptr< q::readable< q::byte_block > > readable_in_; // Ext
 	std::shared_ptr< q::writable< q::byte_block > > writable_in_; // Int
 	std::shared_ptr< q::readable< q::byte_block > > readable_out_; // Int
 	std::shared_ptr< q::writable< q::byte_block > > writable_out_; // Ext
 
-	std::atomic< bool > can_read_;
-	std::atomic< bool > can_write_;
-	q::byte_block out_buffer_;
-
-	std::atomic< bool > closed_;
+	bool closed_;
 
 	::uv_tcp_t socket_;
 	::uv_connect_t connect_;
 
 	// Caches necessary for libuv
 	static const std::size_t cache_size = 64 * 1024;
-	typedef std::shared_ptr< pimpl > write_req_self_ptr;
 	// Decremented from libuv-thread, incremented form receive()-thread
 	std::size_t cached_bytes_;
 	struct write_info
@@ -77,12 +65,9 @@ struct tcp_socket::pimpl
 protected:
 	pimpl( )
 	: stream( reinterpret_cast< ::uv_stream_t* >( &socket_ ) )
-	, can_read_( false )
-	, can_write_( false )
 	, closed_( false )
 	, cached_bytes_( 0 )
 	{
-		socket_.data = nullptr;
 		socket_.loop = nullptr;
 	}
 };

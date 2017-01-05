@@ -19,15 +19,6 @@
 
 namespace q { namespace io {
 
-static void closer( ::uv_handle_t* handle )
-{
-	auto ref = reinterpret_cast< timer_task::pimpl::data_ref_type >(
-		handle->data );
-	handle->data = nullptr;
-
-	ref->keep_alive_.reset( );
-};
-
 void
 timer_task::pimpl::i_attach_dispatcher( const dispatcher_pimpl_ptr& dispatcher )
 noexcept
@@ -42,8 +33,6 @@ noexcept
 		// TODO: Better error, well described and thought through logic
 		Q_THROW( event_error( ) );
 
-	timer_.data = this;
-
 	keep_alive_ = shared_from_this( );
 }
 
@@ -51,7 +40,7 @@ void timer_task::pimpl::i_close( q::expect< void > exp )
 {
 	::uv_timer_stop( &timer_ );
 
-	::uv_close( uv_handle( ), closer );
+	i_close_handle( );
 }
 
 void timer_task::pimpl::set_task( q::task task )

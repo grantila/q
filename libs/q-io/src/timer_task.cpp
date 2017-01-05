@@ -40,37 +40,7 @@ timer_task::timer_task( )
 { }
 
 timer_task::~timer_task( )
-{
-	::uv_close_cb closer = [ ]( ::uv_handle_t* handle )
-	{
-		auto timer = reinterpret_cast< ::uv_timer_t* >( handle );
-		auto ref = reinterpret_cast< pimpl::data_ref_type* >(
-			timer->data );
-		timer->data = nullptr;
-
-		auto pimpl = *ref;
-
-		if ( ref )
-			delete ref;
-
-		if ( !pimpl )
-			// This should happen. It means we have initialized
-			// this timer half-way somehow.
-			// TODO: Assert we don't end up here
-			return;
-
-		pimpl->keep_alive_.reset( );
-	};
-
-	auto handle = reinterpret_cast< ::uv_handle_t* >( &pimpl_->timer_ );
-
-	if ( pimpl_->loop_ )
-	{
-		// This timer has been initialized, and needs to be closed
-		pimpl_->keep_alive_ = pimpl_;
-		::uv_close( handle, closer );
-	}
-}
+{ }
 
 void timer_task::set_task( q::task task )
 {
@@ -88,25 +58,23 @@ void timer_task::start_timeout(
 {
 	pimpl_->ensure_attached( );
 
-	pimpl_->duration_ = duration;
-	pimpl_->repeat_ = repeat;
-
 	std::weak_ptr< pimpl > weak_pimpl = pimpl_;
 
-	auto starter = [ weak_pimpl ]( )
+	auto starter = [ weak_pimpl, duration, repeat ]( )
 	{
 		auto pimpl = weak_pimpl.lock( );
 		if ( !pimpl )
 			return;
+
+		pimpl->duration_ = duration;
+		pimpl->repeat_ = repeat;
 
 		::uv_timer_t* timer = &pimpl->timer_;
 		/* ret */::uv_timer_stop( timer );
 
 		uv_timer_cb timer_callback = [ ]( ::uv_timer_t* timer )
 		{
-			auto ref = reinterpret_cast< pimpl::data_ref_type* >(
-				timer->data );
-			auto pimpl = *ref;
+			auto pimpl = get_pimpl< timer_task::pimpl >( timer );
 
 			auto task = std::atomic_load( &pimpl->task_ );
 			if ( task && *task )
@@ -120,7 +88,7 @@ void timer_task::start_timeout(
 			timer, timer_callback, dur_millis, rep_millis );
 	};
 
-	pimpl_->dispatcher_->internal_queue_->push( starter );
+	pimpl_->dispatcher_->internal_queue_->push( std::move( starter ) );
 }
 
 void timer_task::stop( )
@@ -139,7 +107,7 @@ void timer_task::stop( )
 		/* ret */::uv_timer_stop( timer );
 	};
 
-	pimpl_->dispatcher_->internal_queue_->push( stopper );
+	pimpl_->dispatcher_->internal_queue_->push( std::move( stopper ) );
 }
 
 } } // namespace io, namespace q

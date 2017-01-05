@@ -29,8 +29,6 @@ struct udp_sender::pimpl
 {
 	using handle::i_close;
 
-	typedef udp_sender::pimpl* data_ref_type;
-
 	static std::shared_ptr< udp_sender::pimpl >
 	construct(
 		ip_address addr,
@@ -38,15 +36,12 @@ struct udp_sender::pimpl
 		udp_send_options options
 	);
 
-	std::shared_ptr< dispatcher::pimpl > dispatcher_;
-	std::shared_ptr< pimpl > keep_alive_;
-
 	std::shared_ptr< q::readable< ::q::byte_block > > readable_out_; // Int
 	std::shared_ptr< q::writable< ::q::byte_block > > writable_out_; // Ext
 
 	std::unique_ptr< udp_send_options > construction_options_;
 
-	std::atomic< bool > closed_;
+	bool closed_;
 	std::atomic< bool > detached_;
 
 	::uv_udp_t udp_;
@@ -83,7 +78,6 @@ protected:
 	, sockaddr_( )
 	, is_infinite_( false )
 	{
-		udp_.data = nullptr;
 		udp_.loop = nullptr;
 	}
 };

@@ -37,6 +37,8 @@ struct handle
 {
 	// Members
 
+	dispatcher_pimpl_ptr dispatcher_;
+	std::shared_ptr< handle > keep_alive_;
 	::uv_handle_t* handle_;
 
 	// Accessors and helpers to be called from any thread
@@ -63,7 +65,15 @@ struct handle
 	}
 
 	handle( ) = delete;
-	handle( ::uv_handle_t* h ) : handle_( h ) { }
+	handle( ::uv_handle_t* h ) : handle_( h )
+	{
+		handle_->data = reinterpret_cast< void* >( this );
+	}
+
+	void i_close_handle( )
+	{
+		::uv_close( handle_, closer );
+	}
 
 	virtual void
 	i_attach_dispatcher( const dispatcher_pimpl_ptr& dispatcher ) noexcept
@@ -80,7 +90,39 @@ struct handle
 	}
 
 	virtual void i_close( q::expect< void > ) = 0;
+
+private:
+	static void closer( ::uv_handle_t* handle )
+	{
+		auto self = reinterpret_cast< struct handle* >( handle->data );
+		handle->data = nullptr;
+
+		self->keep_alive_.reset( );
+	}
 };
+
+template< typename Pimpl, typename Handle >
+static inline typename std::enable_if<
+	std::is_same< Handle, ::uv_handle_t* >::value
+	or
+	std::is_same< Handle, ::uv_timer_t* >::value
+	or
+	std::is_same< Handle, ::uv_udp_t* >::value
+	or
+	std::is_same< Handle, ::uv_stream_t* >::value
+	or
+	std::is_same< Handle, ::uv_stream_t* >::value
+	or
+	std::is_same< Handle, ::uv_write_t* >::value
+	or
+	std::is_same< Handle, ::uv_udp_t* >::value,
+	Pimpl*
+>::type
+get_pimpl( Handle handle )
+{
+	return static_cast< Pimpl* >(
+		reinterpret_cast< struct handle* >( handle->data ) );
+}
 
 } } // namespace io, namespace q
 

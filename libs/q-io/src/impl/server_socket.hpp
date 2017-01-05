@@ -29,17 +29,10 @@ struct server_socket::pimpl
 {
 	using handle::i_close;
 
-	typedef server_socket::pimpl* data_ref_type;
-
-	std::shared_ptr< dispatcher::pimpl > dispatcher_;
-	std::shared_ptr< server_socket::pimpl > keep_alive_;
-
 	std::unique_ptr< q::channel< tcp_socket_ptr > > channel_;
 
 	std::uint16_t port_;
 	ip_addresses bind_to_;
-
-	::uv_loop_t* uv_loop_;
 
 	::uv_tcp_t socket_;
 

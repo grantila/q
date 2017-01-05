@@ -21,32 +21,9 @@
 
 namespace q { namespace io {
 
-namespace {
-
-void closer( ::uv_handle_t* handle )
-{
-	auto socket = reinterpret_cast< ::uv_tcp_t* >( handle );
-	auto ref = reinterpret_cast< server_socket::pimpl::data_ref_type >(
-		socket->data );
-	socket->data = nullptr;
-
-	ref->keep_alive_.reset( );
-};
-
-void server_socket_close( server_socket::pimpl& ref )
-{
-	if ( ref.uv_loop_ )
-	{
-		::uv_close( ref.uv_handle( ), closer );
-	}
-	ref.uv_loop_ = nullptr;
-}
-
-} // anonymous namespace
-
 void server_socket::pimpl::i_close( q::expect< void > exp )
 {
-	server_socket_close( *this );
+	i_close_handle( );
 }
 
 void server_socket::pimpl::i_attach_dispatcher(
@@ -68,18 +45,14 @@ void server_socket::pimpl::i_attach_dispatcher(
 
 	auto addr = iter->get_sockaddr( port_ );
 
-	uv_loop_ = &dispatcher_->uv_loop;
-
-	::uv_tcp_init( uv_loop_, &socket_ );
+	::uv_tcp_init( &dispatcher_->uv_loop, &socket_ );
 
 	::uv_tcp_bind( &socket_, &*addr, 0 );
-
-	socket_.data = reinterpret_cast< void* >( this );
 
 	uv_connection_cb connection_callback =
 	[ ]( ::uv_stream_t* server, int status )
 	{
-		auto pimpl = reinterpret_cast< data_ref_type >( server->data );
+		auto pimpl = get_pimpl< server_socket::pimpl >( server );
 
 		if ( status < 0 )
 		{
@@ -103,7 +76,8 @@ void server_socket::pimpl::i_attach_dispatcher(
 
 		auto socket_pimpl = q::make_shared< tcp_socket::pimpl >( );
 
-		::uv_tcp_init( pimpl->uv_loop_, &socket_pimpl->socket_ );
+		::uv_tcp_init(
+			&pimpl->dispatcher_->uv_loop, &socket_pimpl->socket_ );
 
 		if ( ::uv_accept( server, socket_pimpl->uv_stream( ) ) == 0 )
 		{

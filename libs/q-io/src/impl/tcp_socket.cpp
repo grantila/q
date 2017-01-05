@@ -19,39 +19,11 @@
 
 namespace q { namespace io {
 
-namespace {
-
-void closer( ::uv_handle_t* handle )
-{
-	auto socket = reinterpret_cast< ::uv_tcp_t* >( handle );
-	auto ref = reinterpret_cast< tcp_socket::pimpl::data_ref_type* >(
-		socket->data );
-	socket->data = nullptr;
-
-	if ( ref )
-		delete ref;
-};
-
-} // anonymous namespace
-
-std::shared_ptr< tcp_socket::pimpl > tcp_socket::pimpl::construct( )
-{
-	auto pimpl = q::make_shared_using_constructor< tcp_socket::pimpl >( );
-	pimpl->self_ = pimpl;
-	pimpl->socket_.data = nullptr;
-	return pimpl;
-}
-
 void
 tcp_socket::pimpl::i_attach_dispatcher( const dispatcher_pimpl_ptr& dispatcher )
 noexcept
 {
 	dispatcher_ = dispatcher;
-
-	auto u_ref = q::make_unique< data_ref_type >( shared_from_this( ) );
-	auto ref = u_ref.release( );
-
-	socket_.data = reinterpret_cast< void* >( ref );
 
 	// TODO: Reconsider these
 	std::size_t backlog_in = 6;
@@ -72,24 +44,22 @@ noexcept
 	writable_out_ = std::make_shared< q::writable< q::byte_block > >(
 		channel_out.get_writable( ) );
 
+	keep_alive_ = shared_from_this( );
+
 	start_read( );
 	begin_write( );
 }
 
 void tcp_socket::pimpl::i_close( expect< void > status )
 {
-	if ( closed_.exchange( true ) )
+	if ( closed_ )
 		return;
+	closed_ = true;
 
 	auto writable_in = std::atomic_load( &writable_in_ );
 	auto readable_out = std::atomic_load( &readable_out_ );
 
-	if ( !socket_.data )
-	{
-		auto unique_ref =
-			q::make_unique< data_ref_type >( shared_from_this( ) );
-		socket_.data = unique_ref.release( );
-	}
+	keep_alive_ = shared_from_this( );
 
 	if ( !!writable_in )
 	{
@@ -113,8 +83,7 @@ void tcp_socket::pimpl::i_close( expect< void > status )
 	writable_in_.reset( );
 	readable_out_.reset( );
 
-	auto handle = reinterpret_cast< ::uv_handle_t* >( &socket_ );
-	::uv_close( handle, closer );
+	i_close_handle( );
 }
 
 void tcp_socket::pimpl::start_read( )
@@ -137,8 +106,7 @@ void tcp_socket::pimpl::start_read( )
 		const uv_buf_t* buf
 	)
 	{
-		auto pimpl =
-			*reinterpret_cast< data_ref_type* >( stream->data );
+		auto pimpl = get_pimpl< tcp_socket::pimpl >( stream );
 
 		if ( nread > 0 )
 		{
@@ -190,12 +158,14 @@ void tcp_socket::pimpl::stop_read( bool reschedule )
 	if ( !reschedule )
 		return;
 
-	auto pimpl = self_.lock( );
+	std::weak_ptr< pimpl > weak_self = shared_from_this( );
 
 	writable_in_->set_resume_notification(
-		[ pimpl ]( )
+		[ weak_self ]( )
 		{
-			pimpl->start_read( );
+			auto self = weak_self.lock( );
+			if ( self )
+				self->start_read( );
 		},
 		true
 	);
@@ -203,15 +173,12 @@ void tcp_socket::pimpl::stop_read( bool reschedule )
 
 void tcp_socket::pimpl::begin_write( )
 {
-	auto pimpl = self_.lock( );
+	auto pimpl = shared_from_this( );
 	auto stream = reinterpret_cast< ::uv_stream_t* >( &socket_ );
 
 	::uv_write_cb read_again = [ ]( ::uv_write_t* req, int status )
 	{
-		auto pimpl_ptr =
-			reinterpret_cast< write_req_self_ptr* >( req->data );
-		auto pimpl = *pimpl_ptr;
-		delete pimpl_ptr;
+		auto pimpl = get_pimpl< tcp_socket::pimpl >( req );
 
 		bool should_write_more = false;
 
@@ -272,7 +239,7 @@ void tcp_socket::pimpl::begin_write( )
 				return;
 
 			auto req = q::make_unique< ::uv_write_t >( );
-			req->data = new write_req_self_ptr( pimpl );
+			req->data = static_cast< handle* >( pimpl.get( ) );
 			// `data` is written here and read by another thread.
 			// When running with race condition analysis, this will
 			// look like a race condition unless we kill_dependency
