@@ -421,23 +421,23 @@ int main( int argc, char** argv )
 	auto _writable = chan->get_writable( );
 	auto _readable = chan->get_readable( );
 
-	_writable.send( 12, std::string( "years old whiskey" ) );
-	_writable.send( 12, "years old whiskey" );
-	_writable.send( 99, "luftballoons" );
+	q::ignore_result( _writable.write( 12, std::string( "years old whiskey" ) ) );
+	q::ignore_result( _writable.write( 12, "years old whiskey" ) );
+	q::ignore_result( _writable.write( 99, "luftballoons" ) );
 
 	auto chan_out = [ ]( int i, std::string s )
 	{
 		std::cout << i << " " << s << std::endl;
 	};
 
-	_readable.receive( ).then( chan_out );
-	_readable.receive( ).then( chan_out );
-	_readable.receive( ).then( chan_out );
+	_readable.read( ).then( chan_out );
+	_readable.read( ).then( chan_out );
+	_readable.read( ).then( chan_out );
 
 	shared_prom
 	.then( [ &_writable ]( double )
 	{
-		_writable.send( 1, "earth" );
+		q::ignore_result( _writable.write( 1, "earth" ) );
 	} );
 
 	std::cerr << "backlog b" << std::endl;
