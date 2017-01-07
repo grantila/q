@@ -21,6 +21,7 @@
 
 #include <iostream>
 #include <iomanip>
+#include <atomic>
 #include <sstream>
 #include <cstring>
 

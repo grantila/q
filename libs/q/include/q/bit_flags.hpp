@@ -19,6 +19,8 @@
 
 #include <q/type_traits.hpp>
 
+#include <cstring>
+
 namespace q {
 
 /**
