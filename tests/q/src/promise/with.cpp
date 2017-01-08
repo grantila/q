@@ -4,13 +4,6 @@
 
 Q_TEST_MAKE_SCOPE( with );
 
-template< typename... T >
-bool
-operator==( const std::tuple< T... >& tuple1, const std::tuple< T... >& tuple2 )
-{
-	return true;
-}
-
 TEST_F( with, with_nothing )
 {
 	EVENTUALLY_EXPECT_RESOLUTION( q::with( queue ) );
