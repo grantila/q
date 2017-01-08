@@ -34,7 +34,7 @@ void fixture::SetUp( )
 
 	std::tie( tp, tp_queue ) = q::make_event_dispatcher_and_queue<
 		q::threadpool, q::direct_scheduler
-	>( "test pool", queue );
+	>( "test pool", queue, 2 );
 
 	on_setup( );
 
