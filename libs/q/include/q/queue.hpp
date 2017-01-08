@@ -37,29 +37,29 @@ struct timer_task
 	timer_task( const timer_task& ) = delete;
 
 	timer_task( task&& _task )
-	: task( std::move( _task ) )
+	: task_( std::move( _task ) )
 	, is_timed_( false )
 	{ }
 
 	timer_task( task&& _task, timer::point_type&& _wait_until )
-	: task( std::move( _task ) )
-	, wait_until( std::move( _wait_until ) )
+	: task_( std::move( _task ) )
+	, wait_until_( std::move( _wait_until ) )
 	, is_timed_( true )
 	{ }
 
 	bool operator!( ) const
 	{
-		return !this->task;
+		return !this->task_;
 	}
 
 	operator bool( ) const
 	{
-		return !!this->task;
+		return !!this->task_;
 	}
 
 	bool operator<( const timer_task& other ) const
 	{
-		return wait_until < other.wait_until;
+		return wait_until_ < other.wait_until_;
 	}
 
 	bool is_timed( ) const
@@ -67,8 +67,8 @@ struct timer_task
 		return is_timed_;
 	}
 
-	task task;
-	timer::point_type wait_until;
+	task task_;
+	timer::point_type wait_until_;
 
 private:
 	bool is_timed_;

@@ -96,8 +96,8 @@ void blocking_dispatcher::start( )
 			// We just add the timed task and re-iterate.
 			// This handling needs a complete overhaul. TODO
 			pimpl_->timer_tasks_.push(
-				std::move( _task.wait_until ),
-				std::move( _task.task ) );
+				std::move( _task.wait_until_ ),
+				std::move( _task.task_ ) );
 
 			continue;
 		}
@@ -105,7 +105,7 @@ void blocking_dispatcher::start( )
 		{
 			Q_AUTO_UNIQUE_UNLOCK( lock );
 
-			_task.task( );
+			_task.task_( );
 		}
 
 		if ( pimpl_->running_ && !_task )

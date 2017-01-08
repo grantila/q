@@ -12,8 +12,8 @@ if [ "a$BUILDTYPE" == "a" ]; then
 fi
 
 if [ "$BUILDTYPE" == "Unix Makefiles" ]; then
-	mkdir -p obj
-	cd obj
+	mkdir -p build
+	cd build
 
 	# Create 4 different makefiles (each in a separate directory)
 	mkdir release;        cd release ;        cmake -G "$BUILDTYPE" -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON  ../.. ; cd ..

@@ -85,7 +85,10 @@ void set_thread_name( const std::string& name )
 #elif defined( LIBQ_ON_BSD )
 	pthread_set_name_np( tid, name.c_str( ) );
 #else
-	pthread_setname_np( tid, name.c_str( ) );
+	if ( name.size( ) > 15 )
+		pthread_setname_np( tid, name.substr( 0, 15 ).c_str( ) );
+	else
+		pthread_setname_np( tid, name.c_str( ) );
 #endif
 
 #elif defined( LIBQ_ON_WINDOWS )

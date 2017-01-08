@@ -20,6 +20,8 @@
 #include <q/types.hpp>
 #include <q/type_traits.hpp>
 
+#include <limits>
+
 namespace q {
 
 class backlog

@@ -190,8 +190,8 @@ promise< > threadpool::start( )
 					// highly inefficient and needs to be
 					// entirely redesigned. TODO
 					pimpl_->timer_tasks_.push(
-						std::move( _task.wait_until ),
-						std::move( _task.task ) );
+						std::move( _task.wait_until_ ),
+						std::move( _task.task_ ) );
 
 					continue;
 				}
@@ -199,7 +199,7 @@ promise< > threadpool::start( )
 				{
 					Q_AUTO_UNIQUE_UNLOCK( lock );
 
-					invoker( std::move( _task.task ) );
+					invoker( std::move( _task.task_ ) );
 				}
 
 				if ( pimpl_->running_ && !_task )

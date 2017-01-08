@@ -32,7 +32,9 @@ else ( )
 	add_definitions( "-Wall" )
 	add_definitions( "-Wno-comment" )
 
-#        set( GENERIC_LIB_DEPS pthread dl )
+	if ( NOT APPLE )
+		set( GENERIC_LIB_DEPS pthread dl )
+	endif ( )
 endif ( )
 
 include_directories( "libs/q/include" )
