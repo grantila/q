@@ -121,10 +121,7 @@ public:
 	typedef std::integral_constant< std::size_t, 0 > byte_size;
 
 	template< std::size_t index >
-	void set( bool value = true )
-	{
-		static_assert( false, "Bit is out of range" );
-	}
+	void set( bool value = true ); // This is impossible
 
 	void set( std::size_t index, bool value = true )
 	{
@@ -132,10 +129,7 @@ public:
 	}
 
 	template< std::size_t index >
-	void unset( )
-	{
-		set< index >( false );
-	}
+	void unset( ); // This is impossible
 
 	void unset( std::size_t index )
 	{
@@ -143,10 +137,7 @@ public:
 	}
 
 	template< std::size_t index >
-	bool is_set( ) const
-	{
-		static_assert( false, "Bit is out of range" );
-	}
+	bool is_set( ) const; // This is impossible
 
 	bool is_set( std::size_t index ) const
 	{
