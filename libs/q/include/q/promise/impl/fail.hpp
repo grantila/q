@@ -35,11 +35,7 @@ typename std::enable_if<
 	>::value
 	and
 	tuple_arguments_t< result_of_t< Fn > >
-		::template is_convertible_to<
-			typename generic_promise<
-				Shared, Args...
-			>::argument_types
-		>::value
+		::template is_convertible_to< arguments< Args... > >::value
 	and
 	Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
 	typename generic_promise< Shared, Args... >::promise_this_type
@@ -102,11 +98,7 @@ typename std::enable_if<
 	is_promise< result_of_t< Fn > >::value
 	and
 	result_of_t< Fn >::argument_types
-		::template is_convertible_to<
-			typename generic_promise<
-				Shared, Args...
-			>::argument_types
-		>::value
+		::template is_convertible_to< arguments< Args... > >::value
 	and
 	Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
 	typename generic_promise< Shared, Args... >::promise_this_type
@@ -165,11 +157,7 @@ typename std::enable_if<
 	!arguments_of_are_t< Fn, std::exception_ptr >::value
 	and
 	tuple_arguments_t< result_of_t< Fn > >
-		::template is_convertible_to<
-			typename generic_promise<
-				Shared, Args...
-			>::argument_types
-		>::value
+		::template is_convertible_to< arguments< Args... > >::value
 	and
 	Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
 	typename generic_promise< Shared, Args... >::promise_this_type
@@ -244,11 +232,7 @@ typename std::enable_if<
 	is_promise< result_of_t< Fn > >::value
 	and
 	result_of_t< Fn >::argument_types
-		::template is_convertible_to<
-			typename generic_promise<
-				Shared, Args...
-			>::argument_types
-		>::value
+		::template is_convertible_to< arguments< Args... > >::value
 	and
 	Q_IS_SETDEFAULT_SAME( queue_ptr, Queue ),
 	typename generic_promise< Shared, Args... >::promise_this_type

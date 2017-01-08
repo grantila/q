@@ -17,7 +17,14 @@
 #ifndef LIBQ_FUNCTION_HPP
 #define LIBQ_FUNCTION_HPP
 
+#include <q/pp.hpp>
 #include <q/functional.hpp>
+
+#ifdef LIBQ_ON_WINDOWS
+#	pragma warning( push )
+#	pragma warning( disable : 4521 )
+#	pragma warning( disable : 4522 )
+#endif
 
 /**
  * q::function and q::unique_function can be configured (optimized) at compile
@@ -398,7 +405,11 @@ template<
 	typename Ret,
 	typename... Args
 >
-class alignas( LIBQ__FUNCTION_INLINE_ALIGN ) any_function
+class
+#ifndef Q_NO_FUNCTION_ALIGN
+	alignas( LIBQ__FUNCTION_INLINE_ALIGN )
+#endif
+any_function
 : copyable_if_t< Shared::value >
 {
 public:
@@ -1144,7 +1155,11 @@ private:
 
 	typedef typename std::aligned_storage<
 		DataSize::value,
+#ifdef Q_NO_FUNCTION_ALIGN
+		sizeof( std::ptrdiff_t )
+#else
 		LIBQ__FUNCTION_INLINE_STATE_SIZE * 2
+#endif
 	>::type data_type;
 
 	data_type base_;
@@ -1192,5 +1207,9 @@ using custom_function = detail::any_function_t<
 >;
 
 } // namespace q
+
+#ifdef LIBQ_ON_WINDOWS
+#	pragma warning( pop )
+#endif
 
 #endif // LIBQ_FUNCTION_HPP

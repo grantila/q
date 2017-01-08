@@ -95,7 +95,7 @@ public:
 		constexpr std::size_t bit_index = 7 - ( index - byte_index * 8 );
 		constexpr std::uint8_t bit_byte = std::uint8_t( 1 ) << bit_index;
 
-		return bytes[ byte_index ] & bit_byte;
+		return !!( bytes[ byte_index ] & bit_byte );
 	}
 
 	bool is_set( std::size_t index ) const
@@ -107,11 +107,51 @@ public:
 		std::size_t bit_index = 7 - ( index - byte_index * 8 );
 		std::uint8_t bit_byte = std::uint8_t( 1 ) << bit_index;
 
-		return bytes[ byte_index ] & bit_byte;
+		return !!( bytes[ byte_index ] & bit_byte );
 	}
 
 private:
 	std::uint8_t bytes[ byte_size::value ];
+};
+
+template< >
+class bit_flags< 0 >
+{
+public:
+	typedef std::integral_constant< std::size_t, 0 > byte_size;
+
+	template< std::size_t index >
+	void set( bool value = true )
+	{
+		static_assert( false, "Bit is out of range" );
+	}
+
+	void set( std::size_t index, bool value = true )
+	{
+		throw std::out_of_range( "Bit is out of range" );
+	}
+
+	template< std::size_t index >
+	void unset( )
+	{
+		set< index >( false );
+	}
+
+	void unset( std::size_t index )
+	{
+		throw std::out_of_range( "Bit is out of range" );
+	}
+
+	template< std::size_t index >
+	bool is_set( ) const
+	{
+		static_assert( false, "Bit is out of range" );
+	}
+
+	bool is_set( std::size_t index ) const
+	{
+		throw std::out_of_range( "Bit is out of range" );
+	}
 };
 
 template< typename... T >

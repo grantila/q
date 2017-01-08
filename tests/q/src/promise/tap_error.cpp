@@ -80,7 +80,7 @@ TEST_F( tap_error, error_class_to_promise )
 
 TEST_F( tap_error, exception_ptr_throwing_handler )
 {
-	float magic = 3.14;
+	float magic = 3.14f;
 
 	run(
 		q::with( queue )
@@ -124,7 +124,7 @@ TEST_F( tap_error, exception_ptr_throwing_handler )
 
 TEST_F( tap_error, exception_ptr_throwing_handler_promise_sync )
 {
-	float magic = 3.14;
+	float magic = 3.14f;
 
 	q::queue_ptr queue = this->queue;
 
@@ -171,7 +171,7 @@ TEST_F( tap_error, exception_ptr_throwing_handler_promise_sync )
 
 TEST_F( tap_error, exception_ptr_throwing_handler_promise_async )
 {
-	float magic = 3.14;
+	float magic = 3.14f;
 
 	q::queue_ptr queue = this->queue;
 

@@ -60,9 +60,15 @@ auto make_lambda_11( ) -> lambda< Mutable >
 
 struct nothing { };
 
+template< std::size_t Size >
+struct _aligned_storage
+{
+	typename std::aligned_storage< Size >::type data_;
+};
+
 template< std::size_t Size, bool Copyable >
 struct payload
-: std::aligned_storage< Size >::type
+: _aligned_storage< Size >
 , std::conditional<
 	Copyable,
 	nothing,

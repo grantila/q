@@ -345,7 +345,7 @@ public:
 			// If the channel still exists (which should always be
 			// the case), we'll make a proxy promise which detects
 			// exceptions to automatically close the channel.
-			std::function< void( std::exception_ptr ) > cleaner;
+			q::function< void( std::exception_ptr ) > cleaner;
 			if ( ch )
 				cleaner = [ ch ]( std::exception_ptr e )
 				{
@@ -929,7 +929,10 @@ public:
 	Q_NODISCARD
 	typename std::enable_if<
 		detail::shared_channel< T... >
-			::template fast_waiter_type< FnValue, FnClosed >
+			::template fast_waiter_type<
+				decayed_function_t< FnValue >,
+				decayed_function_t< FnClosed >
+			>
 			::inner_callbacks_are_valid::value
 		and
 		!IsPromise,
@@ -951,7 +954,10 @@ public:
 	Q_NODISCARD
 	typename std::enable_if<
 		detail::shared_channel< T... >
-			::template fast_waiter_type< FnValue, FnClosed >
+			::template fast_waiter_type<
+				decayed_function_t< FnValue >,
+				decayed_function_t< FnClosed >
+			>
 			::inner_callbacks_are_valid::value
 		and
 		IsPromise,
@@ -993,7 +999,10 @@ public:
 	Q_NODISCARD
 	typename std::enable_if<
 		detail::shared_channel< T... >
-			::template fast_waiter_type< Fn, function< void( ) > >
+			::template fast_waiter_type<
+				decayed_function_t< Fn >,
+				function< void( ) >
+			>
 			::inner_callbacks_are_valid::value,
 		promise< >
 	>::type

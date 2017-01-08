@@ -61,8 +61,9 @@ public:
 		"Promises of references aren't allowed"
 	);
 
+	using argument_types = arguments< Args... >;
+
 	typedef bool_type_t< Shared >                  shared_type;
-	typedef arguments< Args... >                   argument_types;
 	typedef std::tuple< Args... >                  tuple_type;
 	typedef generic_promise< Shared, Args... >     this_type;
 	typedef promise< Args... >                     unique_this_type;
@@ -639,14 +640,14 @@ public:
 	 *   For a promise< T1, T2... >:
 	 *     Same as reflect_tuple( )
 	 */
-	template< bool Simplified = sizeof...( Args ) < 2 >
+	template< bool Simplified = ( sizeof...( Args ) < 2 ) >
 	typename std::enable_if<
 		Simplified,
 		q::promise< short_expect_type >
 	>::type
 	reflect( );
 
-	template< bool Simplified = sizeof...( Args ) < 2 >
+	template< bool Simplified = ( sizeof...( Args ) < 2 ) >
 	typename std::enable_if<
 		!Simplified,
 		q::promise< tuple_expect_type >

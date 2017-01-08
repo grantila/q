@@ -18,6 +18,8 @@
 #define LIBQ_INTERNAL_STACKTRACE_HPP
 
 #include <q/stacktrace.hpp>
+
+#include <algorithm>
 #include <cstring>
 #include <cstdlib>
 

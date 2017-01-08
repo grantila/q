@@ -22,6 +22,7 @@
 #	ifdef _M_IX86
 #		define LIBQ_ON_X86
 #	endif
+#	define Q_NO_FUNCTION_ALIGN
 #elif defined( __APPLE__ )
 #	define LIBQ_ON_OSX
 #	define LIBQ_ON_POSIX

@@ -18,6 +18,7 @@
 #include <q/exception.hpp>
 
 #include <cstring>
+#include <algorithm>
 
 namespace q {
 
