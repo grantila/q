@@ -30,9 +30,9 @@
  * comparison between the expected and actual values.
  */
 
-#define EVENTUALLY_EXPECT( expected, ... ) \
-	::q::test::expected_root( *this, LIBQ_LOCATION, #expected, #__VA_ARGS__ ) \
-	.that( expected )->
+#define EVENTUALLY_EXPECT( ... ) \
+	::q::test::expected_root( *this, LIBQ_LOCATION, #__VA_ARGS__ ) \
+	.that( LIBQ_FIRST( __VA_ARGS__ ) )->
 
 #define QTEST_EVENTUALLY_EXPECT( op, expected, ... ) \
 	::q::test::expected_root( *this, LIBQ_LOCATION, #expected, #__VA_ARGS__ ) \
@@ -71,6 +71,29 @@
 
 namespace q { namespace test {
 
+template<
+	typename T,
+	bool IsPromise = ::q::is_promise<
+		typename std::decay< T >::type
+	>::value
+>
+struct is_promise_of_c_string
+: std::false_type
+{ };
+
+template< typename T >
+struct is_promise_of_c_string< T, true >
+: bool_type_t<
+	std::decay< T >::type::argument_types::size::value == 1
+	and
+	q::is_c_string<
+		typename std::decay< T >::type::argument_types
+		::template append< void >
+		::first_type
+	>::value
+>
+{ };
+
 template< typename T >
 class expected_value;
 
@@ -103,7 +126,40 @@ public:
 	}
 
 	template< typename T >
-	std::shared_ptr< expected_value< typename std::decay< T >::type > >
+	typename std::enable_if<
+		q::is_c_string< T >::value,
+		std::shared_ptr< expected_value< std::string > >
+	>::type
+	that( T&& t )
+	{
+		return that( std::string( t ) );
+	}
+
+	template< typename T >
+	typename std::enable_if<
+		is_promise_of_c_string< T >::value,
+		std::shared_ptr< expected_value< promise< std::string > > >
+	>::type
+	that( T&& t )
+	{
+		return that(
+			t.then( [ ]( const char* s )
+			{
+				return std::string( s );
+			} )
+		);
+	}
+
+	template< typename T >
+	typename std::enable_if<
+		!q::is_c_string< T >::value
+		and
+		!is_promise_of_c_string< T >::value
+		,
+		std::shared_ptr<
+			expected_value< typename std::decay< T >::type >
+		>
+	>::type
 	that( T&& t )
 	{
 		return expected_value< typename std::decay< T >::type >
