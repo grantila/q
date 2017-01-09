@@ -37,7 +37,7 @@ else ( )
 	endif ( )
 endif ( )
 
-if ( $ENV{MODE} STREQUAL "debug" )
+if ( "$ENV{MODE}" STREQUAL "debug" )
 	add_definitions( "-ftemplate-backtrace-limit=0" )
 endif ( )
 
