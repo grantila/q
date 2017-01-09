@@ -31,6 +31,14 @@ namespace q {
 
 
 template< typename... T >
+struct is_default_constructible
+: hierarchically_satisfies_all_conditions_t<
+	std::is_default_constructible,
+	T...
+>
+{ };
+
+template< typename... T >
 struct is_nothrow_default_constructible
 : hierarchically_satisfies_all_conditions_t<
 	std::is_nothrow_default_constructible,
@@ -95,6 +103,18 @@ struct is_move_constructible< void >
 : std::true_type
 { };
 
+template< typename... T >
+struct is_nothrow_move_constructible
+: hierarchically_satisfies_all_conditions_t<
+	std::is_nothrow_move_constructible,
+	T...
+>
+{ };
+
+template< >
+struct is_nothrow_move_constructible< void >
+: std::true_type
+{ };
 
 
 /**

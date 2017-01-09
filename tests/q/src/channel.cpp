@@ -627,7 +627,7 @@ TEST_F( channel, fast_read_two_types )
 	auto writable = ch.get_writable( );
 
 	std::vector< std::tuple< int, std::string > > expected{
-		{ 17, "hello" }, { 4711, "world" }
+		std::make_tuple( 17, "hello" ), std::make_tuple( 47, "world" )
 	};
 	std::size_t counter = 0;
 
@@ -1160,7 +1160,7 @@ TEST_F( channel, consume_two_types )
 	auto writable = ch.get_writable( );
 
 	std::vector< std::tuple< int, std::string > > expected{
-		{ 17, "hello" }, { 4711, "world" }
+		std::make_tuple( 17, "hello" ), std::make_tuple( 47, "world" )
 	};
 	std::size_t counter = 0;
 

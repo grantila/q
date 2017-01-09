@@ -93,7 +93,7 @@ protected:
 template<
 	typename T,
 	bool Static =
-		std::is_default_constructible< T >::value &&
+		q::is_default_constructible< T >::value &&
 		(
 			::q::is_copy_constructible< T >::value ||
 			!::q::is_copy_constructible< T >::value
@@ -103,11 +103,11 @@ template<
 class expect_value
 {
 public:
-	typedef std::is_nothrow_default_constructible< T >
+	typedef q::is_nothrow_default_constructible< T >
 		noexcept_default_constructor;
-	typedef std::is_nothrow_move_constructible< T >
+	typedef q::is_nothrow_move_constructible< T >
 		noexcept_move_constructor;
-	typedef std::is_nothrow_copy_constructible< T >
+	typedef q::is_nothrow_copy_constructible< T >
 		noexcept_copy_constructor;
 protected:
 	expect_value( )
@@ -150,11 +150,11 @@ template< typename T >
 class expect_value< T, false >
 {
 public:
-	typedef std::is_nothrow_default_constructible< T >
+	typedef q::is_nothrow_default_constructible< T >
 		noexcept_default_constructor;
-	typedef std::is_nothrow_move_constructible< T >
+	typedef q::is_nothrow_move_constructible< T >
 		noexcept_move_constructor;
-	typedef std::is_nothrow_copy_constructible< T >
+	typedef q::is_nothrow_copy_constructible< T >
 		noexcept_copy_constructor;
 protected:
 	expect_value( )

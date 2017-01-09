@@ -590,7 +590,7 @@ public:
 		typename base::testee_type testee
 	)
 	{
-		testee( value->get( ) );
+		testee( std::make_tuple( value->get( ) ) );
 	}
 };
 
