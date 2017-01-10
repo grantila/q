@@ -19,5 +19,6 @@
 
 #include <q-rx/functional/math.hpp>
 #include <q-rx/functional/sequence.hpp>
+#include <q-rx/functional/function.hpp>
 
 #endif // LIBQ_RX_FUNCTIONAL_HPP
