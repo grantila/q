@@ -23,6 +23,7 @@ endif ( )
 set ( CXX_STANDARD_REQUIRED ON )
 
 if ( MSVC )
+	add_definitions( "/bigobj" )
 	set( CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd" )
 	set( CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT" )
 else ( )

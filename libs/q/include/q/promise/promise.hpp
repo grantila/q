@@ -730,9 +730,9 @@ public:
 	: base_type( std::move( ref.state_ ), ref.queue_ )
 	{ }
 
-	template< bool B = true >
+	template< bool B = shareable::value >
 	typename std::enable_if<
-		shareable::value && B,
+		B,
 		shared_promise< T... >
 	>::type
 	share( )

@@ -1225,7 +1225,7 @@ TEST_F( channel, consume_one_type_concurrent )
 		)
 		.then( [ & ]( )
 		{
-			EXPECT_GT( active_acc, 0 );
+			EXPECT_GT( active_acc, std::size_t( 0 ) );
 		} )
 	);
 }

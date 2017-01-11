@@ -246,11 +246,8 @@ public:
 	};
 
 	template< typename FnValue, typename FnClosed >
-	struct fast_waiter_type
-	: waiter_type
+	struct fast_waiter_type_traits
 	{
-		typedef detail::defer< bool > result_defer_type;
-
 		typedef bool_type<
 			arguments_type
 			::template is_convertible_to_incl_void<
@@ -311,6 +308,14 @@ public:
 			and
 			closed_has_valid_return::value
 		> inner_callbacks_are_valid;
+	};
+
+	template< typename FnValue, typename FnClosed >
+	struct fast_waiter_type
+	: waiter_type
+	, fast_waiter_type_traits< FnValue, FnClosed >
+	{
+		typedef detail::defer< bool > result_defer_type;
 
 		void set_closed( ) override
 		{
@@ -601,7 +606,7 @@ public:
 	template< typename FnValue, typename FnClosed >
 	Q_NODISCARD
 	typename std::enable_if<
-		fast_waiter_type<
+		fast_waiter_type_traits<
 			decayed_function_t< FnValue >,
 			decayed_function_t< FnClosed >
 		>::callbacks_are_valid::value,
@@ -929,7 +934,7 @@ public:
 	Q_NODISCARD
 	typename std::enable_if<
 		detail::shared_channel< T... >
-			::template fast_waiter_type<
+			::template fast_waiter_type_traits<
 				decayed_function_t< FnValue >,
 				decayed_function_t< FnClosed >
 			>
@@ -954,7 +959,7 @@ public:
 	Q_NODISCARD
 	typename std::enable_if<
 		detail::shared_channel< T... >
-			::template fast_waiter_type<
+			::template fast_waiter_type_traits<
 				decayed_function_t< FnValue >,
 				decayed_function_t< FnClosed >
 			>
@@ -972,7 +977,7 @@ public:
 
 		auto on_value =
 			[ shared_channel, Q_MOVABLE_MOVE( on_data ) ]
-			( typename traits::promise_type&& promise )
+			( promise_type&& promise )
 		mutable -> ::q::promise< >
 		{
 			return promise
@@ -999,7 +1004,7 @@ public:
 	Q_NODISCARD
 	typename std::enable_if<
 		detail::shared_channel< T... >
-			::template fast_waiter_type<
+			::template fast_waiter_type_traits<
 				decayed_function_t< Fn >,
 				function< void( ) >
 			>
