@@ -127,7 +127,7 @@ struct pipe_helper< arguments< From... >, arguments< To... > >
 		{
 			w.unset_resume_notification( );
 			w.close( );
-			try_write.reset( );
+			( *try_write ) = write_type( );
 		};
 
 		auto abort = [ try_write, w ]( std::exception_ptr err )
@@ -135,7 +135,7 @@ struct pipe_helper< arguments< From... >, arguments< To... > >
 		{
 			w.unset_resume_notification( );
 			w.close( err );
-			try_write.reset( );
+			( *try_write ) = write_type( );
 		};
 
 		// This must not run on multiple threads in parallel
