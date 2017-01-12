@@ -80,9 +80,8 @@ noexcept
 			max_addr = addr_len;
 	}
 
-	char buf[16];
-	snprintf( buf, sizeof buf, "%lu", max_frame );
-	max_frame = std::strlen( buf );
+	std::string buf = std::to_string( max_frame );
+	max_frame = buf.size( );
 
 	max_lib += 1;
 

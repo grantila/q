@@ -65,7 +65,7 @@ noexcept
 
 	silly_function( );
 	Dl_info info;
-	dladdr( __builtin_return_address( 0 ), &info);
+	dladdr( __builtin_return_address( 0 ), &info );
 	snprintf( filename, PATH_MAX, "%s", info.dli_fname );
 #endif
 	return filename;

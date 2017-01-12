@@ -90,8 +90,8 @@ noexcept
 
 		pos = pos2;
 	}
-	
-	return std::move( frame );
+
+	return frame;
 }
 
 }
