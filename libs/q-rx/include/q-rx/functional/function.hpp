@@ -23,18 +23,122 @@
 
 namespace q { namespace rx { namespace f {
 
+namespace {
+
+template<
+	typename Only,
+	std::enable_if_t< q::is_tuple_v< std::decay_t< Only > > >* = nullptr
+>
+auto tuple_flat_cat( Only&& only )
+{
+	return only;
+}
+
+template<
+	typename Only,
+	std::enable_if_t< !q::is_tuple_v< std::decay_t< Only > > >* = nullptr
+>
+auto tuple_flat_cat( Only&& only )
+{
+	return std::forward_as_tuple< Only >( only );
+}
+
+template<
+	typename First,
+	typename Second,
+	typename... Rest,
+	std::enable_if_t< q::is_tuple_v< std::decay_t< Second > > >* = nullptr
+>
+auto tuple_flat_cat( First&& first, Second&& second, Rest&&... rest )
+{
+	return tuple_flat_cat(
+		std::tuple_cat(
+			std::forward< First >( first ),
+			std::forward< Second >( second )
+		),
+		std::forward< Rest >( rest )...
+	);
+}
+
+template<
+	typename First,
+	typename Second,
+	typename... Rest,
+	std::enable_if_t< !q::is_tuple_v< std::decay_t< Second > > >* = nullptr
+>
+auto tuple_flat_cat( First&& first, Second&& second, Rest&&... rest )
+{
+	return tuple_flat_cat(
+		std::tuple_cat(
+			std::forward< First >( first ),
+			std::make_tuple( std::forward< Second >( second ) )
+		),
+		std::forward< Rest >( rest )...
+	);
+}
+
+template< bool IsVoid, bool IsPromise >
+struct append_result_helper
+{
+	template< typename Fn >
+	static auto wrap( Fn&& fn )
+	{
+		return [ fn{ std::forward< Fn >( fn ) } ]( auto&&... args )
+		{
+			auto ret = fn( args... );
+			return tuple_flat_cat(
+				std::make_tuple( std::move( args )... ), ret );
+		};
+	}
+};
+
+template< >
+struct append_result_helper< true, false > // void-specialization
+{
+	template< typename Fn >
+	static auto wrap( Fn&& fn )
+	{
+		return [ fn{ std::forward< Fn >( fn ) } ]( auto&&... args )
+		{
+			fn( args... );
+			return std::make_tuple( std::move( args )... );
+		};
+	}
+};
+
+template< >
+struct append_result_helper< false, true > // promise-specialization
+{
+	template< typename Fn >
+	static auto wrap( Fn&& fn )
+	{
+		using return_type = typename q::result_of_t< Fn >::tuple_type;
+
+		return [ fn{ std::forward< Fn >( fn ) } ]( auto&&... args )
+		{
+			return fn( args... )
+			.then( [ args... ]( return_type&& ret )
+			{
+				return tuple_flat_cat(
+					std::make_tuple( args... ),
+					std::move( ret )
+				);
+			} );
+		};
+	}
+};
+
+} // anonymous namespace
+
 template<
 	typename Fn,
-	bool IsPromise = q::is_promise_v< result_of_t< Fn > >,
-	bool IsTuple = is_tuple_v< result_of_t< Fn > >
+	bool IsVoid = q::is_voidish_v< result_of_t< Fn > >,
+	bool IsPromise = q::is_promise_v< result_of_t< Fn > >
 >
 auto append_result( Fn&& fn )
 {
-	return [ fn{ std::forward< Fn >( fn ) } ]( auto&&... args )
-	{
-		auto ret = fn( args... );
-		return std::make_tuple( std::move( args )..., ret );
-	};
+	return append_result_helper< IsVoid, IsPromise >::wrap(
+		std::forward< Fn >( fn ) );
 }
 
 } } } // namespace f, namespace rx, namespace q
