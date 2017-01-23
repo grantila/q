@@ -21,8 +21,6 @@ endif(NOT CMAKE_BUILD_TYPE)
 
 include( "cmake/projects.cmake" )
 
-# TODO, this is messing up my terminal, showing control characters
-# use cmake build in since these are guraranteed to not mess things up 
 include( "cmake/colors.cmake" )
 
 # TODO, debug postfix MS only,  not useful - and used - att all on linux 
