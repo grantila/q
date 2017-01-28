@@ -3,49 +3,43 @@ cmake_minimum_required( VERSION 3.1 )
 project( q )
 
 # recommandation, do not build in source.
-set(CMAKE_DISABLE_IN_SOURCE_BUILD ON)
+set( CMAKE_DISABLE_IN_SOURCE_BUILD ON )
 
 # required for library API/ABI tagging 
-set(q_MAJOR_VERSION 0)
-set(q_MINOR_VERSION 0)
-set(q_PATCH_VERSION 1)
-set(q_VERSION ${q_MAJOR_VERSION}.${q_MINOR_VERSION}.${q_PATCH_VERSION})
+set( q_MAJOR_VERSION 0 )
+set( q_MINOR_VERSION 0 )
+set( q_PATCH_VERSION 1 )
+set( q_VERSION ${q_MAJOR_VERSION}.${q_MINOR_VERSION}.${q_PATCH_VERSION} )
 
 # if no build config given, we decide
-if(NOT CMAKE_BUILD_TYPE)
-  SET(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING
+if ( NOT CMAKE_BUILD_TYPE )
+  set( CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING
       "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel."
       FORCE )
-endif(NOT CMAKE_BUILD_TYPE)
+endif ( )
 
 
 include( "cmake/projects.cmake" )
 
 include( "cmake/colors.cmake" )
 
-# TODO, debug postfix MS only,  not useful - and used - att all on linux 
-# move into compiler setup ?
-set( CMAKE_DEBUG_POSTFIX "d" )
-
 # set up the comiler
 include( "cmake/compilersetup.cmake" )
 
 # show me what to install 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin )
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib )
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib )
+set( CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin )
+set( CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib )
+set( CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib )
 
 # make testing optiona;
-if (DEFINED ${PROJECT_NAME}_BUILD_TESTS)
-  option(${PROJECT_NAME}_BUILD_TESTS 
-    "build tests" 
-    ${PROJECT_NAME}_BUILD_TESTS
-  )
-else (DEFINED ${PROJECT_NAME}_BUILD_TESTS)
-  option(${PROJECT_NAME}_BUILD_TESTS "build tests" ON)
-endif(DEFINED ${PROJECT_NAME}_BUILD_TESTS)
-
-
+if ( DEFINED ${PROJECT_NAME}_BUILD_TESTS )
+	option(
+		${PROJECT_NAME}_BUILD_TESTS
+		"build tests"
+		${PROJECT_NAME}_BUILD_TESTS )
+else ( )
+	option( ${PROJECT_NAME}_BUILD_TESTS "build tests" ON )
+endif ( )
 
 
 # TODO this should not come via the environemnt, make an option
@@ -56,14 +50,12 @@ endif ( )
 include_directories( "libs/q/include" )
 add_subdirectory( "libs/q" )
 
-if (${PROJECT_NAME}_BUILD_TESTS)
-  include_directories( "3rdparty/gmock-1.7.0/gtest/include/" )
-  include_directories( "3rdparty/gmock-1.7.0/include/" )
-  include_directories( "libs/q-test/include" )
-  add_subdirectory( "libs/q-test" )
-endif(${PROJECT_NAME}_BUILD_TESTS)
-
-#add_subdirectory( "libs/p" )
+if ( ${PROJECT_NAME}_BUILD_TESTS )
+	include_directories( "3rdparty/gmock-1.7.0/gtest/include/" )
+	include_directories( "3rdparty/gmock-1.7.0/include/" )
+	include_directories( "libs/q-test/include" )
+	add_subdirectory( "libs/q-test" )
+endif ( )
 
 # TODO does not exits, can be removed ?
 include_directories( "3rdparty/dist/include/" )
@@ -71,16 +63,20 @@ include_directories( "3rdparty/dist/include/" )
 add_subdirectory( "progs/playground" )
 add_subdirectory( "progs/benchmark" )
 
-if (${PROJECT_NAME}_BUILD_TESTS)
-# TODO if mocking is needed, switch to Trompeloeil
-  add_subdirectory( "3rdparty/gmock-1.7.0" )
-  add_subdirectory( "tests/qtest" )
-  add_subdirectory( "tests/q" )
-endif(${PROJECT_NAME}_BUILD_TESTS)
+if ( ${PROJECT_NAME}_BUILD_TESTS )
+	# TODO if mocking is needed, switch to Trompeloeil
+	add_subdirectory( "3rdparty/gmock-1.7.0" )
+	add_subdirectory( "tests/qtest" )
+	add_subdirectory( "tests/q" )
+endif ( )
 
-
-configure_file("${CMAKE_CURRENT_SOURCE_DIR}/cmake/libq.pc.cmake.cfg" "${CMAKE_BINARY_DIR}/libq.pc" @ONLY)
-INSTALL(FILES "${CMAKE_BINARY_DIR}/libq.pc" DESTINATION lib${LIB_SUFFIX}/pkgconfig)
+configure_file(
+	"${CMAKE_CURRENT_SOURCE_DIR}/cmake/libq.pc.cmake.cfg"
+	"${CMAKE_BINARY_DIR}/libq.pc"
+	@ONLY )
+install(
+	FILES "${CMAKE_BINARY_DIR}/libq.pc"
+	DESTINATION lib${LIB_SUFFIX}/pkgconfig )
 
 
 # TODO remove, not usefull , either   
