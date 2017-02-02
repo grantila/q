@@ -50,25 +50,23 @@ endif ( )
 include_directories( "libs/q/include" )
 add_subdirectory( "libs/q" )
 
-if ( ${PROJECT_NAME}_BUILD_TESTS )
-	include_directories( "3rdparty/gmock-1.7.0/gtest/include/" )
-	include_directories( "3rdparty/gmock-1.7.0/include/" )
-	include_directories( "libs/q-test/include" )
-	add_subdirectory( "libs/q-test" )
-endif ( )
+if (${PROJECT_NAME}_BUILD_TESTS)
+  enable_testing()
+  include_directories( "3rdparty/gmock-1.7.0/gtest/include/" )
+  include_directories( "3rdparty/gmock-1.7.0/include/" )
+  include_directories( "libs/q-test/include" )
+  add_subdirectory( "libs/q-test" )
+  add_subdirectory( "3rdparty/gmock-1.7.0" )
+  add_subdirectory( "tests" )
+endif(${PROJECT_NAME}_BUILD_TESTS)
+
 
 # TODO does not exits, can be removed ?
 include_directories( "3rdparty/dist/include/" )
 
+# TODO for distribution, these are not needed, make optional
 add_subdirectory( "progs/playground" )
 add_subdirectory( "progs/benchmark" )
-
-if ( ${PROJECT_NAME}_BUILD_TESTS )
-	# TODO if mocking is needed, switch to Trompeloeil
-	add_subdirectory( "3rdparty/gmock-1.7.0" )
-	add_subdirectory( "tests/qtest" )
-	add_subdirectory( "tests/q" )
-endif ( )
 
 configure_file(
 	"${CMAKE_CURRENT_SOURCE_DIR}/cmake/libq.pc.cmake.cfg"
