@@ -1,5 +1,7 @@
  q
 ===
+
+[![Join the chat at https://gitter.im/i-promise/Lobby](https://badges.gitter.im/i-promise/Lobby.svg)](https://gitter.im/i-promise/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 A platform-independent promise library for C++, implementing asynchronous continuations.
 
 Tested on GCC (Linux), XCode (OSX) and Visual Studio 2015 (Windows).
