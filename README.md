@@ -1,13 +1,15 @@
  q
 ===
+
+[![Join the chat at https://gitter.im/i-promise/Lobby](https://badges.gitter.im/i-promise/Lobby.svg)](https://gitter.im/i-promise/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Build Status](https://semaphoreci.com/api/v1/gustaf/q/branches/master/badge.svg)](https://semaphoreci.com/gustaf/q)
+
 A platform-independent promise library for C++, implementing asynchronous continuations.
 
 Tested on GCC (Linux), XCode (OSX) and Visual Studio 2015 (Windows).
 
  * [x] Web: [libq.io](http://libq.io/) ([API](http://libq.io/api))
  * [x] Twitter: [@grantila](https://twitter.com/grantila)
-
-[![Build Status](https://semaphoreci.com/api/v1/gustaf/q/branches/master/badge.svg)](https://semaphoreci.com/gustaf/q)
 
 Version
 ----
