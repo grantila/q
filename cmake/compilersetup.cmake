@@ -24,12 +24,14 @@ if ( CMAKE_CXX_COMPILER_ID MATCHES "GNU" )
 
 	if ( NOT CMAKE_EXE_LINKER_FLAGS )
 		set( CMAKE_EXE_LINKER_FLAGS "-ldl -lpthread" )
-		# The above seems not to work, while manually adding them works:
-		set( GENERIC_LIB_DEPS dl pthread )
 		set( CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS} CACHE STRING
 			"Flags used by the linker during the creation of modules."
 			FORCE )
 	endif ( )
+
+	# some need them always in at the end, so add them always
+	set( GENERIC_LIB_DEPS dl pthread )
+
 
 elseif ( CMAKE_CXX_COMPILER_ID MATCHES "Clang" )
 
