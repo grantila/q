@@ -216,23 +216,31 @@ Installation
 
 q uses CMake to generate build scripts.
 
+The examples below build to a directory `build`, to leave the root repository clean.
+
 Using Makefiles (for multiple platforms)
 ```sh
 git clone git@github.com:grantila/q.git
 cd q
-./build.sh
+cmake -G "Unix Makefiles" -Bbuild -H.
+cd build
+make
 ```
 
 For Xcode
 ```sh
 git clone git@github.com:grantila/q.git
 cd q
-./build.sh ; open build/q.xcodeproj
+cmake -G "Xcode" -Bbuild -H.
+open build/q.xcodeproj
 ```
 
-For Visual Studio (2015) (using Git Bash shell)
+For Visual Studio 2015 32-bit (using Git Bash shell)
 ```sh
 git clone git@github.com:grantila/q.git
 cd q
-./build.sh ; start build/q.sln
+cmake -G "Visual Studio 14 2015" -Bbuild -H.
+start build/q.sln
 ```
+
+For other versions of Visual Studio, apply the appropriate CMake generator. For 64-bit, add `Win64` to the generator name, such as `cmake -G "Visual Studio 14 2015 Win64"`, and for ARM add `ARM`: `cmake -G "Visual Studio 14 2015 ARM"`.
