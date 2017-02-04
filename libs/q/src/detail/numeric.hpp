@@ -54,7 +54,7 @@ template< typename type, std::size_t size = sizeof( type ) >
 typename std::enable_if< ( size > 4 ), std::size_t >::type
 msb_win32( type num )
 {
-#	ifndef LIBQ_ON_X86
+#	ifdef LIBQ_ON_X64
 	unsigned long ret;
 	_BitScanReverse64( &ret, static_cast< unsigned __int64 >( num ) );
 	return ret;

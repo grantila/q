@@ -19,8 +19,17 @@
 
 #ifdef _WIN32
 #	define LIBQ_ON_WINDOWS
+#	ifdef _M_X64
+#		define LIBQ_ON_X64
+#	endif
 #	ifdef _M_IX86
 #		define LIBQ_ON_X86
+#	endif
+#	ifdef _M_ARM
+#		define LIBQ_ON_ARM
+#	endif
+#	ifdef _M_ARM64
+#		define LIBQ_ON_ARM64
 #	endif
 #	define Q_NO_FUNCTION_ALIGN
 #elif defined( __APPLE__ )

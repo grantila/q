@@ -24,11 +24,13 @@
 #include <unordered_map>
 #define NOMINMAX
 #include <Windows.h>
-#pragma warning( push )
-#pragma warning( disable: 4091 )
-#include "DbgHelp.h"
-#pragma warning( pop )
-#pragma comment( lib, "Dbghelp.lib" )
+#ifndef LIBQ_ON_ARM
+#	pragma warning( push )
+#	pragma warning( disable: 4091 )
+#	include "DbgHelp.h"
+#	pragma warning( pop )
+#	pragma comment( lib, "Dbghelp.lib" )
+#endif // LIBQ_ON_ARM
 
 // In Windows Server 2003 and Windows XP, FramesToSkip + FramesToCapture must
 // be less than 63. TODO: Loop and increase FramesToSkip for more modern
@@ -38,6 +40,17 @@
 namespace q {
 
 namespace detail {
+
+#ifdef LIBQ_ON_ARM
+
+stacktrace::frame frame_from_address( void* address )
+{
+	stacktrace::frame frame;
+	frame.addr = reinterpret_cast< decltype( frame.addr ) >( address );
+	return frame;
+}
+
+#else // LIBQ_ON_ARM
 
 stacktrace::frame frame_from_address( HANDLE process, void* address )
 {
@@ -66,14 +79,18 @@ stacktrace::frame frame_from_address( HANDLE process, void* address )
 	return frame;
 }
 
+#endif // LIBQ_ON_ARM
+
 stacktrace default_stacktrace( ) noexcept
 {
 	std::vector< stacktrace::frame > frames;
 
 	void* buf[ MAX_FRAMES_PER_CALL ];
 
+#ifndef LIBQ_ON_ARM
 	HANDLE process = ::GetCurrentProcess( );
 	::SymInitialize( process, NULL, TRUE );
+#endif // LIBQ_ON_ARM
 
 	auto nframes = ::CaptureStackBackTrace(
 		0, MAX_FRAMES_PER_CALL, buf, nullptr );
@@ -84,7 +101,11 @@ stacktrace default_stacktrace( ) noexcept
 
 	for ( std::size_t i = 0; i < nframes; ++i )
 	{
+#ifdef LIBQ_ON_ARM
+		auto frame = frame_from_address( buf[ i ] );
+#else // LIBQ_ON_ARM
 		auto frame = frame_from_address( process, buf[ i ] );
+#endif // LIBQ_ON_ARM
 		frame.frameno = i;
 
 		HMODULE mod;
