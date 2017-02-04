@@ -7,3 +7,10 @@ add_library( q ${LIBQ_HEADERS} ${LIBQ_INTERNAL_HEADERS} ${LIBQ_SOURCES} )
 
 target_link_libraries( q ${CXXLIB} ${GENERIC_LIB_DEPS} )
 
+install( DIRECTORY include/q/ DESTINATION include/q )
+install( TARGETS q
+	RUNTIME DESTINATION bin
+	LIBRARY DESTINATION lib${LIB_SUFFIX}
+	ARCHIVE DESTINATION lib${LIB_SUFFIX}
+)
+

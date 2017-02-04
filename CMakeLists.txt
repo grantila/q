@@ -1,43 +1,48 @@
-
 cmake_minimum_required( VERSION 3.1 )
 
 project( q )
 
+# recommandation, do not build in source.
+set( CMAKE_DISABLE_IN_SOURCE_BUILD ON )
+
+# required for library API/ABI tagging
+set( q_MAJOR_VERSION 0 )
+set( q_MINOR_VERSION 0 )
+set( q_PATCH_VERSION 1 )
+set( q_VERSION ${q_MAJOR_VERSION}.${q_MINOR_VERSION}.${q_PATCH_VERSION} )
+
+# if no build config given, we decide
+if ( NOT CMAKE_BUILD_TYPE )
+  set( CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING
+      "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel."
+      FORCE )
+endif ( )
+
+
 include( "cmake/projects.cmake" )
+
 include( "cmake/colors.cmake" )
 
-set( CMAKE_DEBUG_POSTFIX "d" )
+# set up the comiler
+include( "cmake/compilersetup.cmake" )
 
-# Require 11, fallback to 11 too
-if ( NOT CMAKE_CXX_STANDARD )
-	q_info( "No C++ standard provided, falling back to C++11" )
-	set( CMAKE_CXX_STANDARD 11 )
+# show me what to install
+set( CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin )
+set( CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib )
+set( CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib )
+
+# make testing optional
+if ( DEFINED ${PROJECT_NAME}_BUILD_TESTS )
+	option(
+		${PROJECT_NAME}_BUILD_TESTS
+		"build tests"
+		${PROJECT_NAME}_BUILD_TESTS )
 else ( )
-	if ( CMAKE_CXX_STANDARD LESS 11 )
-		q_fatal( FATAL_ERROR
-			"Too old C++ standard (${CMAKE_CXX_STANDARD}), q requires C++11" )
-	endif( )
-
-	q_message( "Using user-provided C++ standard ${CMAKE_CXX_STANDARD}" )
-endif ( )
-set ( CXX_STANDARD_REQUIRED ON )
-
-if ( MSVC )
-	add_definitions( "/bigobj" )
-	set( CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd" )
-	set( CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT" )
-else ( )
-	set( CMAKE_CXX_FLAGS "-g" )
-	set( CMAKE_CXX_FLAGS_RELEASE "-O2" )
-
-	add_definitions( "-Wall" )
-	add_definitions( "-Wno-comment" )
-
-	if ( NOT APPLE )
-		set( GENERIC_LIB_DEPS pthread dl )
-	endif ( )
+	option( ${PROJECT_NAME}_BUILD_TESTS "build tests" ON )
 endif ( )
 
+
+# TODO this should not come via the environemnt, make an option
 if ( "$ENV{MODE}" STREQUAL "debug" )
 	add_definitions( "-ftemplate-backtrace-limit=0" )
 endif ( )
@@ -45,29 +50,41 @@ endif ( )
 include_directories( "libs/q/include" )
 add_subdirectory( "libs/q" )
 
-include_directories( "3rdparty/gmock-1.7.0/gtest/include/" )
-include_directories( "3rdparty/gmock-1.7.0/include/" )
-include_directories( "libs/q-test/include" )
-add_subdirectory( "libs/q-test" )
+if (${PROJECT_NAME}_BUILD_TESTS)
+    enable_testing()
+    include_directories( "3rdparty/gmock-1.7.0/gtest/include/" )
+    include_directories( "3rdparty/gmock-1.7.0/include/" )
+    include_directories( "libs/q-test/include" )
+    add_subdirectory( "libs/q-test" )
+    add_subdirectory( "3rdparty/gmock-1.7.0" )
+    add_subdirectory( "tests" )
+endif(${PROJECT_NAME}_BUILD_TESTS)
 
-#add_subdirectory( "libs/p" )
 
-include_directories( "3rdparty/dist/include/" )
+# TODO does not exits, can be removed ?
+# include_directories( "3rdparty/dist/include/" )
 
-add_subdirectory( "progs/playground" )
-add_subdirectory( "progs/benchmark" )
-
-add_subdirectory( "3rdparty/gmock-1.7.0" )
-
-add_subdirectory( "tests/qtest" )
-add_subdirectory( "tests/q" )
-
-q_message( "q project successfully created!" )
-if ( APPLE )
-	q_message( "You can now open " PATH "${CMAKE_BINARY_DIR}/q.xcodeproj" )
-elseif ( UNIX )
-	q_message( "You can now enter " PATH "${Cyan}${CMAKE_BINARY_DIR}/"
-		" and make the libraries" )
-elseif ( MSVC )
-	q_message( "You can now open " PATH "${CMAKE_BINARY_DIR}/q.sln" )
+# make apps optional
+if ( DEFINED ${PROJECT_NAME}_BUILD_APPS )
+	option(
+		${PROJECT_NAME}_BUILD_APPS
+		"build sample and playgournd apps"
+		${PROJECT_NAME}_BUILD_APPS )
+else ( )
+	option( ${PROJECT_NAME}_BUILD_APPS "build tests" ON )
 endif ( )
+
+
+if (${PROJECT_NAME}_BUILD_APPS)
+    add_subdirectory( "progs/playground" )
+    add_subdirectory( "progs/benchmark" )
+endif ( )
+
+configure_file(
+	"${CMAKE_CURRENT_SOURCE_DIR}/cmake/libq.pc.cmake.cfg"
+	"${CMAKE_BINARY_DIR}/libq.pc"
+	@ONLY )
+install(
+	FILES "${CMAKE_BINARY_DIR}/libq.pc"
+	DESTINATION lib${LIB_SUFFIX}/pkgconfig )
+
