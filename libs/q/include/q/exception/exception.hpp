@@ -86,7 +86,7 @@ namespace q {
 
 namespace detail {
 
-template< typename T > class exception_info;
+template< typename T > class q_exception_info;
 
 class exception_info_base
 {
@@ -95,15 +95,15 @@ public:
 	{ }
 
 	template< typename T >
-	const exception_info< T >* cast( ) const
+	const q_exception_info< T >* cast( ) const
 	{
-		return dynamic_cast< const exception_info< T >* >( this );
+		return dynamic_cast< const q_exception_info< T >* >( this );
 	}
 
 	template< typename T >
-	exception_info< T >* cast( )
+	q_exception_info< T >* cast( )
 	{
-		return dynamic_cast< exception_info< T >* >( this );
+		return dynamic_cast< q_exception_info< T >* >( this );
 	}
 
 	virtual std::string string( ) const = 0;
@@ -114,20 +114,20 @@ protected:
 };
 
 template< typename T >
-class exception_info
+class q_exception_info
 : public exception_info_base
 {
 public:
-	exception_info( ) = delete;
-	exception_info( const exception_info& ) = delete;
+	q_exception_info( ) = delete;
+	q_exception_info( const q_exception_info& ) = delete;
 
-	exception_info( exception_info&& ) = default;
+	q_exception_info( q_exception_info&& ) = default;
 
-	exception_info( T&& t )
+	q_exception_info( T&& t )
 	: t_( std::move( t ) )
 	{ }
 
-	exception_info( const T& t )
+	q_exception_info( const T& t )
 	: t_( t )
 	{ }
 
@@ -141,12 +141,12 @@ public:
 		return std::move( t_ );
 	}
 
-	static exception_info< T >* cast( exception_info_base& eib )
+	static q_exception_info< T >* cast( exception_info_base& eib )
 	{
 		return eib.cast< T >( );
 	}
 
-	static const exception_info< T >* cast( const exception_info_base& eib )
+	static const q_exception_info< T >* cast( const exception_info_base& eib )
 	{
 		return eib.cast< T >( );
 	}
@@ -177,12 +177,12 @@ public:
 	exception& operator=( exception&& ) = default;
 
 	template< typename T >
-	const detail::exception_info< T >* get_info( ) const
+	const detail::q_exception_info< T >* get_info( ) const
 	{
 		auto& _infos = infos( );
 		for ( const auto& info : _infos )
 		{
-			auto ei = detail::exception_info< T >::cast( *info );
+			auto ei = detail::q_exception_info< T >::cast( *info );
 			if ( ei )
 				return ei;
 		}
@@ -190,11 +190,11 @@ public:
 	}
 
 	template< typename T >
-	detail::exception_info< T >* get_info( )
+	detail::q_exception_info< T >* get_info( )
 	{
 		for ( auto& info : infos( ) )
 		{
-			auto ei = detail::exception_info< T >::cast( *info );
+			auto ei = detail::q_exception_info< T >::cast( *info );
 			if ( ei )
 				return ei;
 		}
@@ -212,7 +212,7 @@ public:
 	operator<<( T&& t )
 	{
 		typedef typename std::decay< T >::type element_type;
-		typedef detail::exception_info< element_type > derived;
+		typedef detail::q_exception_info< element_type > derived;
 
 		add_info( std::make_shared< derived >(
 			std::forward< T >( t ) ) );

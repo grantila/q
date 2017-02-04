@@ -218,7 +218,7 @@ q uses CMake to generate build scripts.
 
 The examples below build to a directory `build`, to leave the root repository clean.
 
-Using Makefiles (for multiple platforms)
+### Using Makefiles (for various POSIX platforms)
 ```sh
 git clone git@github.com:grantila/q.git
 cd q
@@ -227,7 +227,7 @@ cd build
 make
 ```
 
-For Xcode
+### For Xcode
 ```sh
 git clone git@github.com:grantila/q.git
 cd q
@@ -235,7 +235,9 @@ cmake -G "Xcode" -Bbuild -H.
 open build/q.xcodeproj
 ```
 
-For Visual Studio 2015 32-bit (using Git Bash shell)
+### For Visual Studio
+
+Visual Studio 2015 32-bit (using Git Bash shell):
 ```sh
 git clone git@github.com:grantila/q.git
 cd q
@@ -244,3 +246,10 @@ start build/q.sln
 ```
 
 For other versions of Visual Studio, apply the appropriate CMake generator. For 64-bit, add `Win64` to the generator name, such as `cmake -G "Visual Studio 14 2015 Win64"`, and for ARM add `ARM`: `cmake -G "Visual Studio 14 2015 ARM"`.
+
+When compiling with `windows.h` included before `q`, ensure to have `NOMINMAX` defined:
+```cpp
+#define NOMINMAX
+#include <windows.h>
+```
+
