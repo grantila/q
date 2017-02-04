@@ -847,10 +847,7 @@ private:
 		method != function_storage::plain
 	>::type
 	_set_plain( Fn&& )
-	{
-		// This is just to make the compiler happy.
-		throw std::logic_error( "q::function internal error" );
-	}
+	{ }
 
 	// Beware, the constness is lost
 	base* _get_base( ) const
