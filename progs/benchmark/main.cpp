@@ -52,6 +52,12 @@ q::scoped_timer make_benchmark_timer(
 
 static inline void empty_fn( ) { }
 
+#ifdef LIBQ_ON_WINDOWS
+#	define BRACE_INIT( value ) { value }
+#else
+#	define BRACE_INIT( value )
+#endif
+
 template< template< typename > class Fn >
 void benchmark_q_function( std::size_t iterations, std::string impl )
 {
@@ -90,7 +96,7 @@ void benchmark_q_function( std::size_t iterations, std::string impl )
 		typedef char cap_type[ 16 ];
 
 		cap_type cap;
-		auto l = [ cap ]( ) { };
+		auto l = [ cap BRACE_INIT( cap ) ]( ) { };
 
 		for ( std::size_t i = 0; i < iterations; ++i )
 		{
@@ -106,7 +112,7 @@ void benchmark_q_function( std::size_t iterations, std::string impl )
 		typedef char cap_type[ 64 ];
 
 		cap_type cap;
-		auto l = [ cap ]( ) { };
+		auto l = [ cap BRACE_INIT( cap ) ]( ) { };
 
 		for ( std::size_t i = 0; i < iterations; ++i )
 		{
@@ -124,7 +130,7 @@ void benchmark_q_function( std::size_t iterations, std::string impl )
 		int i = 0;
 
 		cap_type cap;
-		auto l = [ cap, &i ]( ) {
+		auto l = [ cap BRACE_INIT( cap ), &i ]( ) {
 			++i;
 		};
 
@@ -144,7 +150,7 @@ void benchmark_q_function( std::size_t iterations, std::string impl )
 		int i = 0;
 
 		cap_type cap;
-		auto l = [ cap, &i ]( ) {
+		auto l = [ cap BRACE_INIT( cap ), &i ]( ) {
 			++i;
 		};
 
