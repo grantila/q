@@ -140,7 +140,8 @@ struct specific_function
 	specific_function( ) = delete;
 	specific_function( specific_function&& ) = default;
 	specific_function( const specific_function& ref )
-	: fn_( ref.fn_ )
+	: function_base< Signature, Ret, Args... >( )
+	, fn_( ref.fn_ )
 	{
 		static_assert( Copyable,
 			"The function is not copyable. "
@@ -148,11 +149,13 @@ struct specific_function
 	}
 
 	specific_function( Fn&& fn )
-	: fn_( std::move( fn ) )
+	: function_base< Signature, Ret, Args... >( )
+	, fn_( std::move( fn ) )
 	{ }
 
 	specific_function( const Fn& fn )
-	: fn_( fn )
+	: function_base< Signature, Ret, Args... >( )
+	, fn_( fn )
 	{ }
 
 	~specific_function( )
@@ -843,8 +846,11 @@ private:
 	typename std::enable_if<
 		method != function_storage::plain
 	>::type
-	_set_plain( Fn&& fn )
-	{ }
+	_set_plain( Fn&& )
+	{
+		// This is just to make the compiler happy.
+		throw std::logic_error( "q::function internal error" );
+	}
 
 	// Beware, the constness is lost
 	base* _get_base( ) const
