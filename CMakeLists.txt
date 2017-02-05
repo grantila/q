@@ -1,4 +1,4 @@
-cmake_minimum_required( VERSION 3.1 )
+cmake_minimum_required( VERSION 2.8 )
 
 project( q )
 
@@ -13,15 +13,21 @@ set( q_VERSION ${q_MAJOR_VERSION}.${q_MINOR_VERSION}.${q_PATCH_VERSION} )
 
 # if no build config given, we decide
 if ( NOT CMAKE_BUILD_TYPE )
-  set( CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING
-      "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel."
-      FORCE )
+	set(
+		CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING
+		"Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel."
+		FORCE )
 endif ( )
 
 
 include( "cmake/projects.cmake" )
 
 include( "cmake/colors.cmake" )
+
+# turn on verbose compilation output
+if ( NOT DEFINED ${PROJECT_NAME}_VERBOSE_COMPILE )
+	option( ${PROJECT_NAME}_VERBOSE_COMPILE "verbose compile" OFF )
+endif ( )
 
 # set up the comiler
 include( "cmake/compilersetup.cmake" )
@@ -42,23 +48,18 @@ else ( )
 endif ( )
 
 
-# TODO this should not come via the environemnt, make an option
-if ( "$ENV{MODE}" STREQUAL "debug" )
-	add_definitions( "-ftemplate-backtrace-limit=0" )
-endif ( )
-
 include_directories( "libs/q/include" )
 add_subdirectory( "libs/q" )
 
-if (${PROJECT_NAME}_BUILD_TESTS)
-    enable_testing()
-    include_directories( "3rdparty/gmock-1.7.0/gtest/include/" )
-    include_directories( "3rdparty/gmock-1.7.0/include/" )
-    include_directories( "libs/q-test/include" )
-    add_subdirectory( "libs/q-test" )
-    add_subdirectory( "3rdparty/gmock-1.7.0" )
-    add_subdirectory( "tests" )
-endif(${PROJECT_NAME}_BUILD_TESTS)
+if ( ${PROJECT_NAME}_BUILD_TESTS )
+	enable_testing()
+	include_directories( "3rdparty/gmock-1.7.0/gtest/include/" )
+	include_directories( "3rdparty/gmock-1.7.0/include/" )
+	include_directories( "libs/q-test/include" )
+	add_subdirectory( "libs/q-test" )
+	add_subdirectory( "3rdparty/gmock-1.7.0" )
+	add_subdirectory( "tests" )
+endif ( )
 
 
 # TODO does not exits, can be removed ?
@@ -74,10 +75,9 @@ else ( )
 	option( ${PROJECT_NAME}_BUILD_APPS "build tests" ON )
 endif ( )
 
-
-if (${PROJECT_NAME}_BUILD_APPS)
-    add_subdirectory( "progs/playground" )
-    add_subdirectory( "progs/benchmark" )
+if ( ${PROJECT_NAME}_BUILD_APPS )
+	add_subdirectory( "progs/playground" )
+	add_subdirectory( "progs/benchmark" )
 endif ( )
 
 configure_file(
