@@ -23,31 +23,23 @@
 #include <limits.h>
 #include <algorithm>
 #include <iostream>
-#include <regex>
-#include <thread>
 
 namespace q {
 
 namespace detail {
 
-// C++ regex is pretty broken, since multiline support is implementation
-// dependent, so we need to create our own '^' and '$' breaks...
-#define RE_BOL "[\\n\\r^]"
-#define RE_EOL "[\\n\\r$]"
-
 cpu_info get_cpu_info( )
 {
 	cpu_info info{ 0, 0, 0, 0, 0, 0, 0 };
 
-#if defined( __GNUC__ ) && ( __GNUC__ < 5 ) && ( __GNUC_MINOR__ < 9 )
-	// Regex doesn't work at all in GCC 4.8. It silently compiles, but
-	// is totally broken.
-	return info;
-#else
-	std::string data = exec_read_all( "lscpu" );
+	std::string data = "@" + exec_read_all( "lscpu" );
 
-	if ( data.empty( ) )
+	if ( data.size( ) == 1 )
 		return info;
+
+	for ( std::size_t i = 0; i < data.size( ); ++i )
+		if ( data[ i ] == '\r' || data[ i ] == '\n' )
+			data[ i ] = '@';
 
 	auto to_numeric = [ ]( const std::string& s ) -> std::size_t
 	{
@@ -67,28 +59,32 @@ cpu_info get_cpu_info( )
 		return static_cast< std::size_t >( val ) * mul;
 	};
 
-	auto get_value = [ & ]( const std::string& re ) -> std::size_t
+	auto get_value = [ & ]( const std::string& label ) -> std::size_t
 	{
-		auto re_cpu = std::regex( RE_BOL + re + RE_EOL );
-		std::smatch match;
-		std::regex_search( data, match, re_cpu );
-		if ( match.size( ) == 2 )
-			return to_numeric( match[ 1 ] );
-		return 0;
+		const char* numerics = "MK0123456789";
+
+		std::string::size_type pos = data.find( label );
+		if ( pos == std::string::npos )
+			return 0;
+
+		pos = data.find_first_of( numerics + 2, pos + label.size( ) );
+		if ( pos == std::string::npos )
+			return 0;
+
+		std::string::size_type pos2 =
+			data.find_first_not_of( numerics, pos );
+		if ( pos2 == std::string::npos )
+			return to_numeric( data.substr( pos ) );
+		return to_numeric( data.substr( pos, pos2 - pos ) );
 	};
 
-	auto soft_cores = get_value(
-		"CPU\\(s\\):[[:space:]]*([[:digit:]]+)" );
-	auto tpc = std::max( std::size_t( 1 ), get_value(
-		"Threads\\(s\\) per core:[[:space:]]*([[:digit:]]+)" ) );
-	auto l1c = get_value(
-		"L1d cache:[[:space:]]*([[:digit:]]+)" );
-	auto l2c = get_value(
-		"L2 cache:[[:space:]]*([[:digit:]]+)" );
-	auto l3c = get_value(
-		"L3 cache:[[:space:]]*([[:digit:]]+)" );
-	auto processors = get_value(
-		"Socket\\(s\\):[[:space:]]*([[:digit:]]+)" );
+	auto soft_cores = get_value( "@CPU(s):" );
+	auto tpc = std::max( std::size_t( 1 ),
+		get_value( "@Thread(s) per core:" ) );
+	auto l1c = get_value( "@L1d cache:" );
+	auto l2c = get_value( "@L2 cache:" );
+	auto l3c = get_value( "@L3 cache:" );
+	auto processors = get_value( "@Socket(s):" );
 
 	info.soft_cores = soft_cores;
 	info.hard_cores = soft_cores / tpc;
@@ -99,7 +95,6 @@ cpu_info get_cpu_info( )
 	info.level_3_cache_size = l3c;
 
 	return info;
-#endif
 }
 
 } // namespace detail
