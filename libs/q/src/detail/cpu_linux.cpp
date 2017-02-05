@@ -39,6 +39,11 @@ cpu_info get_cpu_info( )
 {
 	cpu_info info{ 0, 0, 0, 0, 0, 0, 0 };
 
+#if defined( __GNUC__ ) && ( __GNUC__ < 5 ) && ( __GNUC_MINOR__ < 9 )
+	// Regex doesn't work at all in GCC 4.8. It silently compiles, but
+	// is totally broken.
+	return info;
+#else
 	std::string data = exec_read_all( "lscpu" );
 
 	if ( data.empty( ) )
@@ -94,6 +99,7 @@ cpu_info get_cpu_info( )
 	info.level_3_cache_size = l3c;
 
 	return info;
+#endif
 }
 
 } // namespace detail

@@ -14,6 +14,10 @@ set( CMAKE_CXX_EXTENSIONS OFF )
 # https://cmake.org/cmake/help/v3.0/variable/CMAKE_LANG_COMPILER_ID.html
 if ( CMAKE_CXX_COMPILER_ID MATCHES "GNU" )
 
+	if ( CMAKE_CXX_COMPILER_VERSION VERSION_LESS 4.9 )
+		set( CMAKE_CXX_FLAGS "-std=c++11 -Wall -pipe -pthread" )
+	endif ( )
+
 	if ( NOT CMAKE_CXX_FLAGS )
 		set( CMAKE_CXX_FLAGS "-Wall -Wextra -pipe -pthread" )
 

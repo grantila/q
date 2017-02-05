@@ -34,7 +34,13 @@ namespace detail {
 
 void register_internal_initializer( q::function< void( void ) >&& func )
 {
-	get_initializers( )->push_back( std::move( func ) );
+	get_initializers( )->push_back(
+#if defined( __GNUC__ ) && ( __GNUC__ < 5 ) && ( __GNUC_MINOR__ < 9 )
+		q::function< void( void ) >( func )
+#else
+		std::move( func )
+#endif
+	);
 }
 
 } // namespace detail

@@ -27,6 +27,10 @@
 #	include <pthread.h>
 #endif
 
+#ifndef LIBQ_ON_WINDOWS
+#	include <limits.h>
+#endif
+
 #if defined( LIBQ_ON_WINDOWS ) \
 	|| defined( LIBQ_ON_POSIX ) \
 	|| defined( LIBQ_ON_OSX )

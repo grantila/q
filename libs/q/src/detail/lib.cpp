@@ -31,6 +31,7 @@
 #	include <linux/limits.h>
 #else // posix
 #	include <dlfcn.h>
+#	include <limits.h>
 #endif
 
 #ifdef _WIN32
