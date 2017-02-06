@@ -754,8 +754,12 @@ noexcept( noexcept(
 		call_with_args(
 			std::forward< Fn >( fn ),
 			std::forward<
-				typename std::tuple_element< Indexes, Tuple >
-					::type
+				typename std::tuple_element<
+					Indexes,
+					typename std::remove_reference<
+						Tuple
+					>::type
+				>::type
 			>( std::get< Indexes >( tuple ) )...
 		)
 	)
