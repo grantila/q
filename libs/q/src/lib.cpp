@@ -15,6 +15,7 @@
  */
 
 #include <q/lib.hpp>
+#include <q/pp.hpp>
 
 #include <vector>
 
@@ -35,7 +36,7 @@ namespace detail {
 void register_internal_initializer( q::function< void( void ) >&& func )
 {
 	get_initializers( )->push_back(
-#if defined( __GNUC__ ) && ( __GNUC__ < 5 ) && ( __GNUC_MINOR__ < 9 )
+#if defined( LIBQ_ON_GCC ) && ( LIBQ_ON_GCC < 40900 )
 		q::function< void( void ) >( func )
 #else
 		std::move( func )

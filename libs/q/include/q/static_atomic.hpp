@@ -22,7 +22,7 @@
 #include <atomic>
 #include <memory>
 
-#if defined( __GNUC__ ) && __GNUC_VERSION__ < 40900
+#if defined( LIBQ_ON_GCC ) && ( LIBQ_ON_GCC < 40900 )
 #	define NO_ATOMIC_SHARED_PTR_SUPPORT
 #endif
 

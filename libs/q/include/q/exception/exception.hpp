@@ -359,7 +359,7 @@ Q_MAKE_STANDARD_EXCEPTION( runtime_error );
 			ios_base_failure, ::std::ios_base::failure );
 Q_MAKE_STANDARD_EXCEPTION( bad_function_call );
 Q_MAKE_STANDARD_EXCEPTION( bad_alloc );
-#if defined( __GNUC__ ) && ( __GNUC__ < 5 ) && ( __GNUC_MINOR__ < 9 )
+#if defined( LIBQ_ON_GCC ) && ( LIBQ_ON_GCC < 40900 )
 	// bad_array_new_length doesn't exist in GCC 4.8
 #else
 	Q_MAKE_STANDARD_EXCEPTION( bad_array_new_length );

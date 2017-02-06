@@ -66,7 +66,7 @@ msb_win32( type num )
 
 template< typename type, std::size_t size = sizeof( type ) >
 typename std::enable_if<
-#ifdef LIBQ_ON_GCC
+#ifdef LIBQ_ON_GCC_OR_CLANG
 	sizeof( type ) <= sizeof( long long int ),
 #else
 	true,
@@ -77,7 +77,7 @@ msb( type&& _num )
 {
 #ifndef LIBQ_ON_WINDOWS
 	auto num = static_cast<
-#ifdef LIBQ_ON_GCC
+#ifdef LIBQ_ON_GCC_OR_CLANG
 		unsigned long long int
 #else
 		std::uint64_t
@@ -85,7 +85,7 @@ msb( type&& _num )
 	>( _num );
 #endif
 
-#ifdef LIBQ_ON_GCC
+#ifdef LIBQ_ON_GCC_OR_CLANG
 	return static_cast< std::size_t >(
 		( 8 * sizeof( unsigned long long int ) ) -
 		__builtin_clzll( num ) );

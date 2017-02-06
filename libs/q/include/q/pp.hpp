@@ -58,8 +58,17 @@
 #	define LIBQ_ON_UNKNOWN
 #endif
 
-#ifdef __GNUC__
-#	define LIBQ_ON_GCC
+#if defined( __GNUC__ ) && !defined( __clang__ )
+#	define LIBQ_ON_GCC 0 + ( \
+		__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__ )
+#endif
+
+#if defined( __clang__ )
+#	define LIBQ_ON_CLANG
+#endif
+
+#if defined( LIBQ_ON_GCC ) || defined( LIBQ_ON_CLANG )
+#	define LIBQ_ON_GCC_OR_CLANG
 #endif
 
 #if defined( LIBQ_ON_GCC ) || defined( LIBQ_ON_WINDOWS )
@@ -76,7 +85,7 @@
 
 #ifdef LIBQ_WITH_CPP17
 #	define Q_NODISCARD [[nodiscard]]
-#elif defined( __GNUC__ ) && ( __GNUC__ >= 4 )
+#elif defined( LIBQ_ON_GCC ) && ( LIBQ_ON_GCC >= 40000 )
 #	define Q_NODISCARD __attribute__ ((warn_unused_result))
 #elif defined( _MSC_VER ) && ( _MSC_VER >= 1700 )
 #	define Q_NODISCARD _Check_return_
