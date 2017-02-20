@@ -53,11 +53,12 @@ add_subdirectory( "libs/q" )
 
 if ( ${PROJECT_NAME}_BUILD_TESTS )
 	enable_testing()
-	include_directories( "3rdparty/gmock-1.7.0/gtest/include/" )
-	include_directories( "3rdparty/gmock-1.7.0/include/" )
+	include_directories( "3rdparty/gtest-1.8.0/include/" )
+	add_subdirectory( "3rdparty/gtest-1.8.0" )
+	set( LIBQ_GTEST_LIB gtest_main )
+
 	include_directories( "libs/q-test/include" )
 	add_subdirectory( "libs/q-test" )
-	add_subdirectory( "3rdparty/gmock-1.7.0" )
 	add_subdirectory( "tests" )
 endif ( )
 
