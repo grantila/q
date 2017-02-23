@@ -21,36 +21,9 @@
 
 namespace q { namespace detail {
 
-namespace {
-
-/**
- * items are tasks bound to a certain queue.
- *
- * They can also be synchronous tasks which run directly when the promise is
- * resolved. These must be tiny and fast and they must be 'noexcept'. This is
- * used for scheduling custom async tasks for event loops, e.g. timers.
- */
-struct item
-{
-	task task_;
-	queue_ptr queue_;
-	bool synchronous_;
-};
-
-} // anonymous namespace
-
-struct promise_signal::pimpl
-{
-	mutex mutex_;
-	bool done_;
-	std::vector< item > items_;
-};
-
 promise_signal::promise_signal( )
-: pimpl_( new pimpl )
-{
-	pimpl_->done_ = false;
-}
+: done_( false )
+{ }
 
 promise_signal::~promise_signal( )
 { }
@@ -60,12 +33,12 @@ promise_signal::~promise_signal( )
 void promise_signal::done( ) noexcept
 {
 	{
-		Q_AUTO_UNIQUE_LOCK( pimpl_->mutex_ );
+		Q_AUTO_UNIQUE_LOCK( mutex_ );
 
-		pimpl_->done_ = true;
+		done_ = true;
 	}
 
-	for ( auto& item : pimpl_->items_ )
+	for ( auto& item : items_ )
 	{
 		if ( item.synchronous_ )
 			item.task_( );
@@ -73,17 +46,17 @@ void promise_signal::done( ) noexcept
 			item.queue_->push( std::move( item.task_ ) );
 	}
 
-	pimpl_->items_.clear( );
+	items_.clear( );
 }
 
 void promise_signal::push( task&& task, const queue_ptr& queue ) noexcept
 {
 	{
-		Q_AUTO_UNIQUE_LOCK( pimpl_->mutex_ );
+		Q_AUTO_UNIQUE_LOCK( mutex_ );
 
-		if ( !pimpl_->done_ )
+		if ( !done_ )
 		{
-			pimpl_->items_.push_back(
+			items_.push_back(
 				{ std::move( task ), queue, false } );
 
 			return;
@@ -96,11 +69,11 @@ void promise_signal::push( task&& task, const queue_ptr& queue ) noexcept
 void promise_signal::push_synchronous( task&& task ) noexcept
 {
 	{
-		Q_AUTO_UNIQUE_LOCK( pimpl_->mutex_ );
+		Q_AUTO_UNIQUE_LOCK( mutex_ );
 
-		if ( !pimpl_->done_ )
+		if ( !done_ )
 		{
-			pimpl_->items_.push_back(
+			items_.push_back(
 				{ std::move( task ), nullptr, true } );
 
 			return;

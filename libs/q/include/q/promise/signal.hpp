@@ -18,10 +18,141 @@
 #define LIBQ_PROMISE_SIGNAL_HPP
 
 #include <q/types.hpp>
+#include <q/mutex.hpp>
 
 #include <memory>
+#include <array>
 
 namespace q { namespace detail {
+
+namespace {
+
+/**
+ * items are tasks bound to a certain queue.
+ *
+ * They can also be synchronous tasks which run directly when the promise is
+ * resolved. These must be tiny and fast and they must be 'noexcept'. This is
+ * used for scheduling custom async tasks for event loops, e.g. timers.
+ */
+struct item
+{
+	task task_;
+	queue_ptr queue_;
+	bool synchronous_;
+};
+
+} // anonymous namespace
+
+template< typename T, std::size_t N >
+class small_vector
+{
+public:
+	class iterator
+	{
+	public:
+		iterator( small_vector& vec )
+		: vector_( vec )
+		, index_( vector_.size( ) )
+		{ }
+
+		iterator( small_vector& vec, std::size_t index )
+		: vector_( vec )
+		, index_( index )
+		{ }
+
+		iterator( ) = delete;
+		iterator( const iterator& ) = default;
+		iterator( iterator&& ) = default;
+
+		iterator& operator=( const iterator& ) = default;
+		iterator& operator=( iterator&& ) = default;
+
+		bool operator!=( iterator other )
+		{
+			return index_ != other.index_;
+		}
+
+		T& operator*( )
+		{
+			return vector_[ index_ ];
+		}
+
+		T& operator->( )
+		{
+			return vector_[ index_ ];
+		}
+
+		iterator operator++( int )
+		{
+			iterator ret{ *this };
+			++index_;
+			return ret;
+		}
+
+		iterator& operator++( )
+		{
+			++index_;
+			return *this;
+		}
+
+	private:
+		small_vector& vector_;
+		std::size_t index_;
+	};
+
+	small_vector( )
+	: array_elements_( 0 )
+	{ }
+
+	small_vector( const small_vector& ) = default;
+	small_vector( small_vector&& ) = default;
+
+	small_vector& operator=( const small_vector& ) = default;
+	small_vector& operator=( small_vector&& ) = default;
+
+	void push_back( T t )
+	{
+		if ( array_elements_ < N )
+			array_[ array_elements_++ ] = std::move( t );
+		else
+			vector_.push_back( std::move( t ) );
+	}
+
+	void clear( )
+	{
+		array_elements_ = 0;
+		vector_.clear( );
+	}
+
+	T& operator[ ]( std::size_t index )
+	{
+		if ( array_elements_ < N )
+			return array_[ index ];
+		return vector_[ index - N ];
+	}
+
+	std::size_t size( ) const
+	{
+		if ( array_elements_ < N )
+			return array_elements_;
+		return N + vector_.size( );
+	}
+
+	iterator begin( )
+	{
+		return iterator{ *this, 0 };
+	}
+
+	iterator end( )
+	{
+		return iterator{ *this };
+	}
+
+private:
+	std::size_t array_elements_;
+	std::array< T, N > array_;
+	std::vector< T > vector_;
+};
 
 // TODO: Make lock-free with a lock-free queue and atomic bool.
 class promise_signal
@@ -39,9 +170,10 @@ protected:
 	promise_signal( );
 
 private:
-	struct pimpl;
-
-	std::unique_ptr< pimpl > pimpl_;
+	mutex mutex_;
+	bool done_;
+	small_vector< item, 1 > items_;
+	//std::vector< item > items_;
 };
 
 typedef std::shared_ptr< promise_signal > promise_signal_ptr;

@@ -103,16 +103,16 @@ public:
 	>
 	{ };
 
-	generic_promise( state_type&& state, const queue_ptr& queue )
+	generic_promise( state_type&& state, queue_ptr queue )
 	: state_( ::q::make_shared< state_type >( std::move( state ) ) )
-	, queue_( queue )
+	, queue_( std::move( queue ) )
 	{ }
 
 	generic_promise(
-		std::shared_ptr< state_type > state, const queue_ptr& queue
+		std::shared_ptr< state_type > state, queue_ptr queue
 	)
-	: state_( state )
-	, queue_( queue )
+	: state_( std::move( state ) )
+	, queue_( std::move( queue ) )
 	{ }
 
 	generic_promise( this_type&& ref ) = default;

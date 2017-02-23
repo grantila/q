@@ -193,9 +193,40 @@ struct pipe_helper< arguments< From... >, arguments< To... > >
 	};
 };
 
+struct shared_channel_base
+{
+	queue_ptr default_queue_;
+	// TODO: Make this lock-free and consider other list types
+	mutable mutex mutex_;
+	// True if arbitrary exception, false if "closed exception"
+	std::tuple< bool, std::exception_ptr > close_exception_;
+	std::atomic< bool > closed_;
+	std::atomic< bool > paused_;
+	const std::size_t buffer_count_;
+	const std::size_t resume_count_;
+	shared_task resume_notification_;
+	std::vector< scope > scopes_;
+
+	shared_channel_base(
+		queue_ptr queue,
+		macro_location&& loc,
+		std::size_t buffer_count,
+		std::size_t resume_count
+	)
+	: default_queue_( std::move( queue ) )
+	, mutex_( std::move( loc ), "channel" )
+	, close_exception_( std::make_tuple( false, std::exception_ptr( ) ) )
+	, closed_( false )
+	, paused_( false )
+	, buffer_count_( buffer_count )
+	, resume_count_( std::min( resume_count, buffer_count ) )
+	{ }
+};
+
 template< typename... T >
 class shared_channel
 : public std::enable_shared_from_this< shared_channel< T... > >
+, shared_channel_base
 {
 public:
 	typedef typename detail::channel_traits< T... >::type traits;
@@ -419,13 +450,7 @@ public:
 		std::size_t buffer_count,
 		std::size_t resume_count
 	)
-	: default_queue_( queue )
-	, mutex_( Q_HERE, "channel" )
-	, close_exception_( std::make_tuple( false, std::exception_ptr( ) ) )
-	, closed_( false )
-	, paused_( false )
-	, buffer_count_( buffer_count )
-	, resume_count_( std::min( resume_count, buffer_count ) )
+	: shared_channel_base( queue, Q_HERE, buffer_count, resume_count )
 	{ }
 
 	Q_NODISCARD
@@ -824,19 +849,8 @@ private:
 		}
 	}
 
-	queue_ptr default_queue_;
-	// TODO: Make this lock-free and consider other list types
-	mutable mutex mutex_;
 	std::list< std::unique_ptr< waiter_type > > waiters_;
 	std::queue< tuple_type > queue_;
-	// True if arbitrary exception, false if "closed exception"
-	std::tuple< bool, std::exception_ptr > close_exception_;
-	std::atomic< bool > closed_;
-	std::atomic< bool > paused_;
-	const std::size_t buffer_count_;
-	const std::size_t resume_count_;
-	shared_task resume_notification_;
-	std::vector< scope > scopes_;
 };
 
 template< typename... T >
