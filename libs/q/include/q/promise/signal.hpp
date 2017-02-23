@@ -120,6 +120,9 @@ public:
 
 	void clear( )
 	{
+		for ( std::size_t i = 0; i < array_elements_; ++i )
+			array_[ i ].~T( );
+
 		array_elements_ = 0;
 		vector_.clear( );
 	}
