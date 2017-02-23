@@ -38,9 +38,13 @@ void promise_signal::done( ) noexcept
 		done_ = true;
 	}
 
-	for ( auto& item : items_ )
+	auto iter = items_.begin( );
+	auto end = items_.end( );
+	for ( ; iter != end; ++iter )
 	{
-		if ( item.synchronous_ )
+		auto& item = *iter;
+
+		if ( !item.queue_ ) //item.synchronous_ )
 			item.task_( );
 		else
 			item.queue_->push( std::move( item.task_ ) );
@@ -57,7 +61,7 @@ void promise_signal::push( task&& task, const queue_ptr& queue ) noexcept
 		if ( !done_ )
 		{
 			items_.push_back(
-				{ std::move( task ), queue, false } );
+				{ std::move( task ), queue } );
 
 			return;
 		}
@@ -74,7 +78,7 @@ void promise_signal::push_synchronous( task&& task ) noexcept
 		if ( !done_ )
 		{
 			items_.push_back(
-				{ std::move( task ), nullptr, true } );
+				{ std::move( task ), nullptr } );
 
 			return;
 		}
