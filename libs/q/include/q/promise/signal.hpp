@@ -25,27 +25,24 @@
 
 namespace q { namespace detail {
 
-namespace {
-
-/**
- * items are tasks bound to a certain queue.
- *
- * They can also be synchronous tasks which run directly when the promise is
- * resolved. These must be tiny and fast and they must be 'noexcept'. This is
- * used for scheduling custom async tasks for event loops, e.g. timers.
- */
-struct item
-{
-	task task_;
-	queue_ptr queue_;
-};
-
-} // anonymous namespace
-
 // TODO: Make lock-free with a lock-free queue and atomic bool.
 class promise_signal
 {
 public:
+	/**
+	 * items are tasks bound to a certain queue.
+	 *
+	 * They can also be synchronous tasks which run directly when the
+	 * promise is resolved. These must be tiny and fast and they must be
+	 * 'noexcept'. This is used for scheduling custom async tasks for event
+	 * loops, e.g. timers.
+	 */
+	struct item
+	{
+		task task_;
+		queue_ptr queue_;
+	};
+
 	promise_signal( )
 	: done_( false )
 	{ }
