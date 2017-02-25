@@ -21,13 +21,6 @@
 
 namespace q { namespace detail {
 
-promise_signal::promise_signal( )
-: done_( false )
-{ }
-
-promise_signal::~promise_signal( )
-{ }
-
 // TODO: Analyze noexcept here, when it comes to pushing to a queue which might
 //       be closed or similar.
 void promise_signal::done( ) noexcept
@@ -38,13 +31,16 @@ void promise_signal::done( ) noexcept
 		done_ = true;
 	}
 
+	if ( items_.empty( ) )
+		return;
+
 	auto iter = items_.begin( );
 	auto end = items_.end( );
 	for ( ; iter != end; ++iter )
 	{
 		auto& item = *iter;
 
-		if ( !item.queue_ ) //item.synchronous_ )
+		if ( !item.queue_ ) // synchronous
 			item.task_( );
 		else
 			item.queue_->push( std::move( item.task_ ) );
@@ -53,15 +49,17 @@ void promise_signal::done( ) noexcept
 	items_.clear( );
 }
 
-void promise_signal::push( task&& task, const queue_ptr& queue ) noexcept
+void promise_signal::push( task&& task, queue_ptr queue ) noexcept
 {
 	{
 		Q_AUTO_UNIQUE_LOCK( mutex_ );
 
 		if ( !done_ )
 		{
-			items_.push_back(
-				{ std::move( task ), queue } );
+			items_.push_back( {
+				std::move( task ),
+				std::move( queue )
+			} );
 
 			return;
 		}
@@ -77,8 +75,7 @@ void promise_signal::push_synchronous( task&& task ) noexcept
 
 		if ( !done_ )
 		{
-			items_.push_back(
-				{ std::move( task ), nullptr } );
+			items_.push_back( { std::move( task ), nullptr } );
 
 			return;
 		}

@@ -46,7 +46,7 @@ finally( Fn&& fn, Queue&& queue )
 
 	auto perform = [ deferred, Q_MOVABLE_FORWARD( fn ), state ]( ) mutable
 	{
-		auto value = state->consume( );
+		auto value = state.consume( );
 
 		try
 		{
@@ -61,7 +61,7 @@ finally( Fn&& fn, Queue&& queue )
 		}
 	};
 
-	state_->signal( )->push( std::move( perform ),
+	state_.signal( ).push( std::move( perform ),
 	                         ensure( set_default_forward( queue ) ) );
 
 	return deferred->template get_suitable_promise< promise_this_type >( );
@@ -99,15 +99,16 @@ finally( Fn&& fn, Queue&& queue )
 			auto inner_promise = Q_MOVABLE_CONSUME( fn )( );
 
 			inner_promise
-			.then( [ deferred, state ]( )
+			.then( [ deferred, state ]( ) mutable
 			{
-				auto value = state->consume( );
+				auto value = state.consume( );
 
 				deferred->set_expect( std::move( value ) );
 			} )
 			.fail( [ deferred, state ]( std::exception_ptr&& e )
+			mutable
 			{
-				auto value = state->consume( );
+				auto value = state.consume( );
 
 				// TODO: Consider using a nested_exception for
 				//       inner exceptions.
@@ -123,7 +124,7 @@ finally( Fn&& fn, Queue&& queue )
 		}
 	};
 
-	state_->signal( )->push( std::move( perform ),
+	state_.signal( ).push( std::move( perform ),
 	                         ensure( set_default_forward( queue ) ) );
 
 	return deferred->get_promise( );

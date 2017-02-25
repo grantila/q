@@ -128,6 +128,11 @@ public:
 		return iterator{ *this, size( ) };
 	}
 
+	bool empty( )
+	{
+		return array_count_ == 0;
+	}
+
 	template< typename Fn >
 	void for_each( Fn&& fn )
 	{

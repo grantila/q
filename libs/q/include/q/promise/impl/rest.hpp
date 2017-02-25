@@ -61,7 +61,7 @@ delay( timer::duration_type duration, queue_options options )
 
 	auto perform = [ deferred, state ]( ) mutable
 	{
-		auto value = state->consume( );
+		auto value = state.consume( );
 		deferred->set_expect( std::move( value ) );
 	};
 
@@ -72,7 +72,7 @@ delay( timer::duration_type duration, queue_options options )
 		queue->push( perform, wait_until );
 	};
 
-	state_->signal( )->push( std::move( timed_task ), queue );
+	state_.signal( ).push( std::move( timed_task ), queue );
 
 	return deferred->template get_suitable_promise< promise_this_type >( );
 }
@@ -89,12 +89,12 @@ reflect_tuple( )
 
 	auto perform = [ deferred, state ]( ) mutable
 	{
-		auto value = state->consume( );
+		auto value = state.consume( );
 
 		deferred->set_value( std::move( value ) );
 	};
 
-	state_->signal( )->push( std::move( perform ), get_queue( ) );
+	state_.signal( ).push( std::move( perform ), get_queue( ) );
 
 	return deferred->get_promise( );
 }
@@ -117,12 +117,12 @@ reflect( )
 
 	auto perform = [ deferred, state ]( ) mutable
 	{
-		auto value = state->consume( );
+		auto value = state.consume( );
 
 		deferred->set_inner_expect( std::move( value ) );
 	};
 
-	state_->signal( )->push( std::move( perform ), get_queue( ) );
+	state_.signal( ).push( std::move( perform ), get_queue( ) );
 
 	return deferred->get_promise( );
 }
@@ -148,7 +148,7 @@ forward( U&&... values )
 
 	auto perform = [ Q_MOVABLE_MOVE( tup ), deferred, state ]( ) mutable
 	{
-		auto value = state->consume( );
+		auto value = state.consume( );
 		if ( value.has_exception( ) )
 			// Redirect exception
 			deferred->set_exception( value.exception( ) );
@@ -156,7 +156,7 @@ forward( U&&... values )
 			deferred->set_value( Q_MOVABLE_CONSUME( tup ) );
 	};
 
-	state_->signal( )->push( std::move( perform ), get_queue( ) );
+	state_.signal( ).push( std::move( perform ), get_queue( ) );
 
 	return deferred->get_promise( );
 }

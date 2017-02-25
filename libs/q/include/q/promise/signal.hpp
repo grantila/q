@@ -38,7 +38,6 @@ struct item
 {
 	task task_;
 	queue_ptr queue_;
-//	bool synchronous_;
 };
 
 } // anonymous namespace
@@ -47,21 +46,17 @@ struct item
 class promise_signal
 {
 public:
-	~promise_signal( );
+	promise_signal( )
+	: done_( false )
+	{ }
 
 	void done( ) noexcept;
-
-	void push( task&& task, const queue_ptr& queue ) noexcept;
+	void push( task&& task, queue_ptr queue ) noexcept;
 	void push_synchronous( task&& task ) noexcept;
 
-protected:
-	promise_signal( );
-
-private:
 	mutex mutex_;
 	bool done_;
-	small_vector< item, 1 > items_;
-	//std::vector< item > items_;
+	std::vector< item > items_;
 };
 
 typedef std::shared_ptr< promise_signal > promise_signal_ptr;

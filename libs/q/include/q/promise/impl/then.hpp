@@ -51,7 +51,7 @@ then( Fn&& fn, Queue&& queue )
 
 	auto perform = [ deferred, Q_MOVABLE_FORWARD( fn ), state ]( ) mutable
 	{
-		auto value = state->consume( );
+		auto value = state.consume( );
 		if ( value.has_exception( ) )
 			// Redirect exception
 			deferred->set_exception( value.exception( ) );
@@ -60,7 +60,7 @@ then( Fn&& fn, Queue&& queue )
 				Q_MOVABLE_CONSUME( fn ), value.consume( ) );
 	};
 
-	state_->signal( )->push( std::move( perform ),
+	state_.signal( ).push( std::move( perform ),
 	                         ensure( set_default_forward( queue ) ) );
 
 	return std::move( deferred->get_promise( ) );
@@ -99,7 +99,7 @@ then( Fn&& fn, Queue&& queue )
 
 	auto perform = [ deferred, Q_MOVABLE_FORWARD( fn ), state ]( ) mutable
 	{
-		auto value = state->consume( );
+		auto value = state.consume( );
 		if ( value.has_exception( ) )
 			// Redirect exception
 			deferred->set_exception( value.exception( ) );
@@ -108,7 +108,7 @@ then( Fn&& fn, Queue&& queue )
 				Q_MOVABLE_CONSUME( fn ), value.consume( ) );
 	};
 
-	state_->signal( )->push( std::move( perform ),
+	state_.signal( ).push( std::move( perform ),
 	                         ensure( set_default_forward( queue ) ) );
 
 	return std::move( deferred->get_promise( ) );
@@ -146,7 +146,7 @@ then( Fn&& fn, Queue&& queue )
 
 	auto perform = [ deferred, Q_MOVABLE_FORWARD( fn ), state ]( ) mutable
 	{
-		auto value = state->consume( );
+		auto value = state.consume( );
 		if ( value.has_exception( ) )
 			// Redirect exception
 			deferred->set_exception( value.exception( ) );
@@ -155,7 +155,7 @@ then( Fn&& fn, Queue&& queue )
 				Q_MOVABLE_CONSUME( fn ), value.consume( ) );
 	};
 
-	state_->signal( )->push( std::move( perform ),
+	state_.signal( ).push( std::move( perform ),
 	                         ensure( set_default_forward( queue ) ) );
 
 	return std::move( deferred->get_promise( ) );
@@ -194,7 +194,7 @@ then( Fn&& fn, Queue&& queue )
 
 	auto perform = [ deferred, Q_MOVABLE_FORWARD( fn ), state ]( ) mutable
 	{
-		auto value = state->consume( );
+		auto value = state.consume( );
 		if ( value.has_exception( ) )
 			// Redirect exception
 			deferred->set_exception( value.exception( ) );
@@ -203,7 +203,7 @@ then( Fn&& fn, Queue&& queue )
 				Q_MOVABLE_CONSUME( fn ), value.consume( ) );
 	};
 
-	state_->signal( )->push( std::move( perform ),
+	state_.signal( ).push( std::move( perform ),
 				ensure( set_default_forward( queue ) ) );
 
 	return std::move( deferred->get_promise( ) );
@@ -225,7 +225,7 @@ then( AsyncTask&& task )
 
 	auto perform = [ Q_MOVABLE_FORWARD( task ), deferred, state ]( ) mutable
 	{
-		auto value = state->consume( );
+		auto value = state.consume( );
 
 		if ( value.has_exception( ) )
 		{
@@ -253,7 +253,7 @@ then( AsyncTask&& task )
 		}
 	};
 
-	state_->signal( )->push_synchronous( std::move( perform ) );
+	state_.signal( ).push_synchronous( std::move( perform ) );
 
 	return deferred->template get_suitable_promise< promise_this_type >( );
 }

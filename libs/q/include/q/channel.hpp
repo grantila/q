@@ -351,16 +351,18 @@ public:
 		void set_closed( ) override
 		{
 			auto deferred = this->deferred;
+			auto queue = queue_;
 			auto fn_closed = std::move( this->fn_closed );
 
 			Q_MOVE_INTO_MOVABLE( fn_closed );
 
-			auto fn = [ deferred, Q_MOVABLE_MOVE( fn_closed ) ]( )
+			auto fn =
+			[ deferred, queue, Q_MOVABLE_MOVE( fn_closed ) ]( )
 			mutable
 			{
 				deferred->satisfy(
 					promisify(
-						deferred->get_queue( ),
+						std::move( queue ),
 						Q_MOVABLE_CONSUME( fn_closed )
 					)
 					( )
@@ -368,7 +370,7 @@ public:
 				);
 			};
 
-			deferred->get_queue( )->push( std::move( fn ) );
+			queue_->push( std::move( fn ) );
 		}
 		void set_exception( std::exception_ptr e ) override
 		{
@@ -391,13 +393,9 @@ public:
 			else
 				cleaner = [ ]( std::exception_ptr ) { };
 
-			const queue_ptr& queue = ch
-				? ch->default_queue_
-				: deferred->get_queue( );
-
 			auto proxy = ::q::make_shared<
 				detail::defer< >
-			>( queue );
+			>( queue_ );
 
 			auto fn_value = std::move( this->fn_value );
 			Q_MOVE_INTO_MOVABLE( fn_value );
@@ -417,7 +415,7 @@ public:
 				);
 			};
 
-			deferred->get_queue( )->push( std::move( fn ) );
+			queue_->push( std::move( fn ) );
 
 			deferred->satisfy(
 				proxy->get_promise( )
@@ -431,18 +429,21 @@ public:
 			_FnValue&& fn_value,
 			_FnClosed&& fn_closed,
 			std::shared_ptr< result_defer_type > deferred,
-			std::weak_ptr< self_type > shared_channel
+			std::weak_ptr< self_type > shared_channel,
+			queue_ptr queue
 		)
 		: fn_value( std::forward< _FnValue >( fn_value ) )
 		, fn_closed( std::forward< _FnClosed >( fn_closed ) )
 		, deferred( deferred )
 		, shared_channel( shared_channel )
+		, queue_( std::move( queue ) )
 		{ }
 
 		FnValue fn_value;
 		FnClosed fn_closed;
 		std::shared_ptr< result_defer_type > deferred;
 		std::weak_ptr< self_type > shared_channel;
+		queue_ptr queue_;
 	};
 
 	shared_channel(
@@ -677,7 +678,8 @@ public:
 					std::forward< FnValue >( fn_value ),
 					std::forward< FnClosed >( fn_closed ),
 					defer,
-					this->shared_from_this( )
+					this->shared_from_this( ),
+					default_queue_
 				)
 			);
 			resume( );
@@ -705,7 +707,8 @@ public:
 				std::forward< FnValue >( fn_value ),
 				std::forward< FnClosed >( fn_closed ),
 				defer,
-				this->shared_from_this( )
+				this->shared_from_this( ),
+				default_queue_
 			);
 
 			waiter.set_value( std::move( t ) );

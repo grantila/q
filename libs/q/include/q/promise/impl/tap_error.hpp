@@ -51,7 +51,7 @@ tap_error( Fn&& fn, Queue&& queue )
 
 	auto perform = [ deferred, Q_MOVABLE_FORWARD( fn ), state ]( ) mutable
 	{
-		auto value = state->consume( );
+		auto value = state.consume( );
 
 		if ( !value.has_exception( ) )
 		{
@@ -74,7 +74,7 @@ tap_error( Fn&& fn, Queue&& queue )
 		}
 	};
 
-	state_->signal( )->push( std::move( perform ),
+	state_.signal( ).push( std::move( perform ),
 	                         ensure( set_default_forward( queue ) ) );
 
 	return deferred->template get_suitable_promise< promise_this_type >( );
@@ -112,7 +112,7 @@ tap_error( Fn&& fn, Queue&& queue )
 
 	auto perform = [ deferred, Q_MOVABLE_FORWARD( fn ), state ]( ) mutable
 	{
-		auto value = state->consume( );
+		auto value = state.consume( );
 
 		if ( !value.has_exception( ) )
 		{
@@ -143,7 +143,7 @@ tap_error( Fn&& fn, Queue&& queue )
 		}
 	};
 
-	state_->signal( )->push( std::move( perform ),
+	state_.signal( ).push( std::move( perform ),
 	                         ensure( set_default_forward( queue ) ) );
 
 	return deferred->template get_suitable_promise< promise_this_type >( );
@@ -181,7 +181,7 @@ tap_error( Fn&& fn, Queue&& queue )
 
 	auto perform = [ deferred, Q_MOVABLE_FORWARD( fn ), state ]( ) mutable
 	{
-		auto value = state->consume( );
+		auto value = state.consume( );
 
 		if ( !value.has_exception( ) )
 		{
@@ -215,7 +215,7 @@ tap_error( Fn&& fn, Queue&& queue )
 		}
 	};
 
-	state_->signal( )->push( std::move( perform ),
+	state_.signal( ).push( std::move( perform ),
 	                         ensure( set_default_forward( queue ) ) );
 
 	return deferred->template get_suitable_promise< promise_this_type >( );
@@ -255,7 +255,7 @@ tap_error( Fn&& fn, Queue&& queue )
 
 	auto perform = [ deferred, Q_MOVABLE_FORWARD( fn ), state ]( ) mutable
 	{
-		auto value = state->consume( );
+		auto value = state.consume( );
 
 		if ( !value.has_exception( ) )
 		{
@@ -297,7 +297,7 @@ tap_error( Fn&& fn, Queue&& queue )
 		}
 	};
 
-	state_->signal( )->push( std::move( perform ),
+	state_.signal( ).push( std::move( perform ),
 	                         ensure( set_default_forward( queue ) ) );
 
 	return deferred->template get_suitable_promise< promise_this_type >( );

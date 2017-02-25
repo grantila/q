@@ -43,13 +43,12 @@ class defer
 : public std::enable_shared_from_this< defer< T... > >
 {
 public:
-	typedef ::q::arguments< T... >                          arguments_type;
-	typedef std::tuple< T... >                              tuple_type;
-	typedef expect< tuple_type >                            expect_type;
-	typedef detail::promise_state_data< tuple_type, false > state_data_type;
-	typedef detail::promise_state< tuple_type, false >      state_type;
-	typedef promise< T... >                                 promise_type;
-	typedef shared_promise< T... >                          shared_promise_type;
+	typedef ::q::arguments< T... >                   arguments_type;
+	typedef std::tuple< T... >                       tuple_type;
+	typedef expect< tuple_type >                     expect_type;
+	typedef detail::promise_state_base< tuple_type > state_base_type;
+	typedef promise< T... >                          promise_type;
+	typedef shared_promise< T... >                   shared_promise_type;
 
 	void set_expect( expect_type&& exp )
 	{
@@ -105,15 +104,13 @@ public:
 	inline void set_value( tuple_type&& tuple )
 	{
 		auto value = ::q::fulfill< tuple_type >( std::move( tuple ) );
-		promise_.set_value( std::move( value ) );
-		signal_->done( );
+		state_->set( std::move( value ) );
 	}
 
 	inline void set_value( const tuple_type& tuple )
 	{
 		auto value = ::q::fulfill< tuple_type >( tuple_type( tuple ) );
-		promise_.set_value( std::move( value ) );
-		signal_->done( );
+		state_->set( std::move( value ) );
 	}
 
 	template< typename... Args >
@@ -157,8 +154,7 @@ public:
 
 	void set_exception( const std::exception_ptr& e )
 	{
-		promise_.set_value( ::q::refuse< tuple_type >( e ) );
-		signal_->done( );
+		state_->set( ::q::refuse< tuple_type >( e ) );
 	}
 
 	void set_current_exception( )
@@ -513,14 +509,6 @@ public:
 		} );
 	}
 
-	/*
-	 void satisfy( const shared_promise_type& promise )
-	 {
-	 promise_ = std::move( promise.privatize( ) );
-	 signal_->done( );
-	 }
-	 */
-
 	// Moves the promise out of the defer
 	promise_type get_promise( )
 	{
@@ -557,51 +545,32 @@ public:
 		return get_promise( );
 	}
 
-	queue_ptr get_queue( ) const
-	{
-		return queue_;
-	}
-
 	static std::shared_ptr< defer< T... > >
 	construct( const queue_ptr& queue )
 	{
-		typedef typename state_data_type::future_type future_type;
+		auto state = std::make_shared< state_base_type >( );
 
-		std::promise< expect_type > std_promise;
-		future_type future = std_promise.get_future( );
-
-		state_data_type state_data( std::move( future ) );
-		state_type state( std::move( state_data ) );
-
-		auto signal = state.signal( );
-
-		promise_type q_promise( std::move( state ), queue );
+		promise_type q_promise( state, std::move( queue ) );
 
 		return ::q::make_shared_using_constructor< defer< T... > >(
-			std::move( std_promise ),
-			std::move( signal ),
+			std::move( state ),
 			std::move( q_promise ) );
 	}
 
 protected:
 	defer( ) = delete;
 
-	defer( std::promise< expect_type >&& promise,
-	       promise_signal_ptr&& signal,
-	       promise_type&& deferred )
-	: promise_( std::move( promise ) )
-	, signal_( std::move( signal ) )
+	defer(
+		std::shared_ptr< state_base_type >&& state,
+		promise_type&& deferred
+	)
+	: state_( std::move( state ) )
 	, deferred_( std::move( deferred ) )
-	, queue_( deferred_.get_queue( ) )
 	{ }
 
 private:
-	std::promise< expect_type > promise_;
-	promise_signal_ptr          signal_;
-
-	promise_type                deferred_;
-
-	queue_ptr                   queue_;
+	std::shared_ptr< state_base_type > state_;
+	promise_type deferred_;
 };
 
 template< typename... T >

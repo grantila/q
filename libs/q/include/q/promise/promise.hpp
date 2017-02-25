@@ -69,8 +69,8 @@ public:
 	typedef promise< Args... >                     unique_this_type;
 	typedef shared_promise< Args... >              shared_this_type;
 	typedef make_promise_type_t< Shared, Args... > promise_this_type;
-	typedef promise_state< tuple_type, Shared >    state_type;
-	typedef promise_state< tuple_type, false >     unique_state_type;
+	typedef promise_state_base< tuple_type >       promise_state_base_type;
+	typedef promise_state< tuple_type, Shared >    promise_state_type;
 	typedef unique_this_type                       promise_type;
 	typedef shared_this_type                       shared_promise_type;
 	typedef expect< tuple_type >                   tuple_expect_type;
@@ -103,13 +103,9 @@ public:
 	>
 	{ };
 
-	generic_promise( state_type&& state, queue_ptr queue )
-	: state_( ::q::make_shared< state_type >( std::move( state ) ) )
-	, queue_( std::move( queue ) )
-	{ }
-
 	generic_promise(
-		std::shared_ptr< state_type > state, queue_ptr queue
+		std::shared_ptr< promise_state_base_type >&& state,
+		queue_ptr&& queue
 	)
 	: state_( std::move( state ) )
 	, queue_( std::move( queue ) )
@@ -698,7 +694,7 @@ private:
 		return queue_;
 	}
 
-	std::shared_ptr< state_type > state_;
+	promise_state< tuple_type, Shared > state_;
 	queue_ptr queue_;
 };
 
@@ -710,14 +706,14 @@ class promise
 {
 	typedef promise< T... >                        this_type;
 	typedef detail::generic_promise< false, T... > base_type;
+	using state_base_type =
+		std::shared_ptr< typename base_type::promise_state_base_type >;
 
 public:
 	typedef ::q::is_copy_constructible< T... > shareable;
 
-	promise(
-		typename base_type::state_type&& state, const queue_ptr& queue
-	)
-	: base_type( std::move( state ), queue )
+	promise( state_base_type state, queue_ptr queue )
+	: base_type( std::move( state ), std::move( queue ) )
 	{ }
 
 	promise( ) = delete;
@@ -727,7 +723,7 @@ public:
 	promise& operator=( const this_type& ) = delete;
 
 	promise( detail::generic_promise< false, T... >&& ref )
-	: base_type( std::move( ref.state_ ), ref.queue_ )
+	: base_type( std::move( ref.state_.state( ) ), std::move( ref.queue_ ) )
 	{ }
 
 	template< bool B = shareable::value >
@@ -738,7 +734,7 @@ public:
 	share( )
 	{
 		return shared_promise< T... >(
-			base_type::state_->acquire( ), this->get_queue( ) );
+			base_type::state_.state( ), this->get_queue( ) );
 	}
 
 	/**
@@ -754,21 +750,16 @@ class shared_promise
 {
 	typedef shared_promise< T... >                this_type;
 	typedef detail::generic_promise< true, T... > base_type;
+	using state_base_type =
+		std::shared_ptr< typename base_type::promise_state_base_type >;
 
 public:
-	shared_promise( typename base_type::state_type&& state,
-	                const queue_ptr& queue )
-	: base_type( std::move( state ), queue )
-	{ }
-
-	shared_promise(
-		detail::promise_state_data< std::tuple< T... >, false >&& state,
-		const queue_ptr& queue )
-	: base_type( std::move( state ), queue )
+	shared_promise( state_base_type state, queue_ptr queue )
+	: base_type( std::move( state ), std::move( queue ) )
 	{ }
 
 	shared_promise( detail::generic_promise< true, T... >&& ref )
-	: base_type( std::move( ref.state_ ), ref.queue_ )
+	: base_type( std::move( ref.state_.state( ) ), std::move( ref.queue_ ) )
 	{ }
 
 	shared_promise( ) = delete;
