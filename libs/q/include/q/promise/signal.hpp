@@ -41,13 +41,22 @@ public:
 	{
 		task task_;
 		queue_ptr queue_;
+
+		item( task&& task, queue_ptr&& queue_ )
+		: task_( std::move( task ) )
+		, queue_( std::move( queue_ ) )
+		{ }
+
+		item( task&& task )
+		: task_( std::move( task ) )
+		{ }
 	};
 
 	promise_signal( )
 	: done_( false )
 	{ }
 
-	void done( ) noexcept;
+	void notify( ) noexcept;
 	void push( task&& task, queue_ptr queue ) noexcept;
 	void push_synchronous( task&& task ) noexcept;
 

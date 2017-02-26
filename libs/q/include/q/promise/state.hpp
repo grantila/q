@@ -30,6 +30,12 @@ struct promise_state_base
 {
 	typedef expect< T > value_type;
 
+	~promise_state_base( )
+	{
+		if ( signal_.done_ )
+			get( ).~value_type( );
+	}
+
 	promise_signal& signal( )
 	{
 		return signal_;
@@ -51,9 +57,11 @@ struct promise_state_base
 				return;
 
 			::new ( &value_ ) value_type( std::move( value ) );
+
+			signal_.done_ = true;
 		}
 
-		signal_.done( );
+		signal_.notify( );
 	}
 
 private:
