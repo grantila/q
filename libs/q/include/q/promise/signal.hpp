@@ -21,8 +21,6 @@
 #include <q/mutex.hpp>
 #include <q/small_vector.hpp>
 
-#include <memory>
-
 namespace q { namespace detail {
 
 // TODO: Make lock-free with a lock-free queue and atomic bool.
@@ -42,17 +40,14 @@ public:
 		task task_;
 		queue_ptr queue_;
 
-		item( task&& task, queue_ptr&& queue_ )
+		item( task&& task, queue_ptr&& queue )
 		: task_( std::move( task ) )
-		, queue_( std::move( queue_ ) )
+		, queue_( std::move( queue ) )
 		{ }
 
 		item( task&& task )
 		: task_( std::move( task ) )
 		{ }
-
-		item( item&& ) = default;
-		item& operator=( item&& ) = default;
 	};
 
 	promise_signal( )
@@ -67,8 +62,6 @@ public:
 	bool done_;
 	std::vector< item > items_;
 };
-
-typedef std::shared_ptr< promise_signal > promise_signal_ptr;
 
 } } // namespace detail, namespace queue
 

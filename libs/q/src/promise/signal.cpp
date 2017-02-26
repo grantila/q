@@ -46,11 +46,17 @@ void promise_signal::push( task&& task, queue_ptr queue ) noexcept
 
 		if ( !done_ )
 		{
+#if !defined( LIBQ_ON_GCC )
 			items_.emplace_back(
 				std::move( task ),
 				std::move( queue )
 			);
-
+#else
+			items_.push_back( item{
+				std::move( task ),
+				std::move( queue )
+			} );
+#endif
 			return;
 		}
 	}
@@ -65,7 +71,13 @@ void promise_signal::push_synchronous( task&& task ) noexcept
 
 		if ( !done_ )
 		{
+#if !defined( LIBQ_ON_GCC )
 			items_.emplace_back( std::move( task ) );
+#else
+			items_.push_back( item{
+				std::move( task )
+			} );
+#endif
 
 			return;
 		}
