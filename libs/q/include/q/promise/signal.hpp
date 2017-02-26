@@ -50,6 +50,9 @@ public:
 		item( task&& task )
 		: task_( std::move( task ) )
 		{ }
+
+		item( item&& ) = default;
+		item& operator=( item&& ) = default;
 	};
 
 	promise_signal( )
