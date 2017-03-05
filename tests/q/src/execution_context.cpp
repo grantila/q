@@ -66,4 +66,5 @@ TEST( execution_context, thread_pool_dispatcher )
 
 	bd->start( );
 	tpctx->dispatcher( )->await_termination( );
+	bd->await_termination( );
 }
