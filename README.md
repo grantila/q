@@ -220,7 +220,7 @@ The examples below build to a directory `build`, to leave the root repository cl
 
 ### Using Makefiles (for various POSIX platforms)
 ```sh
-git clone git@github.com:grantila/q.git
+git clone https://github.com/grantila/q.git
 cd q
 cmake -G "Unix Makefiles" -Bbuild -H.
 cd build
@@ -229,7 +229,7 @@ make
 
 ### For Xcode
 ```sh
-git clone git@github.com:grantila/q.git
+git clone https://github.com/grantila/q.git
 cd q
 cmake -G "Xcode" -Bbuild -H.
 open build/q.xcodeproj
@@ -239,7 +239,7 @@ open build/q.xcodeproj
 
 Visual Studio 2015 32-bit (using Git Bash shell):
 ```sh
-git clone git@github.com:grantila/q.git
+git clone https://github.com/grantila/q.git
 cd q
 cmake -G "Visual Studio 14 2015" -Bbuild -H.
 start build/q.sln
