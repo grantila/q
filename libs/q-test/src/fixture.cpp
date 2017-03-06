@@ -21,6 +21,7 @@ namespace q { namespace test {
 
 fixture::fixture( )
 : mutex_( "q test fixture" )
+, started_( false )
 { }
 
 fixture::~fixture( )
