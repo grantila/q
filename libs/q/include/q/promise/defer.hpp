@@ -341,7 +341,7 @@ public:
 		and
 		::q::is_promise< Q_RESULT_OF( Fn ) >::value
 	>::type
-	set_by_fun( Fn&& fn, Args&&... args )
+	set_by_fun( Fn&& fn, Args&&... )
 	{
 		try
 		{

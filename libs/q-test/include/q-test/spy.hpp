@@ -114,7 +114,7 @@ public:
 	{ }
 
 	typename q::remove_rvalue_reference< Ret >::type
-	operator( )( Args... args )
+	operator( )( Args... )
 	{
 		counter_->inc( );
 		return value_;

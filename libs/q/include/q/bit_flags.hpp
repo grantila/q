@@ -123,7 +123,7 @@ public:
 	template< std::size_t index >
 	void set( bool value = true ); // This is impossible
 
-	void set( std::size_t index, bool value = true )
+	void set( std::size_t, bool = true )
 	{
 		throw std::out_of_range( "Bit is out of range" );
 	}
@@ -131,7 +131,7 @@ public:
 	template< std::size_t index >
 	void unset( ); // This is impossible
 
-	void unset( std::size_t index )
+	void unset( std::size_t )
 	{
 		throw std::out_of_range( "Bit is out of range" );
 	}
@@ -139,7 +139,7 @@ public:
 	template< std::size_t index >
 	bool is_set( ) const; // This is impossible
 
-	bool is_set( std::size_t index ) const
+	bool is_set( std::size_t ) const
 	{
 		throw std::out_of_range( "Bit is out of range" );
 	}
