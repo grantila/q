@@ -264,7 +264,7 @@ std::ostream& operator<<( std::ostream&, const exception& );
 namespace detail {
 
 template< typename E >
-static void _add_exception_properties( E& e )
+static void _add_exception_properties( E& )
 { }
 
 template< typename E, typename Arg, typename... Args >

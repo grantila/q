@@ -144,7 +144,7 @@ public:
 		if ( iter == list_.end( ) || iter->priority_ != priority )
 		{
 			// Insert new unique priority circular list
-			list_element_type element{ std::move( priority ) };
+			list_element_type element{ std::move( priority ), { } };
 			iter = list_.insert( iter, std::move( element ) );
 		}
 
@@ -226,7 +226,7 @@ void priority_scheduler::add_queue( queue_ptr queue )
 		if ( ed )
 			ed->notify( );
 		else
-			; // TODO: Warn or error somehow
+		{ } // TODO: Warn or error somehow
 	}, ed->parallelism( ) );
 
 	auto _this = shared_from_this( );
@@ -254,7 +254,7 @@ struct direct_scheduler::pimpl
 
 direct_scheduler::direct_scheduler(
 	const event_dispatcher_ptr& event_dispatcher )
-: pimpl_( new pimpl{ event_dispatcher, { Q_HERE, "direct_scheduler" } } )
+: pimpl_( new pimpl{ event_dispatcher, { Q_HERE, "direct_scheduler" }, { } } )
 { }
 
 direct_scheduler::~direct_scheduler( )
@@ -278,7 +278,7 @@ void direct_scheduler::add_queue( queue_ptr queue )
 			if ( ed )
 				ed->notify( );
 			else
-				; // TODO: Warn or error somehow
+			{ } // TODO: Warn or error somehow
 		}, ed->parallelism( ) );
 	}
 	else

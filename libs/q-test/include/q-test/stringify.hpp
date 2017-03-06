@@ -105,7 +105,7 @@ template< >
 struct tuple_stringifyer< 0 >
 {
 	template< std::size_t >
-	static std::string stringify_tuple( const std::tuple< >& t )
+	static std::string stringify_tuple( const std::tuple< >& )
 	{
 		return "";
 	}

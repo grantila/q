@@ -133,7 +133,7 @@ public:
 	: counter_( counter )
 	{ }
 
-	void operator( )( Args... args )
+	void operator( )( Args... )
 	{
 		counter_->inc( );
 	}

@@ -44,7 +44,7 @@ TEST_F( forward, forward_with_exception )
 	run(
 		q::reject< >( queue, Error( ) )
 		.forward( 5 )
-		.then( EXPECT_NO_CALL_WRAPPER( [ ]( int i ) { } ) )
+		.then( EXPECT_NO_CALL_WRAPPER( [ ]( int ) { } ) )
 		.fail( EXPECT_CALL_WRAPPER( [ ]( const Error& ) { } ) )
 	);
 }

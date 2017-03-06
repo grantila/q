@@ -32,7 +32,7 @@ public:
 		infinity
 	};
 
-	concurrency( other value )
+	concurrency( other )
 	: value_( std::numeric_limits< std::size_t >::max( ) )
 	{ }
 

@@ -108,7 +108,7 @@ TEST_F( channel, one_type )
 		}
 	) )
 	.then( EXPECT_NO_CALL_WRAPPER(
-		[ ]( int value ) { }
+		[ ]( int ) { }
 	) )
 	.fail( EXPECT_CALL_WRAPPER(
 		[ ]( q::channel_closed_exception& ) { }
@@ -151,7 +151,7 @@ TEST_F( channel, two_types )
 		}
 	) )
 	.then( EXPECT_NO_CALL_WRAPPER(
-		[ ]( int value, std::string&& ) { }
+		[ ]( int, std::string&& ) { }
 	) )
 	.fail( EXPECT_CALL_WRAPPER(
 		[ ]( q::channel_closed_exception& ) { }
@@ -198,7 +198,7 @@ TEST_F( channel, auto_close_on_readable_destruction )
 		}
 	) )
 	.then( EXPECT_NO_CALL_WRAPPER(
-		[ ]( int value ) { }
+		[ ]( int ) { }
 	) )
 	.fail( EXPECT_CALL_WRAPPER(
 		[ ]( q::channel_closed_exception& ) { }
@@ -222,7 +222,7 @@ TEST_F( channel, auto_close_on_writable_destruction )
 
 		auto promise = readable.read( )
 		.then( EXPECT_NO_CALL_WRAPPER(
-			[ ]( int value ) { }
+			[ ]( int ) { }
 		) )
 		.fail( EXPECT_CALL_WRAPPER(
 			[ ]( q::channel_closed_exception& ) { }
@@ -317,7 +317,7 @@ TEST_F( channel, channel_non_empty_promise_specialization )
 		}
 	) )
 	.then( EXPECT_NO_CALL_WRAPPER(
-		[ ]( int value ) { }
+		[ ]( int ) { }
 	) )
 	.fail( EXPECT_CALL_WRAPPER(
 		[ ]( q::channel_closed_exception& ) { }
@@ -358,19 +358,19 @@ TEST_F( channel, channel_promise_specialization_rejection )
 		}
 	) )
 	.fail( EXPECT_CALL_WRAPPER(
-		[ &readable ]( const test_exception& e )
+		[ &readable ]( const test_exception& )
 		{
 			return readable.read( );
 		}
 	) )
 	.then( EXPECT_NO_CALL_WRAPPER(
-		[ this ]( int value )
+		[ this ]( int )
 		{
 			return q::with( queue, 5 );
 		}
 	) )
 	.fail( EXPECT_CALL_WRAPPER(
-		[ &readable ]( const test_exception& e )
+		[ &readable ]( const test_exception& )
 		{
 			return readable.read( );
 		}
@@ -464,7 +464,7 @@ TEST_F( channel, channel_non_empty_shared_promise_specialization )
 		}
 	) )
 	.then( EXPECT_NO_CALL_WRAPPER(
-		[ ]( int value ) { }
+		[ ]( int ) { }
 	) )
 	.fail( EXPECT_CALL_WRAPPER(
 		[ ]( q::channel_closed_exception& ) { }
@@ -505,19 +505,19 @@ TEST_F( channel, channel_shared_promise_specialization_rejection )
 		}
 	) )
 	.fail( EXPECT_CALL_WRAPPER(
-		[ &readable ]( const test_exception& e )
+		[ &readable ]( const test_exception& )
 		{
 			return readable.read( );
 		}
 	) )
 	.then( EXPECT_NO_CALL_WRAPPER(
-		[ this ]( int value )
+		[ this ]( int )
 		{
 			return q::with( queue, 5 );
 		}
 	) )
 	.fail( EXPECT_CALL_WRAPPER(
-		[ &readable ]( const test_exception& e )
+		[ &readable ]( const test_exception& )
 		{
 			return readable.read( );
 		}

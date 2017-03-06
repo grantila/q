@@ -40,7 +40,7 @@ TEST_F( finally, synchronous_with_exception )
 			;
 		} ) )
 		.fail( EXPECT_CALL_WRAPPER(
-		[ ]( Error& e ) -> long
+		[ ]( Error& ) -> long
 		{
 			return 0;
 		} ) )
@@ -63,11 +63,11 @@ TEST_F( finally, synchronous_with_value_failed_finally )
 			Q_THROW( Error( ) );
 		} ) )
 		.then( EXPECT_NO_CALL_WRAPPER(
-		[ ]( long value )
+		[ ]( long )
 		{
 		} ) )
 		.fail( EXPECT_CALL_WRAPPER(
-		[ ]( Error& e )
+		[ ]( Error& )
 		{
 		} ) )
 	);
@@ -114,7 +114,7 @@ TEST_F( finally, asynchronous_with_exception )
 			return q::with( queue );
 		} ) )
 		.then( EXPECT_NO_CALL_WRAPPER(
-		[ ]( long value )
+		[ ]( long )
 		{
 		} ) )
 		.fail( EXPECT_CALL_WRAPPER(
@@ -142,11 +142,11 @@ TEST_F( finally, asynchronous_with_value_synchronous_failed_finally )
 			Q_THROW( Error( ) );
 		} ) )
 		.then( EXPECT_NO_CALL_WRAPPER(
-		[ ]( long value )
+		[ ]( long )
 		{
 		} ) )
 		.fail( EXPECT_CALL_WRAPPER(
-		[ ]( Error& e )
+		[ ]( Error& )
 		{
 		} ) )
 	);
@@ -173,11 +173,11 @@ TEST_F( finally, asynchronous_with_value_asynchronous_failed_finally )
 			} );
 		} ) )
 		.then( EXPECT_NO_CALL_WRAPPER(
-		[ ]( long value )
+		[ ]( long )
 		{
 		} ) )
 		.fail( EXPECT_CALL_WRAPPER(
-		[ ]( Error& e )
+		[ ]( Error& )
 		{
 		} ) )
 	);

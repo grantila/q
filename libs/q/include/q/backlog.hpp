@@ -32,7 +32,7 @@ public:
 		infinity
 	};
 
-	backlog( other value )
+	backlog( other )
 	: value_( std::numeric_limits< std::size_t >::max( ) )
 	{ }
 

@@ -318,7 +318,7 @@ void benchmark_tasks_on_threadpool( std::size_t iterations, bool parallel )
 	std::cout << std::endl;
 }
 
-int main( int argc, char** argv )
+int main( int, char** )
 {
 	q::settings settings;
 	settings.set_long_stack_support( true );

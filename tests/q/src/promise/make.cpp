@@ -38,7 +38,7 @@ TEST_F( make, async_with_value )
 {
 	auto promise = q::make_promise( queue,
 		[ ]( q::resolver< int, int > resolve,
-			q::rejecter< int, int > reject )
+			q::rejecter< int, int > )
 		{
 			resolve( 1, 2 );
 		}
@@ -56,7 +56,7 @@ TEST_F( make, async_with_value )
 TEST_F( make, async_with_exception )
 {
 	auto promise = q::make_promise( queue,
-		[ ]( q::resolver< int, int > resolve,
+		[ ]( q::resolver< int, int >,
 			q::rejecter< int, int > reject )
 		{
 			reject( Error( ) );

@@ -813,7 +813,7 @@ typename std::enable_if<
 	!Q_ARGUMENTS_ARE_CONVERTIBLE_FROM( Fn, void_t )::value,
 	result_of_t< Fn >
 >::type
-call_with_args_by_tuple( Fn&& fn, const std::tuple< >& tuple )
+call_with_args_by_tuple( Fn&& fn, const std::tuple< >& )
 #ifndef LIBQ_WITH_BROKEN_NOEXCEPT
 noexcept( noexcept( fn( ) ) )
 #endif
@@ -826,7 +826,7 @@ typename std::enable_if<
 	Q_ARGUMENTS_ARE_CONVERTIBLE_FROM( Fn, void_t )::value,
 	Q_RESULT_OF( Fn )
 >::type
-call_with_args_by_tuple( Fn&& fn, const std::tuple< >& tuple )
+call_with_args_by_tuple( Fn&& fn, const std::tuple< >& )
 #ifndef LIBQ_WITH_BROKEN_NOEXCEPT
 noexcept( noexcept( fn( void_t( ) ) ) )
 #endif

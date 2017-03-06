@@ -45,14 +45,14 @@ TEST( byte_block, empty )
 {
 	q::byte_block b;
 
-	EXPECT_EQ( b.size( ), 0 );
+	EXPECT_EQ( b.size( ), std::size_t( 0 ) );
 }
 
 TEST( byte_block, non_empty )
 {
 	q::byte_block b( 8, new std::uint8_t[ 8 ]{ 1, 2, 3, 4, 5, 6, 7, 8 } );
 
-	EXPECT_EQ( b.size( ), 8 );
+	EXPECT_EQ( b.size( ), std::size_t( 8 ) );
 }
 
 TEST( byte_block, slice_empty )
@@ -60,8 +60,8 @@ TEST( byte_block, slice_empty )
 	q::byte_block b;
 	auto b_slice = b.slice( 0 );
 
-	EXPECT_EQ( b.size( ), 0 );
-	EXPECT_EQ( b_slice.size( ), 0 );
+	EXPECT_EQ( b.size( ), std::size_t( 0 ) );
+	EXPECT_EQ( b_slice.size( ), std::size_t( 0 ) );
 }
 
 TEST( byte_block, slice_non_empty )
@@ -72,16 +72,16 @@ TEST( byte_block, slice_non_empty )
 	auto b_slice_3 = b.slice( 4 );
 	auto b_slice_4 = b.slice( 4, 4 );
 
-	EXPECT_EQ( b.size( ), 8 );
-	EXPECT_EQ( b_slice_1.size( ), 8 );
-	EXPECT_EQ( b_slice_2.size( ), 4 );
-	EXPECT_EQ( b_slice_3.size( ), 4 );
-	EXPECT_EQ( b_slice_4.size( ), 4 );
+	EXPECT_EQ( b.size( ), std::size_t( 8 ) );
+	EXPECT_EQ( b_slice_1.size( ), std::size_t( 8 ) );
+	EXPECT_EQ( b_slice_2.size( ), std::size_t( 4 ) );
+	EXPECT_EQ( b_slice_3.size( ), std::size_t( 4 ) );
+	EXPECT_EQ( b_slice_4.size( ), std::size_t( 4 ) );
 
-	EXPECT_EQ( b_slice_1.data( )[ 0 ], 1 );
-	EXPECT_EQ( b_slice_2.data( )[ 0 ], 1 );
-	EXPECT_EQ( b_slice_3.data( )[ 0 ], 5 );
-	EXPECT_EQ( b_slice_4.data( )[ 0 ], 5 );
+	EXPECT_EQ( b_slice_1.data( )[ 0 ], std::size_t( 1 ) );
+	EXPECT_EQ( b_slice_2.data( )[ 0 ], std::size_t( 1 ) );
+	EXPECT_EQ( b_slice_3.data( )[ 0 ], std::size_t( 5 ) );
+	EXPECT_EQ( b_slice_4.data( )[ 0 ], std::size_t( 5 ) );
 }
 
 TEST( byte_block, slice_ascii )

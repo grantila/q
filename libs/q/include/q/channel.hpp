@@ -1407,7 +1407,7 @@ public:
 		>::value,
 		bool
 	>::type
-	write( Tuple&& t )
+	write( Tuple&& )
 	{
 		return write( std::make_tuple( ) );
 	}
@@ -1472,7 +1472,7 @@ public:
 		>::value,
 		bool
 	>::type
-	write( Tuple&& t )
+	write( Tuple&& )
 	{
 		return write( std::make_tuple( ) );
 	}

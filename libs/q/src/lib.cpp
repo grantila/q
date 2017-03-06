@@ -46,7 +46,7 @@ void register_internal_initializer( q::function< void( void ) >&& func )
 
 } // namespace detail
 
-void initialize( settings settings )
+void initialize( settings )
 {
 	auto initializers = *get_initializers( );
 

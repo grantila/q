@@ -20,7 +20,7 @@ TEST_F( fail, exception_ptr_to_value )
 		} ) )
 		.then( EXPECT_NO_CALL( int, int )( 4711 ) )
 		.fail( EXPECT_CALL_WRAPPER(
-		[ ]( std::exception_ptr e )
+		[ ]( std::exception_ptr )
 		{
 			return 17;
 		} ) )
@@ -45,7 +45,7 @@ TEST_F( fail, exception_ptr_to_promise )
 		} ) )
 		.then( EXPECT_NO_CALL( int, int )( 4711 ) )
 		.fail( EXPECT_CALL_WRAPPER(
-		[ queue ]( std::exception_ptr e )
+		[ queue ]( std::exception_ptr )
 		{
 			return q::with( queue, 17 );
 		} ) )
@@ -68,12 +68,12 @@ TEST_F( fail, error_class_to_value )
 		} ) )
 		.then( EXPECT_NO_CALL( int, int )( 4711 ) )
 		.fail( EXPECT_CALL_WRAPPER(
-		[ ]( Error& e )
+		[ ]( Error& )
 		{
 			return 17;
 		} ) )
 		.fail( EXPECT_NO_CALL_WRAPPER(
-		[ ]( std::exception_ptr e )
+		[ ]( std::exception_ptr )
 		{
 			return 18;
 		} ) )
@@ -98,12 +98,12 @@ TEST_F( fail, error_class_to_promise )
 		} ) )
 		.then( EXPECT_NO_CALL( int, int )( 4711 ) )
 		.fail( EXPECT_CALL_WRAPPER(
-		[ queue ]( Error& e )
+		[ queue ]( Error& )
 		{
 			return q::with( queue, 17 );
 		} ) )
 		.fail( EXPECT_NO_CALL_WRAPPER(
-		[ queue ]( std::exception_ptr e )
+		[ queue ]( std::exception_ptr )
 		{
 			return q::with( queue, 18 );
 		} ) )

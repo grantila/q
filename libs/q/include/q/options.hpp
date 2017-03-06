@@ -87,7 +87,7 @@ struct single_option
 				::template index_of< T >::value == -1
 		>::type* = nullptr
 	>
-	single_option( Tuple&& tuple )
+	single_option( Tuple&& )
 	{ }
 
 	single_option( T&& t )
@@ -143,7 +143,7 @@ template< >
 struct options< >
 {
 	template< typename Tuple >
-	options( Tuple&& tuple )
+	options( Tuple&& )
 	{ }
 };
 

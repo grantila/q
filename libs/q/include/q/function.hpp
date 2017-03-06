@@ -216,7 +216,7 @@ private:
 
 	template< bool C = Copyable >
 	typename std::enable_if< !C, base* >::type
-	_copy_to( void* dest ) const
+	_copy_to( void* ) const
 	{
 		// This is just to make the compiler happy. We'll never try to
 		// copy Fn from unique_function's, so this is not an issue.
@@ -415,6 +415,7 @@ class
 any_function
 : copyable_if_t< Shared::value >
 {
+	using copyable_base = copyable_if_t< Shared::value >;
 public:
 	typedef std::integral_constant<
 		std::size_t,
@@ -613,7 +614,8 @@ public:
 	}
 
 	any_function( const any_function& ref )
-	: method_( function_storage::uninitialized )
+	: copyable_base( )
+	, method_( function_storage::uninitialized )
 	{
 		_copy_from( ref );
 	}

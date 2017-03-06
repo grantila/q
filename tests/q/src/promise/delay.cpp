@@ -32,7 +32,7 @@ TEST_F( delay, with_exception )
 		} ) )
 		.delay( std::chrono::nanoseconds( 1 ) )
 		.fail( EXPECT_CALL_WRAPPER(
-		[ ]( Error& e ) { } ) )
+		[ ]( Error& ) { } ) )
 		.then( [ ]( ) { } )
 	);
 }

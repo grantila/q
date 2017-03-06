@@ -70,7 +70,7 @@ TEST_F( tap_error, error_class_to_promise )
 			Q_THROW( Error( ) );
 		} ) )
 		.tap_error( EXPECT_CALL_WRAPPER(
-		[ queue ]( Error& e )
+		[ queue ]( Error& )
 		{
 			return q::with( queue );
 		} ) )
@@ -90,7 +90,7 @@ TEST_F( tap_error, exception_ptr_throwing_handler )
 			Q_THROW( Error( ), std::move( magic ) );
 		} ) )
 		.tap_error( EXPECT_CALL_WRAPPER(
-		[ magic ]( std::exception_ptr e )
+		[ magic ]( std::exception_ptr )
 		{
 			Q_THROW( Error( ), magic * 2 );
 		} ) )
@@ -136,7 +136,7 @@ TEST_F( tap_error, exception_ptr_throwing_handler_promise_sync )
 			Q_THROW( Error( ), std::move( magic ) );
 		} ) )
 		.fail( EXPECT_CALL_WRAPPER(
-		[ magic ]( std::exception_ptr e )
+		[ magic ]( std::exception_ptr )
 		-> q::promise< int >
 		{
 			Q_THROW( Error( ), magic * 2 );
@@ -183,7 +183,7 @@ TEST_F( tap_error, exception_ptr_throwing_handler_promise_async )
 			Q_THROW( Error( ), std::move( magic ) );
 		} ) )
 		.fail( EXPECT_CALL_WRAPPER( (
-		[ queue, magic ]( std::exception_ptr e )
+		[ queue, magic ]( std::exception_ptr )
 		-> q::promise< int >
 		{
 			return q::reject< int >(

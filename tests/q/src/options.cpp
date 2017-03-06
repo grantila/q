@@ -14,7 +14,7 @@ TEST( options, zero_types )
 {
 	typedef q::options< > options;
 
-	auto fun = [ ]( options opts = options( ) ) { };
+	auto fun = [ ]( options = options( ) ) { };
 
 	fun( );
 	fun( { } );
@@ -31,7 +31,7 @@ TEST( options, one_type )
 
 	auto fun_opts1 = fun( );
 	EXPECT_FALSE( fun_opts1.has< q::concurrency >( ) );
-	EXPECT_EQ( 1, fun_opts1.get< q::concurrency >( ).get( ) );
+	EXPECT_EQ( std::size_t( 1 ), fun_opts1.get< q::concurrency >( ).get( ) );
 
 	auto fun_opts2 = fun( { q::concurrency( 4 ) } );
 	EXPECT_TRUE( fun_opts2.has< q::concurrency >( ) );
@@ -50,13 +50,13 @@ TEST( options, two_types )
 	auto fun_opts1 = fun( );
 	EXPECT_FALSE( fun_opts1.has< q::concurrency >( ) );
 	EXPECT_FALSE( fun_opts1.has< q::queue_ptr >( ) );
-	EXPECT_EQ( 1, fun_opts1.get< q::concurrency >( ).get( ) );
+	EXPECT_EQ( std::size_t( 1 ), fun_opts1.get< q::concurrency >( ).get( ) );
 
 	auto fun_opts2 = fun( { } );
 	EXPECT_FALSE( fun_opts1.has< q::concurrency >( ) );
 	EXPECT_FALSE( fun_opts1.has< q::queue_ptr >( ) );
-	EXPECT_NE( fun_opts2.get< q::concurrency >( ).get( ), 0 );
-	EXPECT_NE( fun_opts2.get< q::concurrency >( ).get( ), 4 );
+	EXPECT_NE( fun_opts2.get< q::concurrency >( ).get( ), std::size_t( 0 ) );
+	EXPECT_NE( fun_opts2.get< q::concurrency >( ).get( ), std::size_t( 4 ) );
 
 	auto fun_opts3 = fun( { q::concurrency( ) } );
 	EXPECT_TRUE( fun_opts3.has< q::concurrency >( ) );
@@ -65,7 +65,7 @@ TEST( options, two_types )
 	auto fun_opts4 = fun( { q::queue_ptr( ), q::concurrency( 4 ) } );
 	EXPECT_TRUE( fun_opts4.has< q::concurrency >( ) );
 	EXPECT_TRUE( fun_opts4.has< q::queue_ptr >( ) );
-	EXPECT_EQ( fun_opts4.get< q::concurrency >( ).get( ), 4 );
+	EXPECT_EQ( fun_opts4.get< q::concurrency >( ).get( ), std::size_t( 4 ) );
 
 	options opts1;
 	EXPECT_FALSE( opts1.has< q::concurrency >( ) );
@@ -96,5 +96,5 @@ TEST( options, required_type )
 	auto fun_opts2 = fun( { q::queue_ptr( ), q::concurrency( 4 ) } );
 	EXPECT_TRUE( fun_opts2.has< q::concurrency >( ) );
 	EXPECT_TRUE( fun_opts2.has< q::queue_ptr >( ) );
-	EXPECT_EQ( fun_opts2.get< q::concurrency >( ).get( ), 4 );
+	EXPECT_EQ( fun_opts2.get< q::concurrency >( ).get( ), std::size_t( 4 ) );
 }

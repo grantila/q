@@ -109,9 +109,7 @@ typename std::enable_if<
 		typename std::decay< EventDispatcher >::type
 	>::value
 >::type
-set_event_dispatcher_queue(
-	EventDispatcher&& event_dispatcher, const queue_ptr& queue
-)
+set_event_dispatcher_queue( EventDispatcher&&, const queue_ptr& )
 { }
 
 } // namespace detail

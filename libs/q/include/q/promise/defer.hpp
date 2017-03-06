@@ -428,7 +428,7 @@ public:
 			>::value
 		)
 	>::type
-	set_by_fun( Fn&& fn, Args&& args )
+	set_by_fun( Fn&& fn, Args&& )
 	{
 		set_by_fun(
 			std::forward< Fn >( fn ),
@@ -455,7 +455,7 @@ public:
 			void_t
 		>::value
 	>::type
-	set_by_fun( Fn&& fn, Args&& args )
+	set_by_fun( Fn&& fn, Args&& )
 	{
 		set_by_fun( std::forward< Fn >( fn ), void_t( ) );
 	}
@@ -478,7 +478,7 @@ public:
 		and
 		arguments_of_t< Fn >::empty::value
 	>::type
-	set_by_fun( Fn&& fn, Args&& args )
+	set_by_fun( Fn&& fn, Args&& )
 	{
 		set_by_fun( std::forward< Fn >( fn ) );
 	}

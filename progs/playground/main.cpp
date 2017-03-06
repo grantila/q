@@ -104,7 +104,7 @@ int g( )
 }
 
 template< typename... T >
-void var_g( T&&... t )
+void var_g( T&&... )
 {
 //	std::cout << "var_g: " << std::forward_as_tuple( std::forward< T >( t )... ) << std::endl;
 }
@@ -118,7 +118,7 @@ void var_f( T&&... t )
 std::string s__;
 const std::string& return_const_lvalue_ref( ) { return s__; }
 
-void do_something( const std::string&& s ) { }
+void do_something( const std::string&& ) { }
 
 
 template< typename T >
@@ -184,7 +184,7 @@ void e_f( )
 	e_g( );
 }
 
-int main( int argc, char** argv )
+int main( int, char** )
 {
 	std::string s = "Hello world";
 	int i = 4711;
@@ -307,7 +307,7 @@ int main( int argc, char** argv )
 
 	var_f( *testptr );
 
-	auto testfn = [ ]( std::string&& s ) { ; };
+	auto testfn = [ ]( std::string&& ) { ; };
 	typedef decltype( testfn ) fn_type;
 	typedef std::tuple< std::tuple< std::string > > my_type;
 	bool are_same = Q_ARGUMENTS_ARE( fn_type, my_type )::value;
