@@ -61,6 +61,8 @@ stacktrace default_stacktrace( ) noexcept
 		frames.push_back( frame );
 	}
 
+	::free( raw_frames );
+
 	return stacktrace( std::move( frames ) );
 }
 
