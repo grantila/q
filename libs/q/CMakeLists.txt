@@ -15,6 +15,10 @@ install( TARGETS q
 	RUNTIME DESTINATION bin
 	LIBRARY DESTINATION lib${LIB_SUFFIX}
 	ARCHIVE DESTINATION lib${LIB_SUFFIX}
-)
+        )
+
+source_group("Public Headers" FILES ${LIBQ_HEADERS})
+source_group("Internal Headers" FILES ${LIBQ_INTERNAL_HEADERS})
+
 install(EXPORT QConfig DESTINATION share/q/cmake)
 export(TARGETS q FILE QConfig.cmake)
