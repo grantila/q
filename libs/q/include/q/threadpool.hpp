@@ -35,6 +35,8 @@ public:
 
 	void set_task_fetcher( task_fetcher_task&& ) override;
 
+	void set_unloader( task task ) override;
+
 	std::size_t parallelism( ) const override;
 
 	static std::shared_ptr< threadpool >

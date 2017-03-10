@@ -87,13 +87,20 @@ public:
 		map_.emplace( std::move( time ), std::move( t ) );
 	}
 
-	bool exists_before_or_at(
-		timer::point_type time = timer::point_type::clock::now( ) )
+	bool exists_before_or_at( timer::point_type time )
 	{
 		if ( empty( ) )
 			return false;
 
 		return !( map_.begin( )->first > time );
+	}
+
+	bool exists_before_or_at( )
+	{
+		if ( empty( ) )
+			return false;
+
+		return exists_before_or_at( timer::point_type::clock::now( ) );
 	}
 
 	T pop( )

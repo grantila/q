@@ -36,7 +36,7 @@
 
 #define QTEST_EVENTUALLY_EXPECT( op, expected, ... ) \
 	::q::test::expected_root( *this, LIBQ_LOCATION, #expected, #__VA_ARGS__ ) \
-	.that( expected )->will. op ( __VA_ARGS__ )
+	.that( expected )->will( ). op ( __VA_ARGS__ )
 
 #define EVENTUALLY_EXPECT_EQ( expected, ... ) \
 	QTEST_EVENTUALLY_EXPECT( equal, expected, __VA_ARGS__ )
@@ -52,21 +52,21 @@
 
 #define EVENTUALLY_EXPECT_RESOLUTION( promise ) \
 	::q::test::expected_root( *this, LIBQ_LOCATION, #promise ) \
-	.that( promise )->to.be_resolved( )
+	.that( promise )->will( ).be_resolved( )
 
 #define EVENTUALLY_EXPECT_REJECTION( promise ) \
 	::q::test::expected_root( *this, LIBQ_LOCATION, #promise ) \
-	.that( promise )->to.be_rejected( )
+	.that( promise )->will( ).be_rejected( )
 
 #define EVENTUALLY_EXPECT_REJECTION_WITH( promise, Class ) \
 	::q::test::expected_root( *this, LIBQ_LOCATION, #promise, #Class ) \
-	.that( promise )->to.be_rejected_with< Class >( )
+	.that( promise )->will( ).be_rejected_with< Class >( )
 
 #define EVENTUALLY_EXPECT_SHARED( promise ) \
-	EVENTUALLY_EXPECT( promise ) to.be_shared( )
+	EVENTUALLY_EXPECT( promise ) will( ).be_shared( )
 
 #define EVENTUALLY_EXPECT_UNIQUE( promise ) \
-	EVENTUALLY_EXPECT( promise ) to.be_unique( )
+	EVENTUALLY_EXPECT( promise ) will( ).be_unique( )
 
 
 namespace q { namespace test {
@@ -523,12 +523,7 @@ class expected_value
 : public std::enable_shared_from_this< expected_value< T > >
 {
 public:
-	expected_value( expected_root&& root, const T& t )
-	: root_( std::move( root ) )
-	, t_( q::make_unique< T >( t ) )
-	{ }
-
-	expected_value( expected_root&& root, T&& t )
+	expected_value( expected_root&& root, T t )
 	: root_( std::move( root ) )
 	, t_( q::make_unique< T >( std::move( t ) ) )
 	{ }
@@ -539,27 +534,18 @@ public:
 	}
 
 	static std::shared_ptr< expected_value< T > >
-	construct( expected_root&& root, const T& t )
+	construct( expected_root&& root, T t )
 	{
-		auto self = std::make_shared< expected_value< T > >(
-			std::move( root ), t );
-		self->to.set_value( self );
-		self->will.set_value( self );
-		return self;
-	}
-
-	static std::shared_ptr< expected_value< T > >
-	construct( expected_root&& root, T&& t )
-	{
-		auto self = std::make_shared< expected_value< T > >(
+		return std::make_shared< expected_value< T > >(
 			std::move( root ), std::move( t ) );
-		self->to.set_value( self );
-		self->will.set_value( self );
-		return self;
 	}
 
-	expected_comparator< T > to;
-	expected_comparator< T > will;
+	expected_comparator< T > will( )
+	{
+		expected_comparator< T > comparator;
+		comparator.set_value( this->shared_from_this( ) );
+		return comparator;
+	}
 
 	expected_root& root( )
 	{

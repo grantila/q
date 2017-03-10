@@ -29,6 +29,7 @@ struct blocking_dispatcher::pimpl
 	bool running_;
 	bool stop_asap_;
 	task_fetcher_task task_fetcher_;
+	task scheduler_unloader_;
 	time_set< task > timer_tasks_;
 };
 
@@ -40,17 +41,24 @@ blocking_dispatcher::blocking_dispatcher(
 
 blocking_dispatcher::~blocking_dispatcher( )
 {
-	;
+	if ( pimpl_->scheduler_unloader_ )
+		pimpl_->scheduler_unloader_( );
 }
 
 void blocking_dispatcher::notify( )
 {
+	Q_UNIQUE_LOCK( pimpl_->mutex_ );
 	pimpl_->cond_.notify_one( );
 }
 
 void blocking_dispatcher::set_task_fetcher( task_fetcher_task&& fetcher )
 {
 	pimpl_->task_fetcher_ = std::move( fetcher );
+}
+
+void blocking_dispatcher::set_unloader( task task )
+{
+	pimpl_->scheduler_unloader_ = std::move( task );
 }
 
 void blocking_dispatcher::start( )
@@ -60,8 +68,6 @@ void blocking_dispatcher::start( )
 
 	pimpl_->running_ = true;
 	pimpl_->started_ = true;
-
-	auto duration_max = timer::duration_type::max( );
 
 	do
 	{
@@ -106,6 +112,8 @@ void blocking_dispatcher::start( )
 			Q_AUTO_UNIQUE_UNLOCK( lock );
 
 			_task.task_( );
+
+			continue;
 		}
 
 		if ( pimpl_->running_ && !_task )
@@ -114,12 +122,8 @@ void blocking_dispatcher::start( )
 			{
 				auto next = pimpl_->timer_tasks_.next_time( );
 
-				if ( next != duration_max )
-				{
-					pimpl_->cond_.wait_for(
-						lock, next );
-					continue;
-				}
+				pimpl_->cond_.wait_for( lock, next );
+				continue;
 			}
 			pimpl_->cond_.wait( lock );
 		}

@@ -294,6 +294,12 @@ void direct_scheduler::add_queue( queue_ptr queue )
 	};
 
 	ed->set_task_fetcher( fetcher );
+
+	auto unloader = [ _this ]( ) mutable
+	{
+		_this->pimpl_->queue_.reset( );
+	};
+	ed->set_unloader( unloader );
 }
 
 timer_task direct_scheduler::next_task( )
