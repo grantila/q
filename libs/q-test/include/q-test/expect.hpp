@@ -255,8 +255,8 @@ protected:
 		get_fixture( ).await_promise( promise.unshare( ) );
 	}
 
+private:
 	std::shared_ptr< Value > value_;
-
 };
 
 template< typename Value, typename Parent, typename... T >
@@ -533,6 +533,11 @@ public:
 	, t_( q::make_unique< T >( std::move( t ) ) )
 	{ }
 
+	~expected_value()
+	{
+		std::cout << "~expected_value" << std::endl;
+	}
+
 	static std::shared_ptr< expected_value< T > >
 	construct( expected_root&& root, const T& t )
 	{
@@ -643,7 +648,7 @@ public:
 
 	void be_resolved( )
 	{
-		auto value = base::value_;
+		auto value = this->get_value( );
 
 		auto expectation = value->get( ).strip( )
 		.fail( [ value ]( std::exception_ptr e )
