@@ -33,6 +33,8 @@ public:
 
 	void set_task_fetcher( task_fetcher_task&& ) override;
 
+	void set_unloader( task ) override;
+
 	void start( ) override;
 
 	q::expect< > await_termination( ) override;

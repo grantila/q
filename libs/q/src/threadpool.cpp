@@ -70,6 +70,7 @@ struct threadpool::pimpl
 	bool                       running_;
 	bool                       stop_asap_;
 	task_fetcher_task          task_fetcher_;
+	task                       scheduler_unloader_;
 	time_set< task >           timer_tasks_;
 };
 
@@ -86,7 +87,8 @@ threadpool::threadpool( const std::string& name,
 
 threadpool::~threadpool( )
 {
-	;
+	if ( pimpl_->scheduler_unloader_ )
+		pimpl_->scheduler_unloader_( );
 }
 
 std::shared_ptr< threadpool >
@@ -100,9 +102,7 @@ threadpool::construct( const std::string& name,
 
 void threadpool::notify( )
 {
-	{
-		Q_AUTO_UNIQUE_LOCK( pimpl_->mutex_ );
-	}
+	Q_AUTO_UNIQUE_LOCK( pimpl_->mutex_ );
 	pimpl_->cond_.notify_one( );
 }
 
@@ -114,6 +114,11 @@ void threadpool::set_task_fetcher( task_fetcher_task&& fetcher )
 		Q_AUTO_UNIQUE_LOCK( pimpl_->mutex_ );
 	}
 	pimpl_->cond_.notify_all( );
+}
+
+void threadpool::set_unloader( task task )
+{
+	pimpl_->scheduler_unloader_ = std::move( task );
 }
 
 std::size_t threadpool::parallelism( ) const

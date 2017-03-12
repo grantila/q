@@ -156,6 +156,11 @@ public:
 		// TODO: Implement
 	}
 
+	void clear( )
+	{
+		list_.clear( );
+	}
+
 	element_type pop_next( )
 	{
 		for ( auto& elem : list_ )
@@ -237,6 +242,13 @@ void priority_scheduler::add_queue( queue_ptr queue )
 	};
 
 	ed->set_task_fetcher( fetcher );
+
+	auto unloader = [ _this ]( ) mutable
+	{
+		_this->pimpl_->queues_.clear( );
+	};
+
+	ed->set_unloader( unloader );
 }
 
 timer_task priority_scheduler::next_task( )
@@ -294,6 +306,13 @@ void direct_scheduler::add_queue( queue_ptr queue )
 	};
 
 	ed->set_task_fetcher( fetcher );
+
+	auto unloader = [ _this ]( ) mutable
+	{
+		_this->pimpl_->queue_.reset( );
+	};
+
+	ed->set_unloader( unloader );
 }
 
 timer_task direct_scheduler::next_task( )

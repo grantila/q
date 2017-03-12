@@ -76,6 +76,11 @@ public:
 	virtual void set_task_fetcher( task_fetcher_task&& ) = 0;
 
 	/**
+	 * Sets the function which unloads the scheduler
+	 */
+	virtual void set_unloader( task ) = 0;
+
+	/**
 	 * Gets the parallelism of this event_dispatcher, or more precisely,
 	 * the number of threads this dispatcher is using.
 	 */

@@ -29,6 +29,7 @@ struct blocking_dispatcher::pimpl
 	bool running_;
 	bool stop_asap_;
 	task_fetcher_task task_fetcher_;
+	task scheduler_unloader_;
 	time_set< task > timer_tasks_;
 };
 
@@ -40,17 +41,24 @@ blocking_dispatcher::blocking_dispatcher(
 
 blocking_dispatcher::~blocking_dispatcher( )
 {
-	;
+	if ( pimpl_->scheduler_unloader_ )
+		pimpl_->scheduler_unloader_( );
 }
 
 void blocking_dispatcher::notify( )
 {
+	Q_UNIQUE_LOCK( pimpl_->mutex_ );
 	pimpl_->cond_.notify_one( );
 }
 
 void blocking_dispatcher::set_task_fetcher( task_fetcher_task&& fetcher )
 {
 	pimpl_->task_fetcher_ = std::move( fetcher );
+}
+
+void blocking_dispatcher::set_unloader( task task )
+{
+	pimpl_->scheduler_unloader_ = std::move( task );
 }
 
 void blocking_dispatcher::start( )
