@@ -528,11 +528,6 @@ public:
 	, t_( q::make_unique< T >( std::move( t ) ) )
 	{ }
 
-	~expected_value()
-	{
-		std::cout << "~expected_value" << std::endl;
-	}
-
 	static std::shared_ptr< expected_value< T > >
 	construct( expected_root&& root, T t )
 	{

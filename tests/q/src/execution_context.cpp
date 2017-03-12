@@ -62,9 +62,9 @@ TEST( execution_context, thread_pool_dispatcher )
 		EXPECT_EQ( static_cast< std::size_t >( val.load( ) ), num + tasks );
 		bd->terminate( q::termination::linger );
 		tpctx->dispatcher( )->terminate( q::termination::linger );
+		tpctx->dispatcher( )->await_termination( );
 	}, qu );
 
 	bd->start( );
-	tpctx->dispatcher( )->await_termination( );
 	bd->await_termination( );
 }

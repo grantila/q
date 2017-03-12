@@ -786,6 +786,7 @@ TEST_F( channel, channel_pipe_void )
 	) );
 
 	run( ( *read )( ) );
+	( *read ) = fun_type( );
 }
 
 TEST_F( channel, channel_pipe_void_with_error )
@@ -833,6 +834,7 @@ TEST_F( channel, channel_pipe_void_with_error )
 		.strip( )
 		.fail( EXPECT_CALL_WRAPPER( [ ]( const Error& ){ } ) )
 	);
+	( *read ) = fun_type( );
 }
 
 TEST_F( channel, channel_pipe_int )
@@ -884,6 +886,7 @@ TEST_F( channel, channel_pipe_int )
 	) );
 
 	run( ( *read )( ) );
+	( *read ) = fun_type( );
 }
 
 TEST_F( channel, channel_pipe_int_with_error )
@@ -938,6 +941,7 @@ TEST_F( channel, channel_pipe_int_with_error )
 		.strip( )
 		.fail( EXPECT_CALL_WRAPPER( [ ]( const Error& ){ } ) )
 	);
+	( *read ) = fun_type( );
 }
 
 TEST_F( channel, channel_pipe_async_void )
@@ -982,6 +986,7 @@ TEST_F( channel, channel_pipe_async_void )
 	) );
 
 	run( ( *read )( ) );
+	( *read ) = fun_type( );
 }
 
 TEST_F( channel, channel_pipe_async_void_with_error )
@@ -1029,6 +1034,7 @@ TEST_F( channel, channel_pipe_async_void_with_error )
 		.strip( )
 		.fail( EXPECT_CALL_WRAPPER( [ ]( const Error& ){ } ) )
 	);
+	( *read ) = fun_type( );
 }
 
 TEST_F( channel, channel_pipe_async_int )
@@ -1080,6 +1086,7 @@ TEST_F( channel, channel_pipe_async_int )
 	) );
 
 	run( ( *read )( ) );
+	( *read ) = fun_type( );
 }
 
 TEST_F( channel, channel_pipe_async_int_with_error )
@@ -1134,6 +1141,7 @@ TEST_F( channel, channel_pipe_async_int_with_error )
 		.strip( )
 		.fail( EXPECT_CALL_WRAPPER( [ ]( const Error& ){ } ) )
 	);
+	( *read ) = fun_type( );
 }
 
 TEST_F( channel, consume_zero_types )

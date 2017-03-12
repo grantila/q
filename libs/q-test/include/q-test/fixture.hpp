@@ -43,7 +43,7 @@ public:
 	{
 		Q_AUTO_UNIQUE_LOCK( mutex_ );
 
-		awaiting_promises_.emplace_back( std::move( promise ) );
+		awaiting_promises_.push_back( std::move( promise ) );
 	}
 
 protected:
@@ -57,7 +57,7 @@ protected:
 	{
 		Q_AUTO_UNIQUE_LOCK( mutex_ );
 
-		test_scopes_.emplace_back( std::move( scope ) );
+		test_scopes_.push_back( std::move( scope ) );
 	}
 
 	template< typename Promise >
