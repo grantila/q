@@ -1027,13 +1027,12 @@ public:
 			( resolver< > resolve, rejecter< > reject )
 			mutable
 		{
-			auto recurser = std::make_shared<
-				function< promise< >( ) >
-			>( );
+			typedef function< promise< >( ) > recurser_type;
+			auto recurser = std::make_shared< recurser_type >( );
 
 			auto completer = [ recurser, resolve ]( ) mutable
 			{
-				recurser.reset( );
+				( *recurser ) = recurser_type( );
 				resolve( );
 			};
 
@@ -1042,7 +1041,7 @@ public:
 				( std::exception_ptr err )
 				mutable
 			{
-				recurser.reset( );
+				( *recurser ) = recurser_type( );
 				reject( std::move( err ) );
 			};
 
