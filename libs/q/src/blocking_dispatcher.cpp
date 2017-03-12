@@ -69,8 +69,6 @@ void blocking_dispatcher::start( )
 	pimpl_->running_ = true;
 	pimpl_->started_ = true;
 
-	auto duration_max = timer::duration_type::max( );
-
 	do
 	{
 		if ( pimpl_->stop_asap_ )
@@ -114,6 +112,8 @@ void blocking_dispatcher::start( )
 			Q_AUTO_UNIQUE_UNLOCK( lock );
 
 			_task.task_( );
+
+			continue;
 		}
 
 		if ( pimpl_->running_ && !_task )
@@ -122,12 +122,8 @@ void blocking_dispatcher::start( )
 			{
 				auto next = pimpl_->timer_tasks_.next_time( );
 
-				if ( next != duration_max )
-				{
-					pimpl_->cond_.wait_for(
-						lock, next );
-					continue;
-				}
+				pimpl_->cond_.wait_for( lock, next );
+				continue;
 			}
 			pimpl_->cond_.wait( lock );
 		}
