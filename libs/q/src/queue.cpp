@@ -104,6 +104,8 @@ void queue::set_consumer( queue::notify_type fn, std::size_t parallelism )
 
 bool queue::empty( )
 {
+	Q_AUTO_UNIQUE_LOCK( pimpl_->mutex_, Q_HERE, "queue::empty" );
+
 	return pimpl_->queue_.empty( ) && pimpl_->timer_task_queue_.empty( );
 }
 
