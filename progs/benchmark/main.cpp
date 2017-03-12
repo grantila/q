@@ -167,7 +167,14 @@ void benchmark_q_function( std::size_t iterations, std::string impl )
 }
 
 template< typename Start, typename Stop >
-void benchmark_queueing_and_scheduling( Start&& start, Stop&& stop, bool parallel, q::queue_ptr queue, std::size_t iterations )
+void benchmark_queueing_and_scheduling(
+	Start&& start,
+	Stop&& stop,
+	bool parallel,
+	q::queue_ptr queue,
+	q::queue_ptr main_queue,
+	std::size_t iterations
+)
 {
 	q::shared_promise< int > promise = q::with( queue, 0 ).share( );
 	std::vector< q::promise< int > > waitable;
@@ -222,7 +229,7 @@ void benchmark_queueing_and_scheduling( Start&& start, Stop&& stop, bool paralle
 			int sum = std::accumulate( values.begin( ), values.end( ), 0 );
 			final += sum;
 			stop( );
-		} );
+		}, main_queue );
 	}
 	else
 	{
@@ -231,7 +238,7 @@ void benchmark_queueing_and_scheduling( Start&& start, Stop&& stop, bool paralle
 		{
 			final = val;
 			stop( );
-		} );
+		}, main_queue );
 	}
 
 	{
@@ -281,7 +288,7 @@ void benchmark_tasks_on_main_queue( std::size_t iterations, bool parallel )
 		in_parallel = " in parallel";
 
 	benchmark_title( "queueing, scheduling and running trivial tasks" + in_parallel );
-	benchmark_queueing_and_scheduling( start, stop, parallel, queue, iterations );
+	benchmark_queueing_and_scheduling( start, stop, parallel, queue, queue, iterations );
 	std::cout << std::endl;
 }
 
@@ -314,7 +321,8 @@ void benchmark_tasks_on_threadpool( std::size_t iterations, bool parallel )
 		in_parallel = " in parallel";
 
 	benchmark_title( "queueing, scheduling and running trivial tasks" + in_parallel + " on thread pool" );
-	benchmark_queueing_and_scheduling( start, stop, parallel, bg_queue, iterations );
+	benchmark_queueing_and_scheduling( start, stop, parallel, bg_queue, queue, iterations );
+	bd2->await_termination( );
 	std::cout << std::endl;
 }
 
@@ -324,11 +332,6 @@ int main( int, char** )
 	settings.set_long_stack_support( true );
 
 	auto scope = q::scoped_initialize( settings );
-
-	auto bd = q::make_shared< q::blocking_dispatcher >( "main" );
-	auto s = q::make_shared< q::direct_scheduler >( bd );
-	auto ctx = q::make_shared< q::execution_context >( bd, s );
-	auto qu = ctx->queue( );
 
 	std::size_t iterations = 500 * 1000;
 
