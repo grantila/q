@@ -36,7 +36,7 @@ namespace detail {
 void register_internal_initializer( q::function< void( void ) >&& func )
 {
 	get_initializers( )->push_back(
-#if defined( LIBQ_ON_GCC ) && ( LIBQ_ON_GCC < 40900 )
+#if defined( LIBQ_ON_GCC ) && ( LIBQ_ON_GCC < 50300 )
 		q::function< void( void ) >( func )
 #else
 		std::move( func )
