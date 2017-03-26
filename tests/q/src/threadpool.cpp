@@ -1,5 +1,5 @@
 
-#include <q-test/q-test.hpp>
+#include "core.hpp"
 
 #include <q/execution_context.hpp>
 #include <q/blocking_dispatcher.hpp>

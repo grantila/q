@@ -363,8 +363,8 @@ private:
 
 			auto& root = value->root( );
 
-			ADD_FAILURE_AT( root.file( ), root.line( ) )
-				<< "Value of: "
+			QTEST_BACKEND_FAIL_AT( root.file( ), root.line( ),
+				"Value of: "
 				<< root.actual_expr( ) << std::endl
 				<< "  actual: "
 				<< stringify_value( val2 )
@@ -372,7 +372,8 @@ private:
 				<< "Expected: "
 				<< root.expected_expr( ) << std::endl
 				<< "Which is: "
-				<< stringify_value( val1 );
+				<< stringify_value( val1 )
+			);
 		} );
 	}
 
@@ -411,14 +412,15 @@ private:
 
 			auto& root = value->root( );
 
-			ADD_FAILURE_AT( root.file( ), root.line( ) )
-				<< "Expected: "
+			QTEST_BACKEND_FAIL_AT( root.file( ), root.line( ),
+				"Expected: "
 				<< "(" << root.val1_expr( ) << ")"
 				<< " != "
 				<< "(" << root.val2_expr( ) << ")"
 				<< ", actual: "
 				<< stringify_value( val1 ) << " vs "
-				<< stringify_value( val2 );
+				<< stringify_value( val2 )
+			);
 		} );
 	}
 
@@ -457,14 +459,15 @@ private:
 
 			auto& root = value->root( );
 
-			ADD_FAILURE_AT( root.file( ), root.line( ) )
-				<< "Expected: "
+			QTEST_BACKEND_FAIL_AT( root.file( ), root.line( ),
+				"Expected: "
 				<< "(" << root.val1_expr( ) << ")"
 				<< " > "
 				<< "(" << root.val2_expr( ) << ")"
 				<< ", actual: "
 				<< stringify_value( val1 ) << " vs "
-				<< stringify_value( val2 );
+				<< stringify_value( val2 )
+			);
 		} );
 	}
 
@@ -503,14 +506,15 @@ private:
 
 			auto& root = value->root( );
 
-			ADD_FAILURE_AT( root.file( ), root.line( ) )
-				<< "Expected: "
+			QTEST_BACKEND_FAIL_AT( root.file( ), root.line( ),
+				"Expected: "
 				<< "(" << root.val1_expr( ) << ")"
 				<< " < "
 				<< "(" << root.val2_expr( ) << ")"
 				<< ", actual: "
 				<< stringify_value( val1 ) << " vs "
-				<< stringify_value( val2 );
+				<< stringify_value( val2 )
+			);
 		} );
 	}
 };
@@ -636,12 +640,13 @@ public:
 		{
 			auto& root = value->root( );
 
-			ADD_FAILURE_AT( root.file( ), root.line( ) )
-				<< "Expected promise to be resolved."
+			QTEST_BACKEND_FAIL_AT( root.file( ), root.line( ),
+				"Expected promise to be resolved."
 				<< root.expected_explanation( )
 				<< std::endl
 				<< "But was rejected with: "
-				<< q::to_string( e );
+				<< q::to_string( e )
+			);
 		} );
 
 		base::await_promise( std::move( expectation ) );
@@ -663,11 +668,12 @@ public:
 				val = "But was resolved to: " +
 					stringify_value( t );
 
-			ADD_FAILURE_AT( root.file( ), root.line( ) )
-				<< "Expected promise to be rejected."
+			QTEST_BACKEND_FAIL_AT( root.file( ), root.line( ),
+				"Expected promise to be rejected."
 				<< root.expected_explanation( )
 				<< std::endl
-				<< val;
+				<< val
+			);
 		} )
 		.fail( [ ]( std::exception_ptr ) { } );
 
@@ -691,11 +697,12 @@ public:
 				val = "But was resolved to: " +
 					stringify_value( t );
 
-			ADD_FAILURE_AT( root.file( ), root.line( ) )
-				<< "Expected promise to be rejected."
+			QTEST_BACKEND_FAIL_AT( root.file( ), root.line( ),
+				"Expected promise to be rejected."
 				<< root.expected_explanation( )
 				<< std::endl
-				<< val;
+				<< val
+			);
 		} )
 		.fail( [ ]( const Error& ) { } )
 		.fail( [ value ]( std::exception_ptr e )
@@ -708,13 +715,14 @@ public:
 			else
 				error_name = typeid( Error ).name( );
 
-			ADD_FAILURE_AT( root.file( ), root.line( ) )
-				<< "Expected promise to be rejected with \""
+			QTEST_BACKEND_FAIL_AT( root.file( ), root.line( ),
+				"Expected promise to be rejected with \""
 				<< error_name << "\"."
 				<< root.expected_explanation( )
 				<< std::endl
 				<< "But was rejected with: "
-				<< q::to_string( e );
+				<< q::to_string( e )
+			);
 		} );
 
 		base::await_promise( std::move( expectation ) );
@@ -783,10 +791,11 @@ public:
 	void be_shared( )
 	{
 		auto& root = base::value_->root( );
-		ADD_FAILURE_AT( root.file( ), root.line( ) )
-			<< "Expected promise to be shared, but is unique."
+		QTEST_BACKEND_FAIL_AT( root.file( ), root.line( ),
+			"Expected promise to be shared, but is unique."
 			<< root.expected_explanation( )
-			<< std::endl;
+			<< std::endl
+		);
 	}
 };
 
@@ -810,10 +819,11 @@ public:
 	void be_unique( )
 	{
 		auto& root = base::value_->root( );
-		ADD_FAILURE_AT( root.file( ), root.line( ) )
-			<< "Expected promise to be unique, but is shared."
+		QTEST_BACKEND_FAIL_AT( root.file( ), root.line( ),
+			"Expected promise to be unique, but is shared."
 			<< root.expected_explanation( )
-			<< std::endl;
+			<< std::endl
+		);
 	}
 
 	void be_shared( ) { }

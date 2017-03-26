@@ -1,6 +1,5 @@
 
-#include <q-test/q-test.hpp>
-#include <q-test/expect.hpp>
+#include "../core.hpp"
 
 Q_TEST_MAKE_SCOPE( with );
 
