@@ -14,11 +14,26 @@
  * limitations under the License.
  */
 
-#ifndef LIBQ_TEST_QTEST_HPP
-#define LIBQ_TEST_QTEST_HPP
+#ifndef LIBQ_TEST_BACKENDS_GTEST_HPP
+#define LIBQ_TEST_BACKENDS_GTEST_HPP
 
-#include <q-test/backend.hpp>
-#include <q-test/spy.hpp>
-#include <q-test/fixture.hpp>
+#include <q/pp.hpp>
 
-#endif // LIBQ_TEST_QTEST_HPP
+#ifdef LIBQ_ON_GCC
+#	pragma GCC diagnostic push
+//#	pragma GCC diagnostic ignored "-Wsign-compare"
+#endif // LIBQ_ON_GCC
+
+#include <gtest/gtest.h>
+
+#ifdef LIBQ_ON_GCC
+#	pragma GCC diagnostic pop
+#endif // LIBQ_ON_GCC
+
+#define QTEST_BACKEND_FAIL( ... ) \
+	ADD_FAILURE( ) << __VA_ARGS__
+
+#define QTEST_BACKEND_FAIL_AT( file, line, ... ) \
+	ADD_FAILURE_AT( file, line ) << __VA_ARGS__
+
+#endif // LIBQ_TEST_BACKENDS_GTEST_HPP

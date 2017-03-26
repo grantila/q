@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-#include <q-test/q-test.hpp>
-
 #include <q/lib.hpp>
+#include <q-test/backend.hpp>
 
 int main( int argc, char** argv )
 {

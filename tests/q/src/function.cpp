@@ -1,7 +1,7 @@
 
 #include <q/function.hpp>
 
-#include <q-test/q-test.hpp>
+#include "core.hpp"
 
 int call_count;
 

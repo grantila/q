@@ -1,7 +1,7 @@
 
 #include <q/type_traits.hpp>
 
-#include <q-test/q-test.hpp>
+#include "core.hpp"
 
 #include <q/options.hpp>
 #include <q/queue.hpp>

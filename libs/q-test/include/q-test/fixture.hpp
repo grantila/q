@@ -17,7 +17,6 @@
 #ifndef LIBQ_TEST_FIXTURE_HPP
 #define LIBQ_TEST_FIXTURE_HPP
 
-#include <q-test/gtest.hpp>
 #include <q-test/spy.hpp>
 
 #include <q/promise.hpp>
@@ -34,8 +33,13 @@ class fixture
 : public ::testing::Test
 {
 public:
-	fixture( );
-	virtual ~fixture( );
+	fixture( )
+	: mutex_( "q test fixture" )
+	, started_( false )
+	{ }
+
+	virtual ~fixture( )
+	{ }
 
 	Q_MAKE_SIMPLE_EXCEPTION( Error );
 
@@ -50,8 +54,51 @@ protected:
 	virtual void on_setup( ) { }
 	virtual void on_teardown( ) { }
 
-	void SetUp( ) override;
-	void TearDown( ) override;
+	void SetUp( ) override
+	{
+		std::tie( bd, queue ) = q::make_event_dispatcher_and_queue<
+			q::blocking_dispatcher, q::direct_scheduler
+		>( "all" );
+
+		std::tie( tp, tp_queue ) = q::make_event_dispatcher_and_queue<
+			q::threadpool, q::direct_scheduler
+		>( "test pool", queue, 2 );
+
+		on_setup( );
+
+		if ( !started_ )
+			run( q::with( queue ) );
+	}
+
+	void TearDown( ) override
+	{
+		bool need_to_await_promises;
+		{
+			Q_AUTO_UNIQUE_LOCK( mutex_ );
+			need_to_await_promises = !awaiting_promises_.empty( );
+		}
+
+		if ( need_to_await_promises )
+			_run( q::with( queue ) );
+
+		on_teardown( );
+
+		tp->terminate( q::termination::linger )
+		.finally( [ this ]( )
+		{
+			tp->await_termination( );
+			tp.reset( );
+			tp_queue.reset( );
+			bd->terminate( q::termination::linger );
+		}, queue );
+
+		bd->start( );
+
+		bd->await_termination( );
+		bd.reset( );
+		queue.reset( );
+		test_scopes_.clear( );
+	}
 
 	void keep_alive( q::scope&& scope )
 	{
@@ -75,10 +122,11 @@ protected:
 		{
 			// If a test throws an asynchronous exception, the test
 			// fails.
-			ADD_FAILURE( )
-				<< "Test threw unhandled asychronous exception:"
+			QTEST_BACKEND_FAIL(
+				"Test threw unhandled asychronous exception:"
 				<< std::endl
-				<< q::stream_exception( e );
+				<< q::stream_exception( e )
+			);
 		} )
 		.finally( [ this ]( )
 		{

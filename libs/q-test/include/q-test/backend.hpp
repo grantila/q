@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Gustaf Räntilä
+ * Copyright 2017 Gustaf Räntilä
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,20 +14,11 @@
  * limitations under the License.
  */
 
-#ifndef LIBQ_TEST_GTEST_HPP
-#define LIBQ_TEST_GTEST_HPP
+#ifndef LIBQ_TEST_BACKEND_HPP
+#define LIBQ_TEST_BACKEND_HPP
 
-#include <q/pp.hpp>
+#ifdef QTEST_ON_GTEST
+#	include <q-test/backends/gtest.hpp>
+#endif
 
-#ifdef LIBQ_ON_GCC
-#	pragma GCC diagnostic push
-//#	pragma GCC diagnostic ignored "-Wsign-compare"
-#endif // LIBQ_ON_GCC
-
-#include <gtest/gtest.h>
-
-#ifdef LIBQ_ON_GCC
-#	pragma GCC diagnostic pop
-#endif // LIBQ_ON_GCC
-
-#endif // LIBQ_TEST_GTEST_HPP
+#endif // LIBQ_TEST_BACKEND_HPP

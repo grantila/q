@@ -1,7 +1,7 @@
 
 #include <q/backlog.hpp>
 
-#include <q-test/q-test.hpp>
+#include "core.hpp"
 
 TEST( backlog, infinity )
 {
