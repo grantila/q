@@ -38,8 +38,8 @@ struct queue::pimpl
 	mutex mutex_;
 	queue::notify_type notify_;
 	std::size_t parallelism_;
-	std::queue< task > queue_;
-	std::queue< timer_task > timer_task_queue_;
+	std::deque< task > queue_;
+	std::deque< timer_task > timer_task_queue_;
 };
 
 queue_ptr queue::construct( priority_t priority )
@@ -63,7 +63,7 @@ void queue::push( task&& task )
 	{
 		Q_AUTO_UNIQUE_LOCK( pimpl_->mutex_, Q_HERE, "queue::push" );
 
-		pimpl_->queue_.push( std::move( task ) );
+		pimpl_->queue_.push_back( std::move( task ) );
 
 		notifyer = pimpl_->notify_;
 	}
@@ -80,7 +80,7 @@ void queue::push( task&& task, timer::point_type wait_until )
 		Q_AUTO_UNIQUE_LOCK( pimpl_->mutex_, Q_HERE, "queue::push(2)" );
 
 		timer_task tt( std::move( task ), std::move( wait_until ) );
-		pimpl_->timer_task_queue_.push( std::move( tt ) );
+		pimpl_->timer_task_queue_.push_back( std::move( tt ) );
 
 		notifyer = pimpl_->notify_;
 	}
@@ -115,7 +115,7 @@ timer_task queue::pop( )
 	{
 		timer_task task = std::move( pimpl_->timer_task_queue_.front( ) );
 
-		pimpl_->timer_task_queue_.pop( );
+		pimpl_->timer_task_queue_.pop_front( );
 
 		return task;
 	}
@@ -125,7 +125,7 @@ timer_task queue::pop( )
 
 	timer_task task = std::move( pimpl_->queue_.front( ) );
 
-	pimpl_->queue_.pop( );
+	pimpl_->queue_.pop_front( );
 
 	return task;
 }
