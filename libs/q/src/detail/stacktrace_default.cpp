@@ -34,7 +34,7 @@ namespace detail {
 stacktrace::frame parse_stack_frame( const char* data )
 noexcept
 {
-	return stacktrace::frame{ 0, "", 0, data, "" };
+	return stacktrace::frame{ 0, "", 0, 0, data, "" };
 }
 
 #endif
