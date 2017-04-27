@@ -24,6 +24,9 @@
 	static thread_local std::string threadname_;
 #elif defined( LIBQ_ON_OSX )
 #elif defined( LIBQ_ON_POSIX )
+#ifdef LIBQ_ON_BSD
+	static thread_local std::string threadname_;
+#endif
 #	include <pthread.h>
 #endif
 
@@ -78,16 +81,17 @@ namespace detail {
 
 void set_thread_name( const std::string& name )
 {
-#ifdef LIBQ_ON_POSIX
+#if defined(LIBQ_ON_BSD)
 
+	threadname_ = name;
+
+#elif defined(LIBQ_ON_POSIX)
 #ifndef LIBQ_ON_OSX
 	auto tid = pthread_self( );
 #endif // LIBQ_ON_OSX
 
 #if defined( LIBQ_ON_OSX )
 	pthread_setname_np( name.c_str( ) );
-#elif defined( LIBQ_ON_BSD )
-	pthread_set_name_np( tid, name.c_str( ) );
 #else
 	if ( name.size( ) > 15 )
 		pthread_setname_np( tid, name.substr( 0, 15 ).c_str( ) );
@@ -133,7 +137,11 @@ void set_thread_name( const std::string& name )
 
 std::string get_thread_name( )
 {
-#ifdef LIBQ_ON_POSIX
+#if defined(LIBQ_ON_BSD)
+
+	return threadname_;
+
+#elif defined(LIBQ_ON_POSIX)
 
 #	ifdef LIBQ_ON_LINUX
 #		define PTHREAD_NAME_MAX 16
@@ -146,9 +154,6 @@ std::string get_thread_name( )
 
 #if defined( LIBQ_ON_OSX )
 	pthread_getname_np( tid, namebuf, PTHREAD_NAME_MAX );
-	return namebuf;
-#elif defined( LIBQ_ON_BSD )
-	pthread_get_name_np( tid, namebuf, PTHREAD_NAME_MAX );
 	return namebuf;
 #else
 	pthread_getname_np( tid, namebuf, PTHREAD_NAME_MAX );
