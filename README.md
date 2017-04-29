@@ -125,7 +125,7 @@ Asynchronous tasks
 
 The following example shows how q can be used for networking.
 ```c++
-q::promise< std::tuple< std::string, std::string > > read_message_from_someone()
+q::promise< std::string, std::string > read_message_from_someone()
 {
     return connect_to_server( )
     .then( [ ]( connection& c )
@@ -190,10 +190,10 @@ Awating multiple asynchronously completed tasks
 Lets say you have multiple (two or more) tasks which will complete promises and you want to await the result for all of them. This is done with `q::all( )` which combines the return values of the different promises and unpacks them as function arguments in the following `then( )` task.
 
 ```c++
-q::promise< std::tuple< double > > a( );
-q::promise< std::tuple< std::string, int > > b( );
-q::promise< std::tuple< > > c( );
-q::promise< std::tuple< std::vector< char > > > d( );
+q::promise< double > a( );
+q::promise< std::string, int > b( );
+q::promise< > c( );
+q::promise< std::vector< char > > d( );
 
 q::all( a( ), b( ), c( ), d( ) )
 .then( [ ]( double d, std::string&& s, int i, std::vector< char >&& v )
@@ -210,16 +210,16 @@ q::all( a( ), b( ), c( ), d( ) )
 A similar problem is having a variably sized set of *same-type* promises. Such can also be completed with `q::all( )`, although the signature for the following `then( )` task will be slightly different.
 
 ```c++
-std::vector< q::promise< std::tuple< std::string, int > > > promises;
+std::vector< q::promise< std::string, int > > promises;
 
 q::all( promises )
-.then( [ ]( std::vector< std::tuple< std::string, int > >&& values )
+.then( [ ]( std::vector< std::string, int >&& values )
 {
     // Data from all promises is collected in one std::vector and *moved* to this function.
     // This means we can move it forward, and the data had never been copied.
     do_stuff( std::move( values ) );
 } )
-.fail( [ ]( q::combined_promise_exception< std::tuple< std::string > >&& e )
+.fail( [ ]( q::combined_promise_exception< std::string >&& e )
 {
     // At least one promise failed.
     // The exception will contain information about which promises failed and which didn't.
