@@ -18,4 +18,8 @@
 
 #define QTEST_CREATE_MAIN
 
+#ifdef QTEST_CUSTOM_MAIN
+int qtest_custom_main( int argc, char* argv[ ] );
+#endif // QTEST_CUSTOM_MAIN
+
 #include <q-test/backend.hpp>

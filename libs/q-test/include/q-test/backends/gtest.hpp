@@ -50,8 +50,12 @@ int main( int argc, char** argv )
 	settings.set_long_stack_support( true );
 	auto scope = q::scoped_initialize( settings );
 
+#ifdef QTEST_CUSTOM_MAIN
+	return qtest_custom_main( argc, argv );
+#else
 	::testing::InitGoogleTest( &argc, argv );
 	return RUN_ALL_TESTS( );
+#endif // QTEST_CUSTOM_MAIN
 }
 
 #endif // QTEST_CREATE_MAIN

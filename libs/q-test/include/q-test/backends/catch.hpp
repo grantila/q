@@ -35,8 +35,12 @@ int main( int argc, char* argv[ ] )
 	settings.set_long_stack_support( true );
 	auto scope = q::scoped_initialize( settings );
 
+#ifdef QTEST_CUSTOM_MAIN
+	return qtest_custom_main( argc, argv );
+#else
 	const int result = Catch::Session( ).run( argc, argv );
 	return ( result < 0xff ? result : 0xff );
+#endif // QTEST_CUSTOM_MAIN
 }
 
 #endif // QTEST_CREATE_MAIN
