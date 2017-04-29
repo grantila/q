@@ -25,9 +25,7 @@
 #	include <string.h>
 #endif
 
-namespace q {
-
-namespace detail {
+namespace q { namespace detail {
 
 namespace {
 
@@ -96,6 +94,8 @@ msb( type&& _num )
 #endif
 }
 
+#ifndef LIBQ_ON_ANDROID
+
 template< typename type, std::size_t size = sizeof( type ) >
 typename std::enable_if< size <= sizeof( long long int ), std::size_t >::type
 lsb( type&& _num )
@@ -105,8 +105,8 @@ lsb( type&& _num )
 	return static_cast< std::size_t >( ffsll( num ) );
 }
 
-} // namespace detail
+#endif
 
-} // namespace q
+} } // namespace detail, namespace q
 
 #endif // LIBQ_INTERNAL_NUMERIC_HPP

@@ -38,6 +38,9 @@
 #elif defined( __linux__ )
 #	define LIBQ_ON_LINUX
 #	define LIBQ_ON_POSIX
+#	if defined( __ANDROID__ ) || defined( ANDROID )
+#		define LIBQ_ON_ANDROID
+#	endif
 #elif defined( __FreeBSD__ )
 #	define LIBQ_ON_FREEBSD
 #	define LIBQ_ON_BSD

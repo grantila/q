@@ -55,7 +55,9 @@ std::string exec_read_all( const std::string& prog, std::size_t bytes = 4096 )
 			::close( stdout_pipe[ 0 ] );
 			::dup2( stdout_pipe[ 1 ], 1 );
 
+#ifndef LIBQ_ON_ANDROID
 			::setenv( "LANG", "C", 1 );
+#endif
 
 			char* const args[ 2 ] = {
 				::strdup( prog.c_str( ) ),
