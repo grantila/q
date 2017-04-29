@@ -365,12 +365,12 @@ private:
 
 			QTEST_BACKEND_FAIL_AT( root.file( ), root.line( ),
 				"Value of: "
-				<< root.actual_expr( ) << std::endl
+				<< root.actual_expr( ) << LIBQ_EOL
 				<< "  actual: "
 				<< stringify_value( val2 )
-				<< std::endl
+				<< LIBQ_EOL
 				<< "Expected: "
-				<< root.expected_expr( ) << std::endl
+				<< root.expected_expr( ) << LIBQ_EOL
 				<< "Which is: "
 				<< stringify_value( val1 )
 			);
@@ -643,7 +643,7 @@ public:
 			QTEST_BACKEND_FAIL_AT( root.file( ), root.line( ),
 				"Expected promise to be resolved."
 				<< root.expected_explanation( )
-				<< std::endl
+				<< LIBQ_EOL
 				<< "But was rejected with: "
 				<< q::to_string( e )
 			);
@@ -671,7 +671,7 @@ public:
 			QTEST_BACKEND_FAIL_AT( root.file( ), root.line( ),
 				"Expected promise to be rejected."
 				<< root.expected_explanation( )
-				<< std::endl
+				<< LIBQ_EOL
 				<< val
 			);
 		} )
@@ -700,7 +700,7 @@ public:
 			QTEST_BACKEND_FAIL_AT( root.file( ), root.line( ),
 				"Expected promise to be rejected."
 				<< root.expected_explanation( )
-				<< std::endl
+				<< LIBQ_EOL
 				<< val
 			);
 		} )
@@ -719,7 +719,7 @@ public:
 				"Expected promise to be rejected with \""
 				<< error_name << "\"."
 				<< root.expected_explanation( )
-				<< std::endl
+				<< LIBQ_EOL
 				<< "But was rejected with: "
 				<< q::to_string( e )
 			);
@@ -794,7 +794,7 @@ public:
 		QTEST_BACKEND_FAIL_AT( root.file( ), root.line( ),
 			"Expected promise to be shared, but is unique."
 			<< root.expected_explanation( )
-			<< std::endl
+			<< LIBQ_EOL
 		);
 	}
 };
@@ -822,7 +822,7 @@ public:
 		QTEST_BACKEND_FAIL_AT( root.file( ), root.line( ),
 			"Expected promise to be unique, but is shared."
 			<< root.expected_explanation( )
-			<< std::endl
+			<< LIBQ_EOL
 		);
 	}
 

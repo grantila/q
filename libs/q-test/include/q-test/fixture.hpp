@@ -30,16 +30,26 @@
 namespace q { namespace test {
 
 class fixture
-: public ::testing::Test
+#ifdef QTEST_BACKEND_FIXTURE_CLASS
+: public QTEST_BACKEND_FIXTURE_CLASS
+#endif
 {
 public:
 	fixture( )
 	: mutex_( "q test fixture" )
 	, started_( false )
-	{ }
+	{
+#ifndef QTEST_BACKEND_FIXTURE_SETUP
+		qtest_setup( );
+#endif
+	}
 
 	virtual ~fixture( )
-	{ }
+	{
+#ifndef QTEST_BACKEND_FIXTURE_TEARDOWN
+		qtest_teardown( );
+#endif
+	}
 
 	Q_MAKE_SIMPLE_EXCEPTION( Error );
 
@@ -54,7 +64,21 @@ protected:
 	virtual void on_setup( ) { }
 	virtual void on_teardown( ) { }
 
-	void SetUp( ) override
+#ifdef QTEST_BACKEND_FIXTURE_SETUP
+	void QTEST_BACKEND_FIXTURE_SETUP( ) override
+	{
+		qtest_setup( );
+	}
+#endif
+
+#ifdef QTEST_BACKEND_FIXTURE_TEARDOWN
+	void QTEST_BACKEND_FIXTURE_TEARDOWN( ) override
+	{
+		qtest_teardown( );
+	}
+#endif
+
+	void qtest_setup( )
 	{
 		std::tie( bd, queue ) = q::make_event_dispatcher_and_queue<
 			q::blocking_dispatcher, q::direct_scheduler
@@ -70,7 +94,7 @@ protected:
 			run( q::with( queue ) );
 	}
 
-	void TearDown( ) override
+	void qtest_teardown( )
 	{
 		bool need_to_await_promises;
 		{
@@ -124,7 +148,7 @@ protected:
 			// fails.
 			QTEST_BACKEND_FAIL(
 				"Test threw unhandled asychronous exception:"
-				<< std::endl
+				<< LIBQ_EOL
 				<< q::stream_exception( e )
 			);
 		} )

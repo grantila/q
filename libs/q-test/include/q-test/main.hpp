@@ -15,14 +15,7 @@
  */
 
 #include <q/lib.hpp>
+
+#define QTEST_CREATE_MAIN
+
 #include <q-test/backend.hpp>
-
-int main( int argc, char** argv )
-{
-	q::settings settings;
-	settings.set_long_stack_support( true );
-	auto scope = q::scoped_initialize( settings );
-
-	::testing::InitGoogleTest( &argc, argv );
-	return RUN_ALL_TESTS( );
-}

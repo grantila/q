@@ -36,4 +36,24 @@
 #define QTEST_BACKEND_FAIL_AT( file, line, ... ) \
 	ADD_FAILURE_AT( file, line ) << __VA_ARGS__
 
+
+#define QTEST_BACKEND_FIXTURE_CLASS ::testing::Test
+#define QTEST_BACKEND_FIXTURE_SETUP SetUp
+#define QTEST_BACKEND_FIXTURE_TEARDOWN TearDown
+
+
+#ifdef QTEST_CREATE_MAIN
+
+int main( int argc, char** argv )
+{
+	q::settings settings;
+	settings.set_long_stack_support( true );
+	auto scope = q::scoped_initialize( settings );
+
+	::testing::InitGoogleTest( &argc, argv );
+	return RUN_ALL_TESTS( );
+}
+
+#endif // QTEST_CREATE_MAIN
+
 #endif // LIBQ_TEST_BACKENDS_GTEST_HPP

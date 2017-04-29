@@ -237,9 +237,10 @@ public:
 			if ( spy->ok( ) )
 				continue;
 
-			ADD_FAILURE_AT( spy->file( ), spy->line( ) )
-				<< "Expected " << spy->expected_calls( )
-				<< " calls, got " << spy->calls( );
+			QTEST_BACKEND_FAIL_AT( spy->file( ), spy->line( ),
+				"Expected " << spy->expected_calls( )
+				<< " calls, got " << spy->calls( )
+			);
 		}
 	}
 

@@ -14,26 +14,31 @@
  * limitations under the License.
  */
 
-#ifndef LIBQ_TEST_BACKEND_HPP
-#define LIBQ_TEST_BACKEND_HPP
+#ifndef LIBQ_TEST_BACKENDS_CATCH_HPP
+#define LIBQ_TEST_BACKENDS_CATCH_HPP
 
-#ifdef QTEST_ON_GTEST
-#	include <q-test/backends/gtest.hpp>
-#elif defined( QTEST_ON_CATCH )
-#	include <q-test/backends/catch.hpp>
-#else
-#	error No backend specified
-	// Before including q-test headers, a backend must be defined
-#endif
+#ifdef QTEST_CREATE_MAIN
+#	define CATCH_CONFIG_RUNNER
+#endif // QTEST_CREATE_MAIN
 
+#include <catch.hpp>
 
-// Defaults:
-
-#ifndef QTEST_BACKEND_FAIL_AT
-#	define QTEST_BACKEND_FAIL_AT( file, line, ... ) \
-		QTEST_BACKEND_FAIL( \
-			file << ":" << line << LIBQ_EOL << __VA_ARGS__ )
-#endif // QTEST_BACKEND_FAIL_AT
+#define QTEST_BACKEND_FAIL( ... ) \
+	FAIL( __VA_ARGS__ )
 
 
-#endif // LIBQ_TEST_BACKEND_HPP
+#ifdef QTEST_CREATE_MAIN
+
+int main( int argc, char* argv[ ] )
+{
+	q::settings settings;
+	settings.set_long_stack_support( true );
+	auto scope = q::scoped_initialize( settings );
+
+	const int result = Catch::Session( ).run( argc, argv );
+	return ( result < 0xff ? result : 0xff );
+}
+
+#endif // QTEST_CREATE_MAIN
+
+#endif // LIBQ_TEST_BACKENDS_CATCH_HPP

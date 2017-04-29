@@ -58,6 +58,12 @@
 #	define LIBQ_ON_UNKNOWN
 #endif
 
+#ifdef LIBQ_ON_WINDOWS
+#	define LIBQ_EOL "\r\n"
+#else
+#	define LIBQ_EOL "\n"
+#endif
+
 #if defined( __GNUC__ ) && !defined( __clang__ )
 #	define LIBQ_ON_GCC 0 + ( \
 		__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__ )
