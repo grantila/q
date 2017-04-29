@@ -24,7 +24,7 @@
 	static thread_local std::string threadname_;
 #elif defined( LIBQ_ON_OSX )
 #elif defined( LIBQ_ON_POSIX )
-#ifdef LIBQ_ON_BSD
+#if defined(LIBQ_ON_BSD) || defined(LIBQ_ON_ANDROID)
 	static thread_local std::string threadname_;
 #endif
 #	include <pthread.h>
@@ -81,7 +81,7 @@ namespace detail {
 
 void set_thread_name( const std::string& name )
 {
-#if defined(LIBQ_ON_BSD)
+#if defined(LIBQ_ON_BSD) || defined(LIBQ_ON_ANDROID)
 
 	threadname_ = name;
 
@@ -137,7 +137,7 @@ void set_thread_name( const std::string& name )
 
 std::string get_thread_name( )
 {
-#if defined(LIBQ_ON_BSD)
+#if defined(LIBQ_ON_BSD) || defined(LIBQ_ON_ANDROID)
 
 	return threadname_;
 

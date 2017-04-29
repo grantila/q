@@ -24,6 +24,7 @@
 #include <atomic>
 #include <sstream>
 #include <cstring>
+#include <string>
 
 namespace q {
 

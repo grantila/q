@@ -96,6 +96,8 @@ msb( type&& _num )
 #endif
 }
 
+#if !defined(LIBQ_ON_ANDROID)
+
 template< typename type, std::size_t size = sizeof( type ) >
 typename std::enable_if< size <= sizeof( long long int ), std::size_t >::type
 lsb( type&& _num )
@@ -104,6 +106,8 @@ lsb( type&& _num )
 
 	return static_cast< std::size_t >( ffsll( num ) );
 }
+
+#endif
 
 } // namespace detail
 

@@ -19,7 +19,7 @@
 
 #include "stacktrace.hpp"
 
-#ifndef LIBQ_ON_WINDOWS
+#if !defined(LIBQ_ON_WINDOWS) && !defined(LIBQ_ON_ANDROID)
 #	include <execinfo.h>
 #endif
 
@@ -39,7 +39,7 @@ noexcept
 
 #endif
 
-#ifndef LIBQ_ON_WINDOWS
+#if !defined(LIBQ_ON_WINDOWS) && !defined(LIBQ_ON_ANDROID)
 
 stacktrace default_stacktrace( ) noexcept
 {
@@ -64,6 +64,12 @@ stacktrace default_stacktrace( ) noexcept
 	::free( raw_frames );
 
 	return stacktrace( std::move( frames ) );
+}
+
+#elif defined(LIBQ_ON_ANDROID)
+stacktrace default_stacktrace( ) noexcept
+{
+    return stacktrace(std::vector< stacktrace::frame >());
 }
 
 #endif
