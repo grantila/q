@@ -33,7 +33,7 @@
 #	include <iostream>
 	static inline void qtest_doctest1_fail( std::stringstream ss )
 	{
-		std::cerr << ss.str( ) << std::endl;
+		std::cerr << ss.str( ) << LIBQ_EOL;
 		CHECK( false );
 	}
 #	define QTEST_BACKEND_FAIL( ... ) \

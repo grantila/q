@@ -60,10 +60,7 @@ public:
 		awaiting_promises_.push_back( std::move( promise ) );
 	}
 
-protected:
-	virtual void on_setup( ) { }
-	virtual void on_teardown( ) { }
-
+QTEST_BACKEND_FIXTURE_SETUP_TEARDOWN_ACCESS:
 #ifdef QTEST_BACKEND_FIXTURE_SETUP
 	void QTEST_BACKEND_FIXTURE_SETUP( ) override
 	{
@@ -78,8 +75,22 @@ protected:
 	}
 #endif
 
+protected:
+	virtual void on_setup( ) { }
+	virtual void on_teardown( ) { }
+
+
 	void qtest_setup( )
 	{
+#ifdef QTEST_BACKEND_REQUIRES_SINGLETON
+		qtest_current_test.set_reporter(
+			[ this ]( std::exception_ptr e )
+			{
+				backend_exception_ = std::move( e );
+			}
+		);
+#endif // QTEST_BACKEND_REQUIRES_SINGLETON
+
 		std::tie( bd, queue ) = q::make_event_dispatcher_and_queue<
 			q::blocking_dispatcher, q::direct_scheduler
 		>( "all" );
@@ -122,6 +133,12 @@ protected:
 		bd.reset( );
 		queue.reset( );
 		test_scopes_.clear( );
+
+#ifdef QTEST_BACKEND_REQUIRES_SINGLETON
+		qtest_current_test.unset_reporter( );
+		if ( backend_exception_ )
+			std::rethrow_exception( backend_exception_ );
+#endif // QTEST_BACKEND_REQUIRES_SINGLETON
 	}
 
 	void keep_alive( q::scope&& scope )
@@ -151,6 +168,15 @@ protected:
 				<< LIBQ_EOL
 				<< q::stream_exception( e )
 			);
+		} )
+		.fail( [ ]( std::exception_ptr e )
+		{
+			std::cerr
+				<< "Unit test backend didn't handle "
+				<< "asynchronous exception:"
+				<< LIBQ_EOL
+				<< q::stream_exception( e );
+			std::abort( );
 		} )
 		.finally( [ this ]( )
 		{
@@ -226,6 +252,8 @@ private:
 	std::vector< q::scope > test_scopes_;
 
 	std::atomic< bool > started_;
+
+	std::exception_ptr backend_exception_;
 };
 
 } } // namespace test, namespace q
