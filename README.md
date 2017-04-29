@@ -19,6 +19,21 @@ License
 ----
 Apache License 2.0
 
+Table of contents
+=================
+
+  * [What is is](#what-it-is)
+  * [Components and features](#components-and-features)
+  * [Introduction](#introduction)
+    * [Asynchronous tasks](#asynchronous-tasks)
+    * [Asynchronous termination](#asynchronous-termination)
+    * [Using threads without locks](#using-threads-without-locks)
+    * [Awating multiple asynchronously completed tasks](#awating-multiple-asynchronously-completed-tasks)
+  * [Testing with q-test](#testing-with-q-test)
+    * [Using google test](#using-google-test)
+    * [Using Catch](#using-catch)
+  * [Installation](#installation)
+
 What it is
 ==========
 
@@ -209,6 +224,76 @@ q::all( promises )
     // At least one promise failed.
     // The exception will contain information about which promises failed and which didn't.
 } );
+```
+
+Testing with q-test
+===================
+
+Unit testing an application (or library) with asynchronous logic is often cumbersome. The test must block until all asynchronous routines have completed, whether they are single-threaded or not.
+
+`q-test` is a library which helps with this, and provides simple helper macros, such as `EVENTUALLY_EXPECT_EQ( a, b )`. `q-test` has a peer dependency on the underlying unit test framework, which currently is either google test or Catch. Peer dependency means that you (potentially) need to link to the unit test library.
+
+If you want `q-test` to create the `main()` function, include `q-test/main.hpp` in _one_ of your translation units (`.cpp` files). Note that you also need to prepend the chosen unit test backend, using `QTEST_ON_GTEST` or `QTEST_ON_CATCH`.
+
+```c++
+#define QTEST_ON_CATCH // or QTEST_ON_GTEST
+#include <q-test/main.hpp>
+```
+
+It's a good idea to create a common unit test header which includes `q-test`, containing e.g.
+
+```c++
+#define QTEST_ON_GTEST // or QTEST_ON_CATCH
+#include <q-test/q-test.hpp>
+#include <q-test/expect.hpp>
+```
+
+`q-test` uses fixtures to store the necessary things to allow promises to function (a blocking dispatcher, threadpool, some queues, etc). This can be subclassed and is called `q::test::fixture`, but there is also a macro to quickly create a fixture, `Q_TEST_MAKE_SCOPE( fixture_name )`
+
+An example of a unit test file using google test, using the common header file described above, would be:
+
+Using google test
+-----------------
+
+```c++
+#include "common.hpp"
+
+Q_TEST_MAKE_SCOPE( mytest );
+
+TEST_F( mytest, some_promise_test )
+{
+    auto bg_queue = this->tp_queue;
+
+    auto should_be_10_str =
+        q::with( queue, 5 )
+        .then( [ bg_queue ]( int i ) { return i * 2; }, bg_queue )
+        .then( [ ]( int i ) { return std::to_string( i ); } )
+        .share( );
+
+    EVENTUALLY_EXPECT_EQ( should_be_10_str, "10" );
+}
+```
+
+Using Catch
+-----------
+
+```c++
+#include "common.hpp"
+
+Q_TEST_MAKE_SCOPE( mytest );
+
+TEST_CASE_METHOD( mytest, "some_promise_test" )
+{
+    auto bg_queue = this->tp_queue;
+
+    auto should_be_10_str =
+        q::with( queue, 5 )
+        .then( [ bg_queue ]( int i ) { return i * 2; }, bg_queue )
+        .then( [ ]( int i ) { return std::to_string( i ); } )
+        .share( );
+
+    EVENTUALLY_EXPECT_EQ( should_be_10_str, "10" );
+}
 ```
 
 Installation
