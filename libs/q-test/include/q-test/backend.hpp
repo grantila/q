@@ -23,6 +23,8 @@
 #	include <q-test/backends/catch.hpp>
 #elif defined( QTEST_ON_BOOST ) || defined( QTEST_ON_BOOST_SH )
 #	include <q-test/backends/boost.hpp>
+#elif defined( QTEST_ON_DOCTEST )
+#	include <q-test/backends/doctest.hpp>
 #else
 #	error No backend specified
 	// Before including q-test headers, a backend must be defined
