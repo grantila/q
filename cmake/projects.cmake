@@ -26,3 +26,16 @@ function ( find_source_tree out base_group base_dir pattern )
 	set( ${out} ${out_files} PARENT_SCOPE )
 
 endfunction ( )
+
+function ( make_relative out base_dir )
+
+	set( out_files )
+
+	foreach ( f ${ARGN} )
+		file( RELATIVE_PATH relname ${base_dir} ${f} )
+		list( APPEND out_files "${relname}" )
+	endforeach ( )
+
+	set( ${out} ${out_files} PARENT_SCOPE )
+
+endfunction ( )

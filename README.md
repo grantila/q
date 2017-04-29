@@ -6,7 +6,7 @@
 
 A platform-independent promise library for C++, implementing asynchronous continuations.
 
-Tested on GCC (Linux), XCode (OSX) and Visual Studio 2015 (Windows).
+Tested on GCC (Linux), XCode (OSX) and Visual Studio 2015 (Windows). Supposed to work on FreeBSD too.
 
  * [x] Web: [libq.io](http://libq.io/) ([API](http://libq.io/api))
  * [x] Twitter: [@grantila](https://twitter.com/grantila)
