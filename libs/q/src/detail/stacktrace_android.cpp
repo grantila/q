@@ -58,6 +58,9 @@ stacktrace default_stacktrace( ) noexcept
 		Dl_info info;
 		if ( dladdr( s.addresses[ i ], &info ) && info.dli_sname )
 			frame.symbol = info.dli_sname;
+		auto demanged = demangle_cxx( frame.symbol.c_str( ) );
+		if ( !demanged.empty( ) )
+			frame.symbol = demanged;
 		frame.addr =
 			reinterpret_cast< std::uint64_t >( s.addresses[ i ] );
 		frame.frameno = i;
