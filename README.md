@@ -2,7 +2,9 @@
 ===
 
 [![Join the chat at https://gitter.im/i-promise/Lobby](https://badges.gitter.im/i-promise/Lobby.svg)](https://gitter.im/i-promise/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-[![Build Status](https://semaphoreci.com/api/v1/gustaf/q/branches/master/badge.svg)](https://semaphoreci.com/gustaf/q)
+
+[![Build Status](https://semaphoreci.com/api/v1/gustaf/q/branches/master/shields_badge.svg)](https://semaphoreci.com/gustaf/q)
+[![Build Status](https://ci.appveyor.com/api/projects/status/github/grantila/q?svg=true)](https://ci.appveyor.com/project/grantila/q/history)
 
 A platform-independent promise library for C++, implementing asynchronous continuations.
 
