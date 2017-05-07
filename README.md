@@ -8,7 +8,7 @@
 
 A platform-independent promise library for C++, implementing asynchronous continuations.
 
-Tested on GCC (Linux), XCode (OSX) and Visual Studio 2015 (Windows). Supposed to work on FreeBSD too.
+Tested on Linux x86-64 (GCC, LLVM), macOS x86-64 (XCode), Windows x86 and x86-64 (Visual Studio 2015) and on Android ARM (Android Studio). Supposed to work on FreeBSD (and potentially other BSD's too).
 
  * [x] Web: [libq.io](http://libq.io/) ([API](http://libq.io/api))
  * [x] Twitter: [@grantila](https://twitter.com/grantila)
@@ -233,24 +233,27 @@ Testing with q-test
 
 Unit testing an application (or library) with asynchronous logic is often cumbersome. The test must block until all asynchronous routines have completed, whether they are single-threaded or not.
 
-`q-test` is a library which helps with this, and provides simple helper macros, such as `EVENTUALLY_EXPECT_EQ( a, b )`. `q-test` has a peer dependency on the underlying unit test framework, which currently is either google test or Catch. Peer dependency means that you (potentially) need to link to the unit test library.
+`q-test` is a library which helps with this, and provides simple helper macros, such as `EVENTUALLY_EXPECT_EQ( a, b )`. `q-test` has a peer dependency on the underlying unit test framework, meaning that you (potentially) need to link to it.
 
-If you want `q-test` to create the `main()` function, include `q-test/main.hpp` in _one_ of your translation units (`.cpp` files). Note that you also need to prepend the chosen unit test backend, using `QTEST_ON_GTEST` or `QTEST_ON_CATCH`.
+The unit test frameworks supported as backends to `q-test` are [Boost.Test](https://www.boost.org/doc/libs/release/libs/test), [Catch](https://github.com/philsquared/Catch), [CppUnit](https://freedesktop.org/wiki/Software/cppunit/), [doctest](https://github.com/onqtam/doctest) and [Google Test](https://github.com/google/googletest).
 
-```c++
-#define QTEST_ON_CATCH // or QTEST_ON_GTEST
-#include <q-test/main.hpp>
-```
-
-It's a good idea to create a common unit test header which includes `q-test`, containing e.g.
+In your unit tests, you (likely) won't need to include the unit test headers of your chosen unit test framework, only `<q-test/q-test.hpp>` (or preferably `<q-test/expect.hpp>`). You need to configure it to use your unit test framework, by defining the backend before you include the `<q-test/>` headers. The backends you can define are `QTEST_ON_BOOST` (or `QTEST_ON_BOOST_SH` for the single-header version), `QTEST_ON_CATCH`, `QTEST_ON_CPPUNIT`, `QTEST_ON_DOCTEST` or `QTEST_ON_GTEST`. It's a good idea to create a common unit test header which includes `q-test`, containing e.g.
 
 ```c++
-#define QTEST_ON_GTEST // or QTEST_ON_CATCH
+// "common.hpp"
+#define QTEST_ON_CATCH // If you're using Catch
 #include <q-test/q-test.hpp>
 #include <q-test/expect.hpp>
 ```
 
-`q-test` uses fixtures to store the necessary things to allow promises to function (a blocking dispatcher, threadpool, some queues, etc). This can be subclassed and is called `q::test::fixture`, but there is also a macro to quickly create a fixture, `Q_TEST_MAKE_SCOPE( fixture_name )`
+If you want `q-test` to create the `main()` function, include `q-test/main.hpp` in _one_ of your translation units (`.cpp` files). Note that you also need to prepend the chosen unit test backend.
+
+```c++
+#define QTEST_ON_CATCH
+#include <q-test/main.hpp>
+```
+
+`q-test` uses fixtures to store the necessary things to allow promises to function (a blocking dispatcher, threadpool, some queues, etc). This can be subclassed and is called `q::test::fixture`, but there is also a macro to quickly create a fixture, `Q_TEST_MAKE_SCOPE( fixture_name )`. What you need to know about this fixture is that you have two queues available, one single-threaded "main queue" called `queue`, and a queue bound to a threadpool called `tp_queue`. By using fixtures, your test will have these variables accessible on `this`.
 
 An example of a unit test file using google test, using the common header file described above, would be:
 
@@ -264,33 +267,10 @@ Q_TEST_MAKE_SCOPE( mytest );
 
 TEST_F( mytest, some_promise_test )
 {
-    auto bg_queue = this->tp_queue;
-
     auto should_be_10_str =
         q::with( queue, 5 )
-        .then( [ bg_queue ]( int i ) { return i * 2; }, bg_queue )
-        .then( [ ]( int i ) { return std::to_string( i ); } )
-        .share( );
-
-    EVENTUALLY_EXPECT_EQ( should_be_10_str, "10" );
-}
-```
-
-Using Catch
------------
-
-```c++
-#include "common.hpp"
-
-Q_TEST_MAKE_SCOPE( mytest );
-
-TEST_CASE_METHOD( mytest, "some_promise_test" )
-{
-    auto bg_queue = this->tp_queue;
-
-    auto should_be_10_str =
-        q::with( queue, 5 )
-        .then( [ bg_queue ]( int i ) { return i * 2; }, bg_queue )
+        // The multiplication with 2 will be done on a threadpool
+        .then( [ ]( int i ) { return i * 2; }, tp_queue )
         .then( [ ]( int i ) { return std::to_string( i ); } )
         .share( );
 

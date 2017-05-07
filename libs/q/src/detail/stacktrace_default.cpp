@@ -44,7 +44,6 @@ noexcept
 
 stacktrace default_stacktrace( ) noexcept
 {
-
 	static const std::size_t buflen = 128;
 	void* addresses[ buflen ];
 	std::size_t size = backtrace( addresses, buflen );
