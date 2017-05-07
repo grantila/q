@@ -33,7 +33,6 @@ Table of contents
     * [Awating multiple asynchronously completed tasks](#awating-multiple-asynchronously-completed-tasks)
   * [Testing with q-test](#testing-with-q-test)
     * [Using google test](#using-google-test)
-    * [Using Catch](#using-catch)
   * [Installation](#installation)
 
 What it is
