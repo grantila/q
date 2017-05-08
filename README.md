@@ -56,65 +56,65 @@ q primarily features a *promise* implementation that is fast, thread safe and ty
 However, q comes with a wide set of optional features surrounding this:
 
  - `async_termination`
-  - Simple way of *shutting down* objects and letting the owner asynchronously wait for the object to finish.
-  - Templetized input and output data types (optional).
+   - Simple way of *shutting down* objects and letting the owner asynchronously wait for the object to finish.
+   - Templetized input and output data types (optional).
  - `channel< T >`
-  - A way of sending arbitrary data/tasks from one or more producers, received by one or more receivers.
-  - Similar to Go channels.
+   - A way of sending arbitrary data/tasks from one or more producers, received by one or more receivers.
+   - Similar to Go channels.
  - `event_dispatcher`
-  - Generic interface to be able to easily build bridges between q and other event loops.
+   - Generic interface to be able to easily build bridges between q and other event loops.
  - `exception`
-  - Containing arbitrary properties (objects).
-  - Easily streamed to `std::iostream` (even raw `std::exception_ptr`'s).
-  - Exceptions containing sets of exceptions, useful when multiple failures are collected at once, such as after `q::all( )`.
+   - Containing arbitrary properties (objects).
+   - Easily streamed to `std::iostream` (even raw `std::exception_ptr`'s).
+   - Exceptions containing sets of exceptions, useful when multiple failures are collected at once, such as after `q::all( )`.
  - `expect< T >`
-  - Small footprint wrapper for any data type (`T`), or an exception.
-  - Useful when one wants to delay the handling of a result which might contain a value or an exception.
+   - Small footprint wrapper for any data type (`T`), or an exception.
+   - Useful when one wants to delay the handling of a result which might contain a value or an exception.
  - `functional`
-  - Type helper to deduce return value and argument types of functions, member functions, function pointers, function objects and lambda expressions.
-  - `call_with_args`, `call_with_args_by_tuple`, etc
-    - Easy to use function call helpers, simplifying calling functions with variadic arguments, or arguments packed in `std::tuple`'s.
+   - Type helper to deduce return value and argument types of functions, member functions, function pointers, function objects and lambda expressions.
+   - `call_with_args`, `call_with_args_by_tuple`, etc
+     - Easy to use function call helpers, simplifying calling functions with variadic arguments, or arguments packed in `std::tuple`'s.
  - log framework
-  - Simple API to write to logs by *streaming* data.
-  - Can be integrated into most existing log mechanisms, or used as the core logging framework.
+   - Simple API to write to logs by *streaming* data.
+   - Can be integrated into most existing log mechanisms, or used as the core logging framework.
  - `memory`
-  - `make_shared( )` feature similar to `std::make_shared` but allows one to have protected constructors to enforce the use of `make_shared`, without having to be *friend* with `std::make_shared`. Also allows one to override the constructor with a custom `construct( )` function which will be called instead, when doing `q::make_shared`.
+   - `make_shared( )` feature similar to `std::make_shared` but allows one to have protected constructors to enforce the use of `make_shared`, without having to be *friend* with `std::make_shared`. Also allows one to override the constructor with a custom `construct( )` function which will be called instead, when doing `q::make_shared`.
  - `mutex`
-  - Mutex classes very similar to the different `std::mutex` classes, but enforcing names and providing dead-lock detection (*not implemented yet*).
+   - Mutex classes very similar to the different `std::mutex` classes, but enforcing names and providing dead-lock detection (*not implemented yet*).
  - `promise`
-  - What the rest of this README explains.
+   - What the rest of this README explains.
  - `queue`
-  - A queue on which tasks are dispatched. When scheduling a completion task on a promise, one can choose on which queue to schedule the task. Queues are attached to `scheduler`s which runs on top of `event_dispatcher`s, such as the simple `blocking_dispatcher` or `threadpool`s.
+   - A queue on which tasks are dispatched. When scheduling a completion task on a promise, one can choose on which queue to schedule the task. Queues are attached to `scheduler`s which runs on top of `event_dispatcher`s, such as the simple `blocking_dispatcher` or `threadpool`s.
  - `scope`
-  - Generic object which upon destruction will destruct arbitrarily attached data of any type.
-  - Provides a way of being able to return a scope from a function, yet not exposing what the scope is, but allowing the callee to hold the object to delay destruction.
+   - Generic object which upon destruction will destruct arbitrarily attached data of any type.
+   - Provides a way of being able to return a scope from a function, yet not exposing what the scope is, but allowing the callee to hold the object to delay destruction.
  - `stacktrace`
-  - Platform independent stacktrace implementation.
-  - Can also be replaced by the user to allow for a custom implementation, which then will serve stacktraces to the rest of q.
+   - Platform independent stacktrace implementation.
+   - Can also be replaced by the user to allow for a custom implementation, which then will serve stacktraces to the rest of q.
  - `temporarily_copyable`
-  - A way of allowing a non-copyable object to be copied, by internally doing a move-on-copy. This should be used with care!
-  - Serves a great purpose as C++11 won't allow data to be moved into lambdas, only copied. q is C++11 compatible.
+   - A way of allowing a non-copyable object to be copied, by internally doing a move-on-copy. This should be used with care!
+   - Serves a great purpose as C++11 won't allow data to be moved into lambdas, only copied. q is C++11 compatible.
  - `thread`
-  - Like `mutex`, this is similar to the standard's `std::thread`, but providing very useful extra features:
-    - Sets thread name, platform independently, by requiring threads to have names.
-    - Interfaces the `async_termination`, allowing the owner of the thread to wait for its completion and retrieving the result asychronously, scheduled with a `promise`.
-  - Provides an extremely simple `run( name, fn, args... )` helper function, which just runs a function with arbitrary arguments and returns a `promise` with the returned value, which one can `.then( )` schedule completions for.
+   - Like `mutex`, this is similar to the standard's `std::thread`, but providing very useful extra features:
+     - Sets thread name, platform independently, by requiring threads to have names.
+     - Interfaces the `async_termination`, allowing the owner of the thread to wait for its completion and retrieving the result asychronously, scheduled with a `promise`.
+   - Provides an extremely simple `run( name, fn, args... )` helper function, which just runs a function with arbitrary arguments and returns a `promise` with the returned value, which one can `.then( )` schedule completions for.
  - `threadpool`
-  - What the name says, also requiring the pool to have a name. Each thread will be individually named.
+   - What the name says, also requiring the pool to have a name. Each thread will be individually named.
  - `type_traits`
-  - `bool_type< bool >` which is `std::true_type` or `std::false_type`.
-  - `negate< Fn >::of< ... >` which negates meta functions which results in `std::true_type` or `std::false_type`.
-  - `isnt< >`, `is_tuple< >`, `is_copyable< >`, `is_movable< >`, `is_pointer_like< >`, `tuple_arguments< >`, `tuple_unpackable_to< >`, `variadic_index_sequence`...
-  - `arguments< ... >`
-    - A very useful meta programming utility to handle variadic templates, a core feature to almost the entire library.
-  - `fold` and `two_fold`
-    - One-dimensional and two-dimensional meta fold functions, which fold arbitrary types using custom fold features.
-  - logical meta operators, `logic_and`, `logic_or`, `logic_eq`, `generic_operator`...
-  - `hierarchical_condition`
-    - A condition which one can inject into a `fold` to fold hierarchically over sets of types, and where `std::tuple` packed types are unpacked hierarchically. This is useful when checking if all types in a tuple, and its sub-tuples satisifies arbitrary conditions, and is a necessary core feature on which q heavily depends.
-    - `hierarcichally_satisifies_condition`, `hierarchically_satisfies_all_conditions`, `hierarchically_satisfies_any_condition`
-      - Generic meta functions which fold over variadic types. Has some implementations:
-      - `is_copy_constructible`, `is_move_constructible`, ...
+   - `bool_type< bool >` which is `std::true_type` or `std::false_type`.
+   - `negate< Fn >::of< ... >` which negates meta functions which results in `std::true_type` or `std::false_type`.
+   - `isnt< >`, `is_tuple< >`, `is_copyable< >`, `is_movable< >`, `is_pointer_like< >`, `tuple_arguments< >`, `tuple_unpackable_to< >`, `variadic_index_sequence`...
+   - `arguments< ... >`
+     - A very useful meta programming utility to handle variadic templates, a core feature to almost the entire library.
+   - `fold` and `two_fold`
+     - One-dimensional and two-dimensional meta fold functions, which fold arbitrary types using custom fold features.
+   - logical meta operators, `logic_and`, `logic_or`, `logic_eq`, `generic_operator`...
+   - `hierarchical_condition`
+     - A condition which one can inject into a `fold` to fold hierarchically over sets of types, and where `std::tuple` packed types are unpacked hierarchically. This is useful when checking if all types in a tuple, and its sub-tuples satisifies arbitrary conditions, and is a necessary core feature on which q heavily depends.
+     - `hierarcichally_satisifies_condition`, `hierarchically_satisfies_all_conditions`, `hierarchically_satisfies_any_condition`
+       - Generic meta functions which fold over variadic types. Has some implementations:
+       - `is_copy_constructible`, `is_move_constructible`, ...
 
 
 Introduction
