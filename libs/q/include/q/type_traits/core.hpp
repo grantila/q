@@ -624,7 +624,8 @@ template< typename To, typename From >
 std::shared_ptr< To >
 reinterpret_pointer_cast( const std::shared_ptr< From >& from )
 {
-#ifdef LIBQ_WITH_CPP17
+// reinterpret_pointer_cast seems not ready for all compilers yet
+#if defined( LIBQ_WITH_CPP17 ) && false
 	return std::reinterpret_pointer_cast< To >( from );
 #else
 	return std::shared_ptr< To >(

@@ -44,7 +44,7 @@ elseif ( CMAKE_CXX_COMPILER_ID MATCHES "Clang" )
 
 	if ( NOT CMAKE_CXX_FLAGS )
 		# use clang std, this enables using of llvm on old platforms, like RHEL6
-		set( CMAKE_CXX_FLAGS "-std=c++11 -stdlib=libc++ -Wall -pipe -pthread" )
+		set( CMAKE_CXX_FLAGS "-std=c++${CMAKE_CXX_STANDARD} -stdlib=libc++ -Wall -pipe -pthread" )
 
 		set( CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} CACHE STRING
 			"Flags used by the compiler during all build types."
