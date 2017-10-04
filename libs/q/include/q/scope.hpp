@@ -79,7 +79,7 @@ make_scope( T&& t )
 {
 	typedef typename std::decay< T >::type type;
 
-	return scope( make_unique< detail::deleter< type > >( std::move( t ) ) );
+	return scope( q::make_unique< detail::deleter< type > >( std::move( t ) ) );
 }
 
 template< typename T >
@@ -93,7 +93,7 @@ make_scope( T&& t )
 {
 	typedef typename std::decay< T >::type type;
 
-	return scope( make_unique< detail::deleter< type > >( type( t ) ) );
+	return scope( q::make_unique< detail::deleter< type > >( type( t ) ) );
 }
 
 class scoped_function
