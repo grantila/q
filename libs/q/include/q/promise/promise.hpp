@@ -661,7 +661,8 @@ public:
 	typename std::enable_if<
 		std::is_void< _V >::value
 		and
-		argument_types::empty::value,
+		generic_promise< Shared, Args... >
+			::argument_types::empty::value,
 		promise< U... >
 	>::type
 	forward( U&&... values );
