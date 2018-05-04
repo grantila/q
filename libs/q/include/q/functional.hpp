@@ -153,6 +153,53 @@ struct fn_match< R( C::* )( A... ) const >
 template< typename Fn >
 fn_match< Fn > fn_type( Fn&& );
 
+#if Q_CPPVER > 201402L
+
+template< typename R, typename... A >
+struct fn_match< R( & )( A... ) noexcept >
+	: public fn_match< R( A... ) >
+{ };
+
+template< typename R, typename... A >
+struct fn_match< R( * )( A... ) noexcept >
+	: public fn_match< R( A... ) >
+{ };
+
+template< typename R, typename... A >
+struct fn_match< R( A... ) noexcept >
+	: public valid_t
+{
+	typedef R result_type;
+	typedef arguments< A... > argument_types;
+	typedef R( signature )( A... );
+	typedef R( *signature_ptr )( A... );
+	typedef void memberclass_type;
+	typedef void member_signature_ptr;
+	typedef std::false_type is_const;
+};
+
+template< typename R, typename C, typename... A >
+struct fn_match< R( C::* )( A... ) noexcept >
+	: public fn_match< R( C::* )( A... ) const >
+{
+	typedef std::false_type is_const;
+};
+
+template< typename R, typename C, typename... A >
+struct fn_match< R( C::* )( A... ) const noexcept >
+	: public valid_t
+{
+	typedef R result_type;
+	typedef arguments< A... > argument_types;
+	typedef R( signature )( A... );
+	typedef R( *signature_ptr )( A... );
+	typedef C memberclass_type;
+	typedef R( C::*member_signature_ptr )( A... );
+	typedef std::true_type is_const;
+};
+
+#endif // Q_CPPVER > 201402L
+
 template< typename Fn, typename Enabled = void >
 struct has_call_operator
 : public std::false_type
