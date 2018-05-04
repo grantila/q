@@ -87,10 +87,16 @@
 #	define LIBQ_WITH_BROKEN_NOEXCEPT
 #endif
 
-#if __cplusplus >= 201402L
+#ifdef _MSVC_LANG
+#	define Q_CPPVER _MSVC_LANG
+#else
+#	define Q_CPPVER __cplusplus
+#endif
+
+#if Q_CPPVER >= 201402L
 #	define LIBQ_WITH_CPP14
 #endif
-#if __cplusplus >= 201406L
+#if Q_CPPVER >= 201406L
 	// This particular version isn't set yet, and compiler support may vary
 #	define LIBQ_WITH_CPP17
 #endif
