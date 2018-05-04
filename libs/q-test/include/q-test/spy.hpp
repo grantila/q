@@ -24,33 +24,44 @@
 #include <atomic>
 #include <memory>
 
-#define EXPECT_CALL( ... ) \
+#define Q_EXPECT_CALL( ... ) \
 	this->spy.expect_call( __FILE__, __LINE__, 1 ).template create< __VA_ARGS__ >
 
-#define EXPECT_NO_CALL( ... ) \
+#define Q_EXPECT_NO_CALL( ... ) \
 	this->spy.expect_call( __FILE__, __LINE__, 0 ).template create< __VA_ARGS__ >
 
-#define EXPECT_N_CALLS( n, ... ) \
+#define Q_EXPECT_N_CALLS( n, ... ) \
 	this->spy.expect_call( __FILE__, __LINE__, n ).template create< __VA_ARGS__ >
 
-#define EXPECT_CALL_WRAPPER_SPY( spy, fn ) \
+#define Q_EXPECT_CALL_WRAPPER_SPY( spy, fn ) \
 	spy.expect_call( __FILE__, __LINE__, 1 ).wrap( fn )
 
-#define EXPECT_NO_CALL_WRAPPER_SPY( spy, fn ) \
+#define Q_EXPECT_NO_CALL_WRAPPER_SPY( spy, fn ) \
 	spy.expect_call( __FILE__, __LINE__, 0 ).wrap( fn )
 
-#define EXPECT_N_CALLS_WRAPPER_SPY( spy, n, fn ) \
+#define Q_EXPECT_N_CALLS_WRAPPER_SPY( spy, n, fn ) \
 	spy.expect_call( __FILE__, __LINE__, n ).wrap( fn )
 
-#define EXPECT_CALL_WRAPPER( fn ) \
-	EXPECT_CALL_WRAPPER_SPY( this->spy, fn )
+#define Q_EXPECT_CALL_WRAPPER( fn ) \
+	Q_EXPECT_CALL_WRAPPER_SPY( this->spy, fn )
 
-#define EXPECT_NO_CALL_WRAPPER( fn ) \
-	EXPECT_NO_CALL_WRAPPER_SPY( this->spy, fn )
+#define Q_EXPECT_NO_CALL_WRAPPER( fn ) \
+	Q_EXPECT_NO_CALL_WRAPPER_SPY( this->spy, fn )
 
-#define EXPECT_N_CALLS_WRAPPER( n, fn ) \
-	EXPECT_N_CALLS_WRAPPER_SPY( this->spy, n, fn )
+#define Q_EXPECT_N_CALLS_WRAPPER( n, fn ) \
+	Q_EXPECT_N_CALLS_WRAPPER_SPY( this->spy, n, fn )
 
+#if !defined( QTEST_NO_PRETTY_MACROS )
+#	define EXPECT_CALL Q_EXPECT_CALL
+#	define EXPECT_NO_CALL Q_EXPECT_NO_CALL
+#	define EXPECT_N_CALLS Q_EXPECT_N_CALLS
+#	define EXPECT_CALL_WRAPPER_SPY Q_EXPECT_CALL_WRAPPER_SPY
+#	define EXPECT_NO_CALL_WRAPPER_SPY Q_EXPECT_NO_CALL_WRAPPER_SPY
+#	define EXPECT_N_CALLS_WRAPPER_SPY Q_EXPECT_N_CALLS_WRAPPER_SPY
+#	define EXPECT_CALL_WRAPPER Q_EXPECT_CALL_WRAPPER
+#	define EXPECT_NO_CALL_WRAPPER Q_EXPECT_NO_CALL_WRAPPER
+#	define EXPECT_N_CALLS_WRAPPER Q_EXPECT_N_CALLS_WRAPPER
+#endif // !defined( QTEST_NO_PRETTY_MACROS )
 
 namespace q { namespace test {
 

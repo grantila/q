@@ -277,6 +277,12 @@ TEST_F( mytest, some_promise_test )
 }
 ```
 
+Conflicting macros
+------------------
+
+The `q-test` suite creates the macros `EVENTUALLY_EXPECT_EQ`, `EXPECT_CALL` etc. These macros may conflict with your existing macros, or a unit test framework's macros. You can use `Q_`-prefixed versions of the macros instead (e.g. `Q_EXPECT_CALL`), and have `q-test` not generate the un-prefixed macros by defining `QTEST_NO_PRETTY_MACROS`.
+
+
 Installation
 ============
 

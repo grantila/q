@@ -30,7 +30,7 @@
  * comparison between the expected and actual values.
  */
 
-#define EVENTUALLY_EXPECT( ... ) \
+#define Q_EVENTUALLY_EXPECT( ... ) \
 	::q::test::expected_root( *this, LIBQ_LOCATION, #__VA_ARGS__ ) \
 	.that( LIBQ_FIRST( __VA_ARGS__ ) )->
 
@@ -38,35 +38,49 @@
 	::q::test::expected_root( *this, LIBQ_LOCATION, #expected, #__VA_ARGS__ ) \
 	.that( expected )->will( ). op ( __VA_ARGS__ )
 
-#define EVENTUALLY_EXPECT_EQ( expected, ... ) \
+#define Q_EVENTUALLY_EXPECT_EQ( expected, ... ) \
 	QTEST_EVENTUALLY_EXPECT( equal, expected, __VA_ARGS__ )
 
-#define EVENTUALLY_EXPECT_NE( expected, ... ) \
+#define Q_EVENTUALLY_EXPECT_NE( expected, ... ) \
 	QTEST_EVENTUALLY_EXPECT( not_equal, expected, __VA_ARGS__ )
 
-#define EVENTUALLY_EXPECT_GT( expected, ... ) \
+#define Q_EVENTUALLY_EXPECT_GT( expected, ... ) \
 	QTEST_EVENTUALLY_EXPECT( be_greater_than, expected, __VA_ARGS__ )
 
-#define EVENTUALLY_EXPECT_LT( expected, ... ) \
+#define Q_EVENTUALLY_EXPECT_LT( expected, ... ) \
 	QTEST_EVENTUALLY_EXPECT( be_less_than, expected, __VA_ARGS__ )
 
-#define EVENTUALLY_EXPECT_RESOLUTION( promise ) \
+#define Q_EVENTUALLY_EXPECT_RESOLUTION( promise ) \
 	::q::test::expected_root( *this, LIBQ_LOCATION, #promise ) \
 	.that( promise )->will( ).be_resolved( )
 
-#define EVENTUALLY_EXPECT_REJECTION( promise ) \
+#define Q_EVENTUALLY_EXPECT_REJECTION( promise ) \
 	::q::test::expected_root( *this, LIBQ_LOCATION, #promise ) \
 	.that( promise )->will( ).be_rejected( )
 
-#define EVENTUALLY_EXPECT_REJECTION_WITH( promise, Class ) \
+#define Q_EVENTUALLY_EXPECT_REJECTION_WITH( promise, Class ) \
 	::q::test::expected_root( *this, LIBQ_LOCATION, #promise, #Class ) \
 	.that( promise )->will( ).be_rejected_with< Class >( )
 
-#define EVENTUALLY_EXPECT_SHARED( promise ) \
-	EVENTUALLY_EXPECT( promise ) will( ).be_shared( )
+#define Q_EVENTUALLY_EXPECT_SHARED( promise ) \
+	Q_EVENTUALLY_EXPECT( promise ) will( ).be_shared( )
 
-#define EVENTUALLY_EXPECT_UNIQUE( promise ) \
-	EVENTUALLY_EXPECT( promise ) will( ).be_unique( )
+#define Q_EVENTUALLY_EXPECT_UNIQUE( promise ) \
+	Q_EVENTUALLY_EXPECT( promise ) will( ).be_unique( )
+
+#if !defined( QTEST_NO_PRETTY_MACROS )
+#	define EVENTUALLY_EXPECT Q_EVENTUALLY_EXPECT
+#	define EVENTUALLY_EXPECT_EQ Q_EVENTUALLY_EXPECT_EQ
+#	define EVENTUALLY_EXPECT_NE Q_EVENTUALLY_EXPECT_NE
+#	define EVENTUALLY_EXPECT_GT Q_EVENTUALLY_EXPECT_GT
+#	define EVENTUALLY_EXPECT_LT Q_EVENTUALLY_EXPECT_LT
+#	define EVENTUALLY_EXPECT_RESOLUTION Q_EVENTUALLY_EXPECT_RESOLUTION
+#	define EVENTUALLY_EXPECT_REJECTION Q_EVENTUALLY_EXPECT_REJECTION
+#	define EVENTUALLY_EXPECT_REJECTION_WITH \
+		Q_EVENTUALLY_EXPECT_REJECTION_WITH
+#	define EVENTUALLY_EXPECT_SHARED Q_EVENTUALLY_EXPECT_SHARED
+#	define EVENTUALLY_EXPECT_UNIQUE Q_EVENTUALLY_EXPECT_UNIQUE
+#endif // !defined( QTEST_NO_PRETTY_MACROS )
 
 
 namespace q { namespace test {
